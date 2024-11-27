@@ -1,0 +1,37 @@
+{
+    // Utilisez IntelliSense pour en savoir plus sur les attributs possibles.
+    // Pointez pour afficher la description des attributs existants.
+    // Pour plus d'informations, visitez : https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "squad_tracker_flutter Android",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+            "--dart-define=ACCESS_TOKEN=pk.eyJ1IjoibWFyY2RlbHJ1ZSIsImEiOiJja25odWQxMmsycDE3MnFsYzMwdnQ5aXJzIn0.7VOwUUKLB5vfdnQWd8K4GQ"
+        ],
+        },
+        {
+            "name": "squad_tracker_flutter Web",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "-d", "chrome","--web-port", "8000",
+            "--dart-define=ACCESS_TOKEN=pk.eyJ1IjoibWFyY2RlbHJ1ZSIsImEiOiJja25odWQxMmsycDE3MnFsYzMwdnQ5aXJzIn0.7VOwUUKLB5vfdnQWd8K4GQ"
+        ],
+        },
+        {
+            "name": "squad_tracker_flutter (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "squad_tracker_flutter (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}
