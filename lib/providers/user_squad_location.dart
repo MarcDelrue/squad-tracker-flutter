@@ -11,13 +11,14 @@ class UserSquadLocationService extends ChangeNotifier {
   UserSquadLocationService._internal();
 
   final SupabaseClient _supabase = Supabase.instance.client;
-
+  late List<UserSquadLocation>? differenceWithPreviousLocation;
   Map<String, RealtimeChannel>? membersLocationsChannels;
-  UserSquadLocation? _currentUserSquadLocation;
-  UserSquadLocation? get currentUserSquadLocation => _currentUserSquadLocation;
+  UserSquadLocation? _currentUserLocation;
+  UserSquadLocation? get currentUserLocation => _currentUserLocation;
 
-  set currentUserSquadLocation(UserSquadLocation? value) {
-    _currentUserSquadLocation = value;
+  set currentUserLocation(UserSquadLocation? value) {
+    _getDifferenceWithPreviousLocation();
+    _currentUserLocation = value;
     notifyListeners();
   }
 
@@ -30,7 +31,7 @@ class UserSquadLocationService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> getLastUserSquadLocation(String userId, String squadId) async {
+  Future<void> getLastUserLocation(String userId, String squadId) async {
     try {
       final hasUserSquadLocation = await _supabase
           .from('user_squad_locations')
@@ -42,7 +43,7 @@ class UserSquadLocationService extends ChangeNotifier {
       if (hasUserSquadLocation == null) {
         debugPrint('No user squad location found for user ID: $userId');
       } else {
-        currentUserSquadLocation = UserSquadLocation(
+        currentUserLocation = UserSquadLocation(
             id: hasUserSquadLocation['id'],
             user_id: hasUserSquadLocation['user_id'],
             squad_id: hasUserSquadLocation['squad_id'],
@@ -61,7 +62,7 @@ class UserSquadLocationService extends ChangeNotifier {
         'longitude': longitude,
         'latitude': latitude,
         'direction': direction
-      }).eq('id', _currentUserSquadLocation!.id);
+      }).eq('id', _currentUserLocation!.id);
     } catch (e) {
       debugPrint('Error in saveCurrentLocation: $e');
     }
@@ -148,5 +149,27 @@ class UserSquadLocationService extends ChangeNotifier {
     final channel = membersLocationsChannels![memberId];
     channel?.unsubscribe();
     membersLocationsChannels?.remove(memberId);
+  }
+
+  void _getDifferenceWithPreviousLocation() {
+    if (_currentUserLocation == null ||
+        differenceWithPreviousLocation == null) {
+      differenceWithPreviousLocation = [];
+      return;
+    }
+
+    final previousLocation = differenceWithPreviousLocation!.isNotEmpty
+        ? differenceWithPreviousLocation!.last
+        : null;
+
+    if (previousLocation != null &&
+        (previousLocation.longitude != _currentUserLocation!.longitude ||
+            previousLocation.latitude != _currentUserLocation!.latitude ||
+            previousLocation.direction != _currentUserLocation!.direction)) {
+      differenceWithPreviousLocation = [
+        ...differenceWithPreviousLocation!,
+        _currentUserLocation!
+      ];
+    }
   }
 }

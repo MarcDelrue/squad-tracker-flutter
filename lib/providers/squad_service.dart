@@ -28,7 +28,7 @@ class SquadService extends ChangeNotifier {
     if (value != null) {
       squadMembersService.listenToSquadMembers(
           userService.currentUser!.id, value.id);
-      userSquadLocationService.getLastUserSquadLocation(
+      userSquadLocationService.getLastUserLocation(
           userService.currentUser!.id, value.id);
     } else {
       squadMembersService.unsubscribeFromSquadMembers();

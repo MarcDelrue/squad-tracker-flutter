@@ -34,6 +34,10 @@ class MapAnnotationsService extends ChangeNotifier {
   updateMembersAnnotation() {
     if (membersPointAnnotations == null) {
       setInitialMembersAnnotation();
+    } else {
+      debugPrint('Updating members annotation $membersPointAnnotations');
+      debugPrint(
+          '${userSquadLocationService.differenceWithPreviousLocation} changed since then');
     }
   }
 
