@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_compass/flutter_compass.dart';
@@ -15,6 +17,8 @@ class MapUserLocationService extends ChangeNotifier {
 
   final userSquadLocationService = UserSquadLocationService();
 
+  late StreamSubscription<locator.Position> positionStream;
+  late StreamSubscription<CompassEvent> compassStream;
   mapbox.MapboxMap? mapboxMap;
   late locator.LocationSettings? locationSettings;
   var currentDirection = 0.0;
@@ -26,6 +30,8 @@ class MapUserLocationService extends ChangeNotifier {
 
     final hasPermission = await getLocationPermission();
     if (hasPermission) {
+      loadUserPuck();
+      setLocationSettingsPerPlatform();
       trackUserLocation();
       getUserDirection();
     }
@@ -46,11 +52,9 @@ class MapUserLocationService extends ChangeNotifier {
   }
 
   trackUserLocation() async {
-    loadUserPuck();
-
-    setLocationSettingsPerPlatform();
-    locator.Geolocator.getPositionStream(locationSettings: locationSettings)
-        .listen((locator.Position? position) {
+    positionStream =
+        locator.Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((locator.Position? position) {
       if (position != null) {
         userSquadLocationService.saveCurrentLocation(
             position.longitude, position.latitude, currentDirection);
@@ -66,7 +70,7 @@ class MapUserLocationService extends ChangeNotifier {
   }
 
   getUserDirection() {
-    FlutterCompass.events?.listen((CompassEvent event) {
+    compassStream = FlutterCompass.events!.listen((CompassEvent event) {
       double? direction = event.heading;
 
       if (direction == null) {
