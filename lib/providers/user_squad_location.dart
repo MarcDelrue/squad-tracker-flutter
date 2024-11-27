@@ -17,7 +17,6 @@ class UserSquadLocationService extends ChangeNotifier {
   UserSquadLocation? get currentUserLocation => _currentUserLocation;
 
   set currentUserLocation(UserSquadLocation? value) {
-    _getDifferenceWithPreviousLocation();
     _currentUserLocation = value;
     notifyListeners();
   }
@@ -27,6 +26,7 @@ class UserSquadLocationService extends ChangeNotifier {
       _currentMembersLocation;
 
   set currentMembersLocation(List<UserSquadLocation>? value) {
+    _getDifferencesWithPreviousLocation(value, _currentMembersLocation);
     _currentMembersLocation = value;
     notifyListeners();
   }
@@ -142,7 +142,7 @@ class UserSquadLocationService extends ChangeNotifier {
 
     membersLocationsChannels ??= {};
     membersLocationsChannels![memberId] = channel;
-    print('Listener setup complete for member locations: $memberId');
+    debugPrint('Listener setup complete for member locations: $memberId');
   }
 
   unsubscribeMemberLocations(String memberId) {
@@ -151,25 +151,30 @@ class UserSquadLocationService extends ChangeNotifier {
     membersLocationsChannels?.remove(memberId);
   }
 
-  void _getDifferenceWithPreviousLocation() {
-    if (_currentUserLocation == null ||
-        differenceWithPreviousLocation == null) {
+  void _getDifferencesWithPreviousLocation(
+      List<UserSquadLocation>? currentLocations,
+      List<UserSquadLocation>? previousLocations) {
+    debugPrint('Current locations: $currentLocations');
+    if (currentLocations == null ||
+        previousLocations == null ||
+        currentLocations.isEmpty ||
+        previousLocations.isEmpty) {
       differenceWithPreviousLocation = [];
       return;
     }
 
-    final previousLocation = differenceWithPreviousLocation!.isNotEmpty
-        ? differenceWithPreviousLocation!.last
-        : null;
+    final differences = currentLocations.where((currentLocation) {
+      final previousLocation = previousLocations.firstWhere(
+        (prevLocation) => prevLocation.user_id == currentLocation.user_id,
+        orElse: () => currentLocation,
+      );
 
-    if (previousLocation != null &&
-        (previousLocation.longitude != _currentUserLocation!.longitude ||
-            previousLocation.latitude != _currentUserLocation!.latitude ||
-            previousLocation.direction != _currentUserLocation!.direction)) {
-      differenceWithPreviousLocation = [
-        ...differenceWithPreviousLocation!,
-        _currentUserLocation!
-      ];
-    }
+      return previousLocation.longitude != currentLocation.longitude ||
+          previousLocation.latitude != currentLocation.latitude ||
+          previousLocation.direction != currentLocation.direction;
+    }).toList();
+
+    debugPrint('Differences with previous location: $differences');
+    differenceWithPreviousLocation = differences;
   }
 }

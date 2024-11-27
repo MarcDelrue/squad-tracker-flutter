@@ -35,9 +35,21 @@ class MapAnnotationsService extends ChangeNotifier {
     if (membersPointAnnotations == null) {
       setInitialMembersAnnotation();
     } else {
-      debugPrint('Updating members annotation $membersPointAnnotations');
-      debugPrint(
-          '${userSquadLocationService.differenceWithPreviousLocation} changed since then');
+      for (var i = 0;
+          i < userSquadLocationService.currentMembersLocation!.length;
+          i++) {
+        var location = userSquadLocationService.currentMembersLocation![i];
+        var annotation = membersPointAnnotations![i];
+
+        annotation.geometry = mapbox.Point(
+            coordinates: mapbox.Position(
+                location.longitude as num, location.latitude as num));
+        annotation.iconRotate = location.direction ?? 0;
+
+        // Optionally update the annotation manager to reflect these changes on the map
+        pointAnnotationManager.update(annotation);
+      }
+      debugPrint('Updated members annotation $membersPointAnnotations');
     }
   }
 
