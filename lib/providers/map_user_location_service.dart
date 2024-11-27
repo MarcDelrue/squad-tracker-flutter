@@ -30,8 +30,8 @@ class MapUserLocationService extends ChangeNotifier {
 
     final hasPermission = await getLocationPermission();
     if (hasPermission) {
-      loadUserPuck();
       setLocationSettingsPerPlatform();
+      loadUserPuck();
       trackUserLocation();
       getUserDirection();
     }
@@ -132,12 +132,7 @@ class MapUserLocationService extends ChangeNotifier {
         enabled: true,
         puckBearingEnabled: true,
         locationPuck: mapbox.LocationPuck(
-            locationPuck2D: mapbox.DefaultLocationPuck2D(
-                topImage: list, shadowImage: Uint8List.fromList([])))));
-
-    mapboxMap?.location
-        .getSettings()
-        .then((value) => {debugPrint('puckBearing: ${value.puckBearing}')});
+            locationPuck2D: mapbox.DefaultLocationPuck2D(topImage: list))));
   }
 
   flyToLocation(double longitude, double latitude) {
