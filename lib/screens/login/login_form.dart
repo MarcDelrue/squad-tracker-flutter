@@ -51,7 +51,6 @@ class _LoginFormState extends State<LoginForm> {
     }
   }
 
-//re_UasDH2Cj_6vR5DhpCefx8nhoWYyBX7uwX
   @override
   void initState() {
     _authStateSubscription = supabase.auth.onAuthStateChange.listen(
