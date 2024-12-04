@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/models/user_with_session.dart';
 import 'package:squad_tracker_flutter/models/users_model.dart' as users_model;
+import 'package:squad_tracker_flutter/providers/map_annotations_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -13,6 +14,7 @@ class SquadMembersService extends ChangeNotifier {
 
   final SupabaseClient _supabase = Supabase.instance.client;
   final userSquadLocationService = UserSquadLocationService();
+  // final mapAnnotationsService = MapAnnotationsService();
   RealtimeChannel? currentSquadChannel;
   Map<String, RealtimeChannel>? currentMembersChannels;
 
@@ -123,6 +125,8 @@ class SquadMembersService extends ChangeNotifier {
                 }
               } else if (payload.newRecord['is_active'] == false) {
                 _removeSquadMember(payload.newRecord['user_id']);
+                // mapAnnotationsService
+                //     .removeMembersAnnotation(payload.newRecord['username']);
                 userSquadLocationService
                     .unsubscribeMemberLocations(payload.newRecord['user_id']);
                 unsubscribeFromMembersData(payload.newRecord['user_id']);
