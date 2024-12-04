@@ -9,7 +9,7 @@
             "request": "launch",
             "type": "dart",
             "args": [
-            "--dart-define=ACCESS_TOKEN=pk.eyJ1IjoibWFyY2RlbHJ1ZSIsImEiOiJja25odWQxMmsycDE3MnFsYzMwdnQ5aXJzIn0.7VOwUUKLB5vfdnQWd8K4GQ"
+            "--dart-define=MAPBOX_TOKEN=sk.eyJ1IjoibWFyY2RlbHJ1ZSIsImEiOiJjbTNodW5sNmswZ3N0Mm1zNjk0aDVjYzM5In0.Mbv7uMcYheJ4bXHmzK707g"
         ],
         },
         {
@@ -18,7 +18,7 @@
             "type": "dart",
             "args": [
                 "-d", "chrome","--web-port", "8000",
-            "--dart-define=ACCESS_TOKEN=pk.eyJ1IjoibWFyY2RlbHJ1ZSIsImEiOiJja25odWQxMmsycDE3MnFsYzMwdnQ5aXJzIn0.7VOwUUKLB5vfdnQWd8K4GQ"
+                "--dart-define=MAPBOX_TOKEN=sk.eyJ1IjoibWFyY2RlbHJ1ZSIsImEiOiJjbTNodW5sNmswZ3N0Mm1zNjk0aDVjYzM5In0.Mbv7uMcYheJ4bXHmzK707g"
         ],
         },
         {

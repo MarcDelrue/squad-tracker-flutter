@@ -13,9 +13,9 @@ void main() async {
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcHpuc2ljeXF2dGhjZnBuZ21zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg4MzQxMjUsImV4cCI6MjA0NDQxMDEyNX0.j38omnpIUud1tbTP68Fpk09XwVPoBxp9UVgKupDj020',
   );
-  String accessToken = const String.fromEnvironment("ACCESS_TOKEN");
+  String mapboxToken = const String.fromEnvironment("MAPBOX_TOKEN");
   // Uncomment to work on map
-  MapboxOptions.setAccessToken(accessToken);
+  MapboxOptions.setAccessToken(mapboxToken);
   runApp(const MyApp());
 }
 
