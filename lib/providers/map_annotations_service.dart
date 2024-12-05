@@ -31,6 +31,23 @@ class MapAnnotationsService extends ChangeNotifier {
     soldierImage = bytes.buffer.asUint8List();
   }
 
+  removeEveryAnnotations() {
+    pointAnnotationManager.deleteAll();
+    membersPointAnnotations = null;
+  }
+
+  void removeMembersAnnotation(String username) {
+    if (membersPointAnnotations == null) return;
+    // Find the annotation with the matching username
+    final foundMemberAnnotation = membersPointAnnotations!.firstWhere(
+      (annotation) => annotation.textField == username,
+    );
+
+    pointAnnotationManager.delete(foundMemberAnnotation);
+    membersPointAnnotations!.remove(foundMemberAnnotation);
+    debugPrint('Removed member annotation for $username');
+  }
+
   updateMembersAnnotation() {
     if (membersPointAnnotations == null) {
       setInitialMembersAnnotation();
@@ -40,6 +57,10 @@ class MapAnnotationsService extends ChangeNotifier {
           i++) {
         var location = userSquadLocationService.currentMembersLocation![i];
         var annotation = membersPointAnnotations![i];
+
+        if (location.longitude == null || location.latitude == null) {
+          continue;
+        }
 
         annotation.geometry = mapbox.Point(
             coordinates: mapbox.Position(
@@ -57,7 +78,6 @@ class MapAnnotationsService extends ChangeNotifier {
     List<mapbox.PointAnnotationOptions> annotations = [];
     // Iterate through each member's location and create a PointAnnotationOptions
     for (var location in userSquadLocationService.currentMembersLocation!) {
-      debugPrint('The direction is ${location.direction ?? 0}');
       UserWithSession foundMember =
           squadMembersService.getMemberDataById(location.user_id);
       mapbox.PointAnnotationOptions pointAnnotationOptions =

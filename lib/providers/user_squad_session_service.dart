@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
+import 'package:squad_tracker_flutter/providers/map_annotations_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserSquadSessionService extends ChangeNotifier {
@@ -10,6 +11,7 @@ class UserSquadSessionService extends ChangeNotifier {
   UserSquadSessionService._internal();
 
   final SupabaseClient _supabase = Supabase.instance.client;
+  final mapAnnotationsService = MapAnnotationsService();
 
   UserSquadSession? _currentSquadSession;
   UserSquadSession? get currentSquadSession => _currentSquadSession;
@@ -74,6 +76,7 @@ class UserSquadSessionService extends ChangeNotifier {
           .eq('user_id', userId)
           .eq('squad_id', squadId)
           .select();
+      mapAnnotationsService.removeEveryAnnotations();
       debugPrint('User left squad: $response');
     } catch (e) {
       debugPrint("Failed to leave squad: $e");
