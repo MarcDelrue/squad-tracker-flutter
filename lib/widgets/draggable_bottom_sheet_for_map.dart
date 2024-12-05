@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-class DraggableBottomSheetContent extends StatelessWidget {
+class DraggableBottomSheetForMap extends StatelessWidget {
   final String title;
   final Widget content;
 
-  const DraggableBottomSheetContent(
+  const DraggableBottomSheetForMap(
       {super.key, required this.title, required this.content});
 
   @override
