@@ -1,30 +1,45 @@
 import 'package:flutter/material.dart';
 
 class DraggableBottomSheetForMap extends StatelessWidget {
-  final String title;
-  final Widget content;
-
-  const DraggableBottomSheetForMap(
-      {super.key, required this.title, required this.content});
+  const DraggableBottomSheetForMap({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18.0,
-              fontWeight: FontWeight.bold,
+    return DraggableScrollableSheet(
+      builder: (BuildContext context, scrollController) {
+        return Container(
+          clipBehavior: Clip.hardEdge,
+          decoration: BoxDecoration(
+            color: Theme.of(context).canvasColor,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(25),
+              topRight: Radius.circular(25),
             ),
           ),
-        ),
-        const Divider(),
-        Expanded(child: content),
-      ],
+          child: CustomScrollView(
+            controller: scrollController,
+            slivers: [
+              SliverToBoxAdapter(
+                child: Center(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).hintColor,
+                      borderRadius: const BorderRadius.all(Radius.circular(10)),
+                    ),
+                    height: 4,
+                    width: 40,
+                    margin: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+              SliverList.list(children: const [
+                ListTile(title: Text('Jane Doe')),
+                ListTile(title: Text('Jack Reacher')),
+              ])
+            ],
+          ),
+        );
+      },
     );
   }
 }

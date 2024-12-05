@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/widgets/map_fab.dart';
 import 'package:squad_tracker_flutter/widgets/map.dart';
-import 'package:squad_tracker_flutter/widgets/draggable_bottom_sheet_content.dart';
+import 'package:squad_tracker_flutter/widgets/draggable_bottom_sheet_for_map.dart';
 
 class MapWithLocation extends StatefulWidget {
   const MapWithLocation({super.key});
@@ -11,44 +11,13 @@ class MapWithLocation extends StatefulWidget {
 }
 
 class MapWithLocationState extends State<MapWithLocation> {
-  void _showDraggableBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          expand: false,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
-              ),
-              child: DraggableBottomSheetContent(
-                title: 'Draggable Bottom Sheet',
-                content: ListView.builder(
-                  controller: scrollController,
-                  itemCount: 50,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text('Item $index'),
-                    );
-                  },
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
           const GameMapWidget(),
+          const DraggableBottomSheetForMap(),
           Positioned(
             top: 16,
             right: 16,
@@ -63,7 +32,7 @@ class MapWithLocationState extends State<MapWithLocation> {
               },
               onFAB3Pressed: () {
                 // Handle FAB 3 press
-                _showDraggableBottomSheet(context);
+                print('FAB 3 pressed');
               },
             ),
           ),
