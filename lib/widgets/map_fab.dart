@@ -34,25 +34,34 @@ class _MapFabState extends State<MapFab> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        FloatingActionButton(
+        FloatingActionButton.small(
           heroTag: 'fab1',
           onPressed: () => _onFabPressed(0, widget.onFAB1Pressed),
-          backgroundColor: _selectedIndex == 0 ? Colors.green : Colors.grey,
-          child: const Icon(Icons.manage_accounts),
+          backgroundColor: _selectedIndex == 0 ? Colors.green : Colors.white,
+          child: Icon(
+            Icons.group,
+            color: _selectedIndex == 0 ? Colors.white : Colors.green,
+          ),
         ),
-        const SizedBox(height: 16),
-        FloatingActionButton(
+        const SizedBox(height: 12),
+        FloatingActionButton.small(
           heroTag: 'fab2',
           onPressed: () => _onFabPressed(1, widget.onFAB2Pressed),
-          backgroundColor: _selectedIndex == 1 ? Colors.green : Colors.grey,
-          child: const Icon(Icons.group),
+          backgroundColor: _selectedIndex == 1 ? Colors.green : Colors.white,
+          child: Icon(
+            Icons.manage_accounts,
+            color: _selectedIndex == 1 ? Colors.white : Colors.green,
+          ),
         ),
-        const SizedBox(height: 16),
-        FloatingActionButton(
+        const SizedBox(height: 12),
+        FloatingActionButton.small(
           heroTag: 'fab3',
           onPressed: () => _onFabPressed(2, widget.onFAB3Pressed),
-          backgroundColor: _selectedIndex == 2 ? Colors.green : Colors.grey,
-          child: const Icon(Icons.military_tech),
+          backgroundColor: _selectedIndex == 2 ? Colors.green : Colors.white,
+          child: Icon(
+            Icons.military_tech,
+            color: _selectedIndex == 2 ? Colors.white : Colors.green,
+          ),
         ),
       ],
     );

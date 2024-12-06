@@ -70,7 +70,7 @@ class _NavigationWidgetState extends State<NavigationWidget> {
                 return Scaffold(
                   bottomNavigationBar: NavigationBar(
                     onDestinationSelected: onDestinationSelected,
-                    indicatorColor: Colors.amber,
+                    indicatorColor: Colors.green,
                     selectedIndex: currentPageIndex,
                     destinations: <Widget>[
                       const NavigationDestination(
