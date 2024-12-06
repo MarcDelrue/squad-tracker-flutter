@@ -8,12 +8,14 @@ class UserStatusButtons extends StatefulWidget {
 class _UserStatusButtonsState extends State<UserStatusButtons> {
   List<bool> _isSelected = [false, false, false];
 
-  Widget _buildToggleButton(String text, Color color, int index) {
+  Widget _buildToggleButton(
+      String text, String toggledText, Color color, int index) {
     return ElevatedButton(
       style: _isSelected[index]
           ? ElevatedButton.styleFrom(
               foregroundColor: Colors.white,
               backgroundColor: color,
+              side: BorderSide(color: color),
             )
           : OutlinedButton.styleFrom(
               foregroundColor: color,
@@ -29,7 +31,7 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
           ];
         });
       },
-      child: Text(text),
+      child: _isSelected[index] ? Text(toggledText) : Text(text),
     );
   }
 
@@ -38,11 +40,11 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildToggleButton('Died', Colors.grey, 0),
+        _buildToggleButton('Died', 'Dead', Colors.grey, 0),
         const SizedBox(width: 10),
-        _buildToggleButton('Send Help', Colors.red, 1),
+        _buildToggleButton('Send help', 'Help asked', Colors.red, 1),
         const SizedBox(width: 10),
-        _buildToggleButton('Send Medic', Colors.yellow, 2),
+        _buildToggleButton('Send medic', 'Medic asked', Colors.orange, 2),
       ],
     );
   }
