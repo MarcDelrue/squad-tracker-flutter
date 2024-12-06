@@ -16,7 +16,7 @@ class MapFab extends StatefulWidget {
 }
 
 class _MapFabState extends State<MapFab> {
-  int _selectedIndex = -1;
+  int _selectedIndex = 0;
 
   void _onFabPressed(int index, VoidCallback onPressed) {
     setState(() {

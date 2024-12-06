@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class DraggableBottomSheetForMap extends StatelessWidget {
-  const DraggableBottomSheetForMap({super.key});
+  final Widget content;
+
+  const DraggableBottomSheetForMap({super.key, required this.content});
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +34,9 @@ class DraggableBottomSheetForMap extends StatelessWidget {
                   ),
                 ),
               ),
-              SliverList.list(children: const [
-                ListTile(title: Text('Jane Doe')),
-                ListTile(title: Text('Jack Reacher')),
-              ])
+              SliverToBoxAdapter(
+                child: Center(child: content),
+              ),
             ],
           ),
         );

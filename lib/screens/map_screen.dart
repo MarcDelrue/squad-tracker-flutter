@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:squad_tracker_flutter/widgets/draggable_bottom_sheet_for_map.dart';
 import 'package:squad_tracker_flutter/widgets/map_fab.dart';
 import 'package:squad_tracker_flutter/widgets/map.dart';
-import 'package:squad_tracker_flutter/widgets/draggable_bottom_sheet_for_map.dart';
+import 'package:squad_tracker_flutter/widgets/user_status_buttons.dart';
 
 class MapWithLocation extends StatefulWidget {
   const MapWithLocation({super.key});
@@ -17,7 +18,9 @@ class MapWithLocationState extends State<MapWithLocation> {
       body: Stack(
         children: [
           const GameMapWidget(),
-          const DraggableBottomSheetForMap(),
+          DraggableBottomSheetForMap(
+            content: UserStatusButtons(),
+          ),
           Positioned(
             top: 16,
             right: 16,
