@@ -33,7 +33,7 @@ class MapUserLocationService extends ChangeNotifier {
       setLocationSettingsPerPlatform();
       loadUserPuck();
       trackUserLocation();
-      getUserDirection();
+      // getUserDirection();
     }
   }
 
