@@ -8,6 +8,9 @@ class DraggableBottomSheetForMap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
+      initialChildSize: 0.1,
+      minChildSize: 0.1,
+      maxChildSize: 1.0,
       builder: (BuildContext context, scrollController) {
         return Container(
           clipBehavior: Clip.hardEdge,
