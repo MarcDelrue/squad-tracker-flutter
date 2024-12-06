@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:squad_tracker_flutter/models/squad_session_model.dart';
+import 'package:squad_tracker_flutter/providers/user_squad_session_service.dart';
 
 class UserStatusButtons extends StatefulWidget {
   @override
@@ -6,12 +8,19 @@ class UserStatusButtons extends StatefulWidget {
 }
 
 class _UserStatusButtonsState extends State<UserStatusButtons> {
-  List<bool> _isSelected = [false, false, false];
+  final userSquadSessionService = UserSquadSessionService();
+  UserSquadSessionStatus? _currentStatus;
 
-  Widget _buildToggleButton(
-      String text, String toggledText, Color color, int index) {
+  @override
+  void initState() {
+    super.initState();
+    _currentStatus = userSquadSessionService.currentSquadSession?.user_status;
+  }
+
+  Widget _buildToggleButton(String text, String toggledText, Color color,
+      UserSquadSessionStatus value) {
     return ElevatedButton(
-      style: _isSelected[index]
+      style: _currentStatus == value
           ? ElevatedButton.styleFrom(
               foregroundColor: Colors.white,
               backgroundColor: color,
@@ -24,14 +33,16 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
             ),
       onPressed: () {
         setState(() {
-          _isSelected = [
-            index == 0 ? !_isSelected[0] : false,
-            index == 1 ? !_isSelected[1] : false,
-            index == 2 ? !_isSelected[2] : false
-          ];
+          if (_currentStatus != value) {
+            _currentStatus = value;
+          } else {
+            _currentStatus = UserSquadSessionStatus.alive;
+          }
+          userSquadSessionService
+              .updateUserSquadSessionUserStatus(_currentStatus!);
         });
       },
-      child: _isSelected[index] ? Text(toggledText) : Text(text),
+      child: _currentStatus == value ? Text(toggledText) : Text(text),
     );
   }
 
@@ -40,11 +51,14 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildToggleButton('Died', 'Dead', Colors.grey, 0),
+        _buildToggleButton(
+            'Died', 'Dead', Colors.grey, UserSquadSessionStatus.dead),
         const SizedBox(width: 10),
-        _buildToggleButton('Send help', 'Help asked', Colors.red, 1),
+        _buildToggleButton(
+            'Send help', 'Help asked', Colors.red, UserSquadSessionStatus.help),
         const SizedBox(width: 10),
-        _buildToggleButton('Send medic', 'Medic asked', Colors.orange, 2),
+        _buildToggleButton('Send medic', 'Medic asked', Colors.orange,
+            UserSquadSessionStatus.medic),
       ],
     );
   }

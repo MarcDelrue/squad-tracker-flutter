@@ -70,13 +70,13 @@ class MapUserLocationService extends ChangeNotifier {
   }
 
   getUserDirection() {
-    compassStream = FlutterCompass.events!.listen((CompassEvent event) {
-      double? direction = event.heading;
+    // Cancel any existing compassStream subscription
 
-      if (direction == null) {
+    compassStream = FlutterCompass.events!.listen((CompassEvent event) {
+      double? currentDirection = event.heading;
+
+      if (currentDirection == null) {
         debugPrint('Device does not have sensors!');
-      } else {
-        currentDirection = direction;
       }
     });
   }
@@ -143,5 +143,12 @@ class MapUserLocationService extends ChangeNotifier {
       ),
       mapbox.MapAnimationOptions(duration: 2000, startDelay: 0),
     );
+  }
+
+  @override
+  void dispose() {
+    positionStream.cancel();
+    compassStream.cancel();
+    super.dispose();
   }
 }

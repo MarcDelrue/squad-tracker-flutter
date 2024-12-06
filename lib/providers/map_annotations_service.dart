@@ -24,7 +24,8 @@ class MapAnnotationsService extends ChangeNotifier {
   initMembersAnnotation(mapbox.MapboxMap mapboxMap) async {
     pointAnnotationManager =
         await mapboxMap.annotations.createPointAnnotationManager();
-
+    pointAnnotationManager
+        .setIconRotationAlignment(mapbox.IconRotationAlignment.MAP);
     // Load the image from assets
     final ByteData bytes =
         await rootBundle.load('assets/images/soldiers/default_soldier.png');

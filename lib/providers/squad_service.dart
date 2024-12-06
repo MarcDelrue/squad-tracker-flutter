@@ -163,7 +163,11 @@ class SquadService extends ChangeNotifier {
                     user_id: payload.newRecord['user_id'],
                     squad_id: payload.newRecord['squad_id'],
                     is_host: payload.newRecord['is_host'],
-                    is_active: payload.newRecord['is_active']);
+                    is_active: payload.newRecord['is_active'],
+                    user_status: payload.newRecord['user_status'] != null
+                        ? UserSquadSessionStatusExtension.fromValue(
+                            payload.newRecord['user_status'])
+                        : UserSquadSessionStatus.alive);
                 setCurrentSquad(
                     userId: userId,
                     squadId: payload.newRecord['squad_id'].toString());

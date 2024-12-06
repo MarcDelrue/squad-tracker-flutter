@@ -18,9 +18,6 @@ class UserSquadSessionService extends ChangeNotifier {
 
   set currentSquadSession(UserSquadSession? value) {
     _currentSquadSession = value;
-    // _supabase
-    //     .rpc('manage_user_squad_locations')
-    //     .then((result) => print(result));
     notifyListeners();
   }
 
@@ -31,9 +28,12 @@ class UserSquadSessionService extends ChangeNotifier {
     required bool isHost,
   }) async {
     try {
-      await _supabase
-          .from('user_squad_sessions')
-          .insert({'user_id': userId, 'squad_id': squadId, 'is_host': isHost});
+      await _supabase.from('user_squad_sessions').insert({
+        'user_id': userId,
+        'squad_id': squadId,
+        'is_host': isHost,
+        'user_status': UserSquadSessionStatus.alive.value
+      });
     } catch (e) {
       throw Exception('Failed to join squad: $e');
     }
@@ -93,15 +93,33 @@ class UserSquadSessionService extends ChangeNotifier {
           .eq('is_active', true)
           .single();
       currentSquadSession = UserSquadSession(
-          id: response['id'],
-          user_id: response['user_id'],
-          squad_id: response['squad_id'],
-          is_host: response['is_host'],
-          is_active: response['is_active']);
+        id: response['id'],
+        user_id: response['user_id'],
+        squad_id: response['squad_id'],
+        is_host: response['is_host'],
+        is_active: response['is_active'],
+        user_status: response['user_status'] != null
+            ? UserSquadSessionStatusExtension.fromValue(response['user_status'])
+            : UserSquadSessionStatus.alive,
+      );
+      debugPrint('Current squad session: ${response['user_status']}');
       return response.isNotEmpty ? response['squad_id'].toString() : null;
     } catch (e) {
       debugPrint("Failed to get squad session squad ID: $e");
       return null;
+    }
+  }
+
+  Future<void> updateUserSquadSessionUserStatus(
+      UserSquadSessionStatus userStatus) async {
+    try {
+      await _supabase
+          .from('user_squad_sessions')
+          .update({'user_status': userStatus.value})
+          .eq('user_id', currentSquadSession!.user_id)
+          .eq('squad_id', currentSquadSession!.squad_id);
+    } catch (e) {
+      debugPrint("Failed to update user squad session user status: $e");
     }
   }
 }
