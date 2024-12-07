@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart' as locator;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:permission_handler/permission_handler.dart';
@@ -17,7 +18,7 @@ class MapUserLocationService extends ChangeNotifier {
   final userSquadLocationService = UserSquadLocationService();
 
   late StreamSubscription<locator.Position> positionStream;
-  // late StreamSubscription<CompassEvent> compassStream;
+  late StreamSubscription<CompassEvent> compassStream;
   mapbox.MapboxMap? mapboxMap;
   late locator.LocationSettings? locationSettings;
   var currentDirection = 0.0;
@@ -43,7 +44,7 @@ class MapUserLocationService extends ChangeNotifier {
       setLocationSettingsPerPlatform();
       loadUserPuck();
       trackUserLocation();
-      // getUserDirection();
+      getUserDirection();
     }
   }
 
@@ -86,13 +87,13 @@ class MapUserLocationService extends ChangeNotifier {
   getUserDirection() {
     // Cancel any existing compassStream subscription
 
-    // compassStream = FlutterCompass.events!.listen((CompassEvent event) {
-    //   double? currentDirection = event.heading;
+    compassStream = FlutterCompass.events!.listen((CompassEvent event) {
+      double? currentDirection = event.heading;
 
-    //   if (currentDirection == null) {
-    //     debugPrint('Device does not have sensors!');
-    //   }
-    // });
+      if (currentDirection == null) {
+        debugPrint('Device does not have sensors!');
+      }
+    });
   }
 
   setLocationSettingsPerPlatform() {
