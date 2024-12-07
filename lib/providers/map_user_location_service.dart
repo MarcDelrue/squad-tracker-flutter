@@ -6,7 +6,7 @@ import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart' as locator;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:permission_handler/permission_handler.dart';
-import 'package:squad_tracker_flutter/providers/user_squad_location.dart';
+import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 
 class MapUserLocationService extends ChangeNotifier {
   // Singleton setup
@@ -56,6 +56,10 @@ class MapUserLocationService extends ChangeNotifier {
         locator.Geolocator.getPositionStream(locationSettings: locationSettings)
             .listen((locator.Position? position) {
       if (position != null) {
+        userSquadLocationService.currentUserLocation?.latitude =
+            position.latitude;
+        userSquadLocationService.currentUserLocation?.longitude =
+            position.longitude;
         userSquadLocationService.saveCurrentLocation(
             position.longitude, position.latitude, currentDirection);
         if (cameraInitialized == false) {

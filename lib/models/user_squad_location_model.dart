@@ -6,13 +6,14 @@ class UserSquadLocation {
   double? latitude;
   double? direction;
 
-  UserSquadLocation(
-      {required this.id,
-      required this.user_id,
-      required this.squad_id,
-      this.longitude,
-      this.latitude,
-      this.direction});
+  UserSquadLocation({
+    required this.id,
+    required this.user_id,
+    required this.squad_id,
+    this.longitude,
+    this.latitude,
+    this.direction,
+  });
 
   factory UserSquadLocation.fromJson(Map<String, dynamic> json) {
     return UserSquadLocation(

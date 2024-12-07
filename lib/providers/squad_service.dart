@@ -3,7 +3,7 @@ import 'package:squad_tracker_flutter/models/squad_model.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
-import 'package:squad_tracker_flutter/providers/user_squad_location.dart';
+import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_session_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

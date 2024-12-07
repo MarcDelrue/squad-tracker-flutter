@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,6 +20,7 @@ class UserSquadLocationService extends ChangeNotifier {
 
   set currentUserLocation(UserSquadLocation? value) {
     _currentUserLocation = value;
+    _updateMembersDistanceFromUser();
     notifyListeners();
   }
 
@@ -28,6 +31,15 @@ class UserSquadLocationService extends ChangeNotifier {
   set currentMembersLocation(List<UserSquadLocation>? value) {
     _getDifferencesWithPreviousLocation(value, _currentMembersLocation);
     _currentMembersLocation = value;
+    notifyListeners();
+  }
+
+  Map<String, double>? _currentMembersDistanceFromUser = {};
+  Map<String, double>? get currentMembersDistanceFromUser =>
+      _currentMembersDistanceFromUser;
+
+  set currentMembersDistanceFromUser(Map<String, double>? value) {
+    _currentMembersDistanceFromUser = value;
     notifyListeners();
   }
 
@@ -51,7 +63,7 @@ class UserSquadLocationService extends ChangeNotifier {
             latitude: hasUserSquadLocation['latitude']);
       }
     } catch (e) {
-      debugPrint('Error in createInitialUserSquadLocation: $e');
+      debugPrint('Error in getLastUserLocation: $e');
     }
   }
 
@@ -63,6 +75,7 @@ class UserSquadLocationService extends ChangeNotifier {
         'latitude': latitude,
         'direction': direction
       }).eq('id', _currentUserLocation!.id);
+      _updateMembersDistanceFromUser();
     } catch (e) {
       debugPrint('Error in saveCurrentLocation: $e');
     }
@@ -81,13 +94,14 @@ class UserSquadLocationService extends ChangeNotifier {
 
         if (response != null) {
           _listenMemberLocations(memberId, squadId);
-          locations.add(UserSquadLocation(
-              id: response['id'],
-              user_id: response['user_id'],
-              squad_id: response['squad_id'],
-              longitude: response['longitude'],
-              latitude: response['latitude'],
-              direction: response['direction']));
+          UserSquadLocation memberLocation =
+              UserSquadLocation.fromJson(response);
+          currentMembersDistanceFromUser![memberId] =
+              _calculateDistanceFromUser(memberLocation);
+          debugPrint(
+              'Updated distance from user for member $memberId: ${currentMembersDistanceFromUser![memberId]}');
+
+          locations.add(memberLocation);
         }
       }
       debugPrint('Fetched locations: $locations');
@@ -119,14 +133,12 @@ class UserSquadLocationService extends ChangeNotifier {
             ),
             callback: (PostgresChangePayload payload) {
               debugPrint('User squad location change detected: $payload');
-              final updatedLocation = UserSquadLocation(
-                id: payload.newRecord['id'],
-                user_id: payload.newRecord['user_id'],
-                squad_id: payload.newRecord['squad_id'],
-                longitude: payload.newRecord['longitude'],
-                latitude: payload.newRecord['latitude'],
-                direction: payload.newRecord['direction'],
-              );
+              final updatedLocation =
+                  UserSquadLocation.fromJson(payload.newRecord);
+              currentMembersDistanceFromUser![memberId] =
+                  _calculateDistanceFromUser(updatedLocation);
+              debugPrint(
+                  'Updated distance from user for member $memberId: ${currentMembersDistanceFromUser![memberId]}');
 
               // Update currentMembersLocation
               final updatedMembersLocation =
@@ -143,6 +155,50 @@ class UserSquadLocationService extends ChangeNotifier {
     membersLocationsChannels ??= {};
     membersLocationsChannels![memberId] = channel;
     debugPrint('Listener setup complete for member locations: $memberId');
+  }
+
+  _updateMembersDistanceFromUser() {
+    for (String memberId in currentMembersDistanceFromUser!.keys) {
+      currentMembersDistanceFromUser![memberId] = _calculateDistanceFromUser(
+          currentMembersLocation!
+              .firstWhere((location) => location.user_id == memberId));
+      debugPrint(
+          'Updated distance from user for member $memberId: ${currentMembersDistanceFromUser![memberId]}');
+    }
+  }
+
+  _calculateDistanceFromUser(UserSquadLocation location) {
+    if (currentUserLocation != null) {
+      final distance = _calculateDistanceBetweenTwoLocations(
+          location.latitude!,
+          location.longitude!,
+          currentUserLocation!.latitude!,
+          currentUserLocation!.longitude!);
+      return distance;
+    }
+    return 0;
+  }
+
+  double _calculateDistanceBetweenTwoLocations(
+      double lat1, double lon1, double lat2, double lon2) {
+    const earthRadiusMeters = 6371000.0;
+
+    double dLat = _degreesToRadians(lat2 - lat1);
+    double dLon = _degreesToRadians(lon2 - lon1);
+
+    double a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_degreesToRadians(lat1)) *
+            cos(_degreesToRadians(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+
+    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+    return earthRadiusMeters * c;
+  }
+
+  double _degreesToRadians(double degrees) {
+    return degrees * pi / 180;
   }
 
   unsubscribeMemberLocations(String memberId) {
