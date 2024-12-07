@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:squad_tracker_flutter/models/user_squad_location.dart';
+import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserSquadLocationService extends ChangeNotifier {

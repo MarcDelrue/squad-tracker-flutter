@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/widgets/draggable_bottom_sheet_for_map.dart';
 import 'package:squad_tracker_flutter/widgets/map_fab.dart';
 import 'package:squad_tracker_flutter/widgets/map.dart';
+import 'package:squad_tracker_flutter/widgets/member_in_game_row.dart';
 import 'package:squad_tracker_flutter/widgets/user_status_buttons.dart';
 
 class MapWithLocation extends StatefulWidget {
@@ -12,6 +13,13 @@ class MapWithLocation extends StatefulWidget {
 }
 
 class MapWithLocationState extends State<MapWithLocation> {
+  var bottomSheetContentIndex = 0;
+
+  static List<Widget> bottomSheetContent = [
+    const MemberInGameRow(),
+    UserStatusButtons(),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -19,23 +27,26 @@ class MapWithLocationState extends State<MapWithLocation> {
         children: [
           const GameMapWidget(),
           DraggableBottomSheetForMap(
-            content: UserStatusButtons(),
+            content: bottomSheetContent[bottomSheetContentIndex],
           ),
           Positioned(
             top: 16,
             right: 16,
             child: MapFab(
               onFAB1Pressed: () {
-                // Handle FAB 1 press
-                print('FAB 1 pressed');
+                setState(() {
+                  bottomSheetContentIndex = 0;
+                });
               },
               onFAB2Pressed: () {
-                // Handle FAB 2 press
-                print('FAB 2 pressed');
+                setState(() {
+                  bottomSheetContentIndex = 1;
+                });
               },
               onFAB3Pressed: () {
-                // Handle FAB 3 press
-                print('FAB 3 pressed');
+                setState(() {
+                  bottomSheetContentIndex = 2;
+                });
               },
             ),
           ),

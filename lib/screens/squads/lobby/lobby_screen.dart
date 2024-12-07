@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
-import 'package:squad_tracker_flutter/models/user_with_session.dart';
+import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
 import 'package:squad_tracker_flutter/models/users_model.dart';
 import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
 import 'package:squad_tracker_flutter/providers/squad_service.dart';

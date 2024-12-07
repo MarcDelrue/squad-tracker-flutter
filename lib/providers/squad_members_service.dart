@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
-import 'package:squad_tracker_flutter/models/user_with_session.dart';
+import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
 import 'package:squad_tracker_flutter/models/users_model.dart' as users_model;
 import 'package:squad_tracker_flutter/providers/user_squad_location.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';

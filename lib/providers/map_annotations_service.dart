@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
-import 'package:squad_tracker_flutter/models/user_with_session.dart';
+import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
 import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location.dart';
 import 'package:squad_tracker_flutter/utils/colors_option.dart';
