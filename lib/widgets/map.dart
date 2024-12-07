@@ -49,7 +49,14 @@ class GameMapWidgetState extends State<GameMapWidget> {
   @override
   Widget build(BuildContext context) {
     final mapbox.MapWidget mapWidget = mapbox.MapWidget(
-        key: const ValueKey("mapWidget"), onMapCreated: _onMapCreated);
+        key: const ValueKey("mapWidget"),
+        onMapCreated: _onMapCreated,
+        onCameraChangeListener: (cameraChangedEventData) => {
+              debugPrint(
+                  'cameraChangedEventData: ${mapUserLocationService.isProgrammaticCameraChange}'),
+              // if (mapUserLocationService.isProgrammaticCameraChange == true)
+              //   {mapUserLocationService.showLocateFab = true}
+            });
 
     return Column(
       mainAxisSize: MainAxisSize.min,

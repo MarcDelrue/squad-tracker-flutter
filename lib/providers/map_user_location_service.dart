@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart' as locator;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
+import 'package:squad_tracker_flutter/widgets/fly_to_user_fab.dart';
 
 class MapUserLocationService extends ChangeNotifier {
   // Singleton setup
@@ -23,7 +24,18 @@ class MapUserLocationService extends ChangeNotifier {
   late locator.LocationSettings? locationSettings;
   var currentDirection = 0.0;
   bool cameraInitialized = false;
+  bool isProgrammaticCameraChange = false;
   late Uint8List soldierImage = Uint8List(0);
+
+  bool _showLocateFab = true;
+  bool get showLocateFab => _showLocateFab;
+
+  set showLocateFab(bool value) {
+    if (_showLocateFab != value) {
+      _showLocateFab = value;
+      notifyListeners();
+    }
+  }
 
   init(mapbox.MapboxMap mapboxMapReference) async {
     mapboxMap = mapboxMapReference;
@@ -139,14 +151,22 @@ class MapUserLocationService extends ChangeNotifier {
             locationPuck2D: mapbox.DefaultLocationPuck2D(topImage: list))));
   }
 
-  flyToLocation(double longitude, double latitude) {
-    mapboxMap?.flyTo(
+  flyToUserLocation() {
+    if (userSquadLocationService.currentUserLocation == null) return;
+    flyToLocation(userSquadLocationService.currentUserLocation!.longitude!,
+        userSquadLocationService.currentUserLocation!.latitude!);
+  }
+
+  flyToLocation(double longitude, double latitude) async {
+    isProgrammaticCameraChange = true;
+    await mapboxMap?.flyTo(
       mapbox.CameraOptions(
         center: mapbox.Point(coordinates: mapbox.Position(longitude, latitude)),
         zoom: 17,
       ),
       mapbox.MapAnimationOptions(duration: 2000, startDelay: 0),
     );
+    isProgrammaticCameraChange = false;
   }
 
   @override

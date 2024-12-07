@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/providers/roles_service.dart';
 import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
-import 'package:squad_tracker_flutter/screens/map_screen.dart';
+import 'package:squad_tracker_flutter/screens/map_with_location.dart';
 import 'package:squad_tracker_flutter/screens/squads/squads_entrypoint.dart';
 import 'package:squad_tracker_flutter/screens/user/user_screen.dart';
 
