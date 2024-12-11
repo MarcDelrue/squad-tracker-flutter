@@ -206,7 +206,7 @@ class UserSquadLocationService extends ChangeNotifier {
       double directionDifference = memberDirection - (userDirection ?? 0.0);
       debugPrint('Member direction: $directionDifference');
 
-      return memberDirection;
+      return directionDifference;
     }
     return 0.0;
   }
