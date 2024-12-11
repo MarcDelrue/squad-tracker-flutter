@@ -16,9 +16,6 @@ class _FlyToUserFabState extends State<FlyToUserFab> {
   @override
   void initState() {
     super.initState();
-
-    mapUserLocationService.addListener(() => debugPrint(
-        'showLocateFab ${mapUserLocationService.showLocateFab.toString()}'));
   }
 
   @override
@@ -28,7 +25,6 @@ class _FlyToUserFabState extends State<FlyToUserFab> {
       child: FloatingActionButton.small(
         onPressed: () => {
           mapUserLocationService.flyToUserLocation(),
-          mapUserLocationService.showLocateFab = false
         },
         backgroundColor: Colors.white,
         shape: const CircleBorder(

@@ -44,17 +44,9 @@ class UserSquadLocationService {
   Map<String, double>? get currentMembersDistanceFromUser =>
       _currentMembersDistanceFromUser;
 
-  set currentMembersDistanceFromUser(Map<String, double>? value) {
-    _currentMembersDistanceFromUser = value;
-  }
-
   Map<String, double>? _currentMembersDirectionFromUser = {};
   Map<String, double>? get currentMembersDirectionFromUser =>
       _currentMembersDirectionFromUser;
-
-  set currentMembersDirectionFromUser(Map<String, double>? value) {
-    _currentMembersDirectionFromUser = value;
-  }
 
   Future<void> getLastUserLocation(String userId, String squadId) async {
     try {

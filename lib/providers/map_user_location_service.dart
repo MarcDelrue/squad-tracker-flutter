@@ -8,7 +8,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 
-class MapUserLocationService extends ChangeNotifier {
+class MapUserLocationService {
   // Singleton setup
   static final MapUserLocationService _singleton =
       MapUserLocationService._internal();
@@ -25,16 +25,6 @@ class MapUserLocationService extends ChangeNotifier {
   bool cameraInitialized = false;
   bool isProgrammaticCameraChange = false;
   late Uint8List soldierImage = Uint8List(0);
-
-  bool _showLocateFab = true;
-  bool get showLocateFab => _showLocateFab;
-
-  set showLocateFab(bool value) {
-    if (_showLocateFab != value) {
-      _showLocateFab = value;
-      notifyListeners();
-    }
-  }
 
   init(mapbox.MapboxMap mapboxMapReference) async {
     mapboxMap = mapboxMapReference;

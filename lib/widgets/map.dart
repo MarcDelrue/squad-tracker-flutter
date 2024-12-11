@@ -61,8 +61,6 @@ class GameMapWidgetState extends State<GameMapWidget> {
         onCameraChangeListener: (cameraChangedEventData) => {
               debugPrint(
                   'cameraChangedEventData: ${mapUserLocationService.isProgrammaticCameraChange}'),
-              // if (mapUserLocationService.isProgrammaticCameraChange == true)
-              //   {mapUserLocationService.showLocateFab = true}
             });
 
     return Column(
