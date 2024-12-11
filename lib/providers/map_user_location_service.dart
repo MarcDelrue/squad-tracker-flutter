@@ -92,6 +92,9 @@ class MapUserLocationService extends ChangeNotifier {
 
       if (currentDirection == null) {
         debugPrint('Device does not have sensors!');
+      } else {
+        userSquadLocationService
+            .updateMemberDirectionFromUser(currentDirection);
       }
     });
   }

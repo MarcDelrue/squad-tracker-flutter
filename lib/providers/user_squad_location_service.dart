@@ -43,6 +43,15 @@ class UserSquadLocationService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Map<String, double>? _currentMembersDirectionFromUser = {};
+  Map<String, double>? get currentMembersDirectionFromUser =>
+      _currentMembersDirectionFromUser;
+
+  set currentMembersDirectionFromUser(Map<String, double>? value) {
+    _currentMembersDirectionFromUser = value;
+    notifyListeners();
+  }
+
   Future<void> getLastUserLocation(String userId, String squadId) async {
     try {
       final hasUserSquadLocation = await _supabase
@@ -98,6 +107,8 @@ class UserSquadLocationService extends ChangeNotifier {
               UserSquadLocation.fromJson(response);
           currentMembersDistanceFromUser![memberId] =
               _calculateDistanceFromUser(memberLocation);
+          currentMembersDirectionFromUser![memberId] =
+              _calculateDirectionFromUser(memberLocation, 0);
           debugPrint(
               'Updated distance from user for member $memberId: ${currentMembersDistanceFromUser![memberId]}');
 
@@ -137,6 +148,8 @@ class UserSquadLocationService extends ChangeNotifier {
                   UserSquadLocation.fromJson(payload.newRecord);
               currentMembersDistanceFromUser![memberId] =
                   _calculateDistanceFromUser(updatedLocation);
+              // currentMembersDirectionFromUser![memberId] =
+              //     _calculateDirectionFromUser(updatedLocation, 0);
               debugPrint(
                   'Updated distance from user for member $memberId: ${currentMembersDistanceFromUser![memberId]}');
 
@@ -165,6 +178,57 @@ class UserSquadLocationService extends ChangeNotifier {
       debugPrint(
           'Updated distance from user for member $memberId: ${currentMembersDistanceFromUser![memberId]}');
     }
+  }
+
+  updateMemberDirectionFromUser(double? userDirection) {
+    if (currentMembersDirectionFromUser == {} ||
+        currentMembersLocation == null) {
+      return;
+    }
+    for (String memberId in currentMembersDirectionFromUser!.keys) {
+      currentMembersDirectionFromUser![memberId] = _calculateDirectionFromUser(
+          currentMembersLocation!
+              .firstWhere((location) => location.user_id == memberId),
+          userDirection);
+      debugPrint(
+          'Updated direction from user for member $memberId: ${currentMembersDirectionFromUser![memberId]}');
+    }
+  }
+
+  _calculateDirectionFromUser(
+      UserSquadLocation location, double? userDirection) {
+    if (currentUserLocation != null) {
+      double memberDirection = calculateBearing(
+          location.latitude!,
+          location.longitude!,
+          currentUserLocation!.latitude!,
+          currentUserLocation!.longitude!);
+      double directionDifference = memberDirection - (userDirection ?? 0.0);
+      debugPrint('Member direction: $directionDifference');
+
+      return memberDirection;
+    }
+    return 0.0;
+  }
+
+  double calculateBearing(double lat1, double lon1, double lat2, double lon2) {
+    lat1 = _degreesToRadians(lat1);
+    lon1 = _degreesToRadians(lon1);
+    lat2 = _degreesToRadians(lat2);
+    lon2 = _degreesToRadians(lon2);
+
+    double dLon = lon2 - lon1;
+
+    double x = sin(dLon) * cos(lat2);
+    double y = cos(lat1) * sin(lat2) - (sin(lat1) * cos(lat2) * cos(dLon));
+
+    double initialBearing = atan2(x, y);
+
+    initialBearing = initialBearing * 180 / pi;
+
+    double compassBearing = (initialBearing + 360) % 360;
+
+    return compassBearing;
   }
 
   _calculateDistanceFromUser(UserSquadLocation location) {
