@@ -149,7 +149,7 @@ class MapUserLocationService {
         userSquadLocationService.currentUserLocation!.latitude!);
   }
 
-  flyToLocation(double longitude, double latitude) async {
+  flyToLocation(num longitude, num latitude) async {
     isProgrammaticCameraChange = true;
     await mapboxMap?.flyTo(
       mapbox.CameraOptions(
@@ -159,12 +159,5 @@ class MapUserLocationService {
       mapbox.MapAnimationOptions(duration: 2000, startDelay: 0),
     );
     isProgrammaticCameraChange = false;
-  }
-
-  @override
-  void dispose() {
-    positionStream.cancel();
-    compassStream.cancel();
-    super.dispose();
   }
 }

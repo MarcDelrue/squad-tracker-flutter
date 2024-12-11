@@ -2,9 +2,9 @@ class UserSquadLocation {
   int id;
   String user_id;
   int squad_id;
-  double? longitude;
-  double? latitude;
-  double? direction;
+  num? longitude;
+  num? latitude;
+  num? direction;
 
   UserSquadLocation({
     required this.id,

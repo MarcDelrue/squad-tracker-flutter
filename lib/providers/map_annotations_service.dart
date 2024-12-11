@@ -66,7 +66,7 @@ class MapAnnotationsService extends ChangeNotifier {
         annotation.geometry = mapbox.Point(
             coordinates: mapbox.Position(
                 location.longitude as num, location.latitude as num));
-        annotation.iconRotate = location.direction ?? 0;
+        annotation.iconRotate = location.direction?.toDouble() ?? 0;
 
         // Optionally update the annotation manager to reflect these changes on the map
         pointAnnotationManager.update(annotation);
@@ -87,7 +87,7 @@ class MapAnnotationsService extends ChangeNotifier {
             coordinates: mapbox.Position(
                 location.longitude as num, location.latitude as num)),
         image: soldierImage,
-        iconRotate: location.direction ?? 0,
+        iconRotate: location.direction?.toDouble() ?? 0,
         textField: foundMember.user.username,
         textColor: hexToColor(foundMember.user.main_color ?? '#000000').value,
         textOffset: [0, 2.0],

@@ -105,8 +105,6 @@ class UserSquadLocationService {
               _calculateDistanceFromUser(memberLocation);
           currentMembersDirectionFromUser![memberId] =
               _calculateDirectionFromUser(memberLocation, 0);
-          debugPrint(
-              'Updated distance from user for member $memberId: ${currentMembersDistanceFromUser![memberId]}');
 
           locations.add(memberLocation);
         }
@@ -144,10 +142,8 @@ class UserSquadLocationService {
                   UserSquadLocation.fromJson(payload.newRecord);
               currentMembersDistanceFromUser![memberId] =
                   _calculateDistanceFromUser(updatedLocation);
-              // currentMembersDirectionFromUser![memberId] =
-              //     _calculateDirectionFromUser(updatedLocation, 0);
-              debugPrint(
-                  'Updated distance from user for member $memberId: ${currentMembersDistanceFromUser![memberId]}');
+              currentMembersDirectionFromUser![memberId] =
+                  _calculateDirectionFromUser(updatedLocation, 0);
 
               // Update currentMembersLocation
               final updatedMembersLocation =
@@ -167,6 +163,10 @@ class UserSquadLocationService {
   }
 
   _updateMembersDistanceFromUser() {
+    if (currentMembersDistanceFromUser == {} ||
+        currentMembersLocation == null) {
+      return;
+    }
     for (String memberId in currentMembersDistanceFromUser!.keys) {
       currentMembersDistanceFromUser![memberId] = _calculateDistanceFromUser(
           currentMembersLocation!
@@ -207,13 +207,13 @@ class UserSquadLocationService {
     return 0.0;
   }
 
-  double calculateBearing(double lat1, double lon1, double lat2, double lon2) {
+  double calculateBearing(num lat1, num lon1, num lat2, num lon2) {
     lat1 = _degreesToRadians(lat1);
     lon1 = _degreesToRadians(lon1);
     lat2 = _degreesToRadians(lat2);
     lon2 = _degreesToRadians(lon2);
 
-    double dLon = lon2 - lon1;
+    num dLon = lon2 - lon1;
 
     double x = sin(dLon) * cos(lat2);
     double y = cos(lat1) * sin(lat2) - (sin(lat1) * cos(lat2) * cos(dLon));
@@ -240,7 +240,7 @@ class UserSquadLocationService {
   }
 
   double _calculateDistanceBetweenTwoLocations(
-      double lat1, double lon1, double lat2, double lon2) {
+      num lat1, num lon1, num lat2, num lon2) {
     const earthRadiusMeters = 6371000.0;
 
     double dLat = _degreesToRadians(lat2 - lat1);
@@ -257,7 +257,7 @@ class UserSquadLocationService {
     return earthRadiusMeters * c;
   }
 
-  double _degreesToRadians(double degrees) {
+  double _degreesToRadians(num degrees) {
     return degrees * pi / 180;
   }
 
