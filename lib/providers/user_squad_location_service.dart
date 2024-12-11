@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class UserSquadLocationService extends ChangeNotifier {
+class UserSquadLocationService {
   static final UserSquadLocationService _singleton =
       UserSquadLocationService._internal();
   factory UserSquadLocationService() {
@@ -15,13 +16,13 @@ class UserSquadLocationService extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
   late List<UserSquadLocation>? differenceWithPreviousLocation;
   Map<String, RealtimeChannel>? membersLocationsChannels;
+
   UserSquadLocation? _currentUserLocation;
   UserSquadLocation? get currentUserLocation => _currentUserLocation;
 
   set currentUserLocation(UserSquadLocation? value) {
     _currentUserLocation = value;
     _updateMembersDistanceFromUser();
-    notifyListeners();
   }
 
   List<UserSquadLocation>? _currentMembersLocation;
@@ -31,8 +32,13 @@ class UserSquadLocationService extends ChangeNotifier {
   set currentMembersLocation(List<UserSquadLocation>? value) {
     _getDifferencesWithPreviousLocation(value, _currentMembersLocation);
     _currentMembersLocation = value;
-    notifyListeners();
+    _currentMembersLocationController.add(_currentMembersLocation!);
   }
+
+  final _currentMembersLocationController =
+      StreamController<List<UserSquadLocation>>.broadcast();
+  Stream<List<UserSquadLocation>> get currentMembersLocationStream =>
+      _currentMembersLocationController.stream;
 
   Map<String, double>? _currentMembersDistanceFromUser = {};
   Map<String, double>? get currentMembersDistanceFromUser =>
@@ -40,7 +46,6 @@ class UserSquadLocationService extends ChangeNotifier {
 
   set currentMembersDistanceFromUser(Map<String, double>? value) {
     _currentMembersDistanceFromUser = value;
-    notifyListeners();
   }
 
   Map<String, double>? _currentMembersDirectionFromUser = {};
@@ -49,7 +54,6 @@ class UserSquadLocationService extends ChangeNotifier {
 
   set currentMembersDirectionFromUser(Map<String, double>? value) {
     _currentMembersDirectionFromUser = value;
-    notifyListeners();
   }
 
   Future<void> getLastUserLocation(String userId, String squadId) async {
@@ -296,5 +300,9 @@ class UserSquadLocationService extends ChangeNotifier {
 
     debugPrint('Differences with previous location: $differences');
     differenceWithPreviousLocation = differences;
+  }
+
+  void dispose() {
+    _currentMembersLocationController.close();
   }
 }
