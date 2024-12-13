@@ -9,8 +9,8 @@ class DistanceCalculatorService {
       double memberDirection = calculateBearing(
           location.latitude!,
           location.longitude!,
-          currentUserLocation!.latitude!,
-          currentUserLocation!.longitude!);
+          currentUserLocation.latitude!,
+          currentUserLocation.longitude!);
       double directionDifference = memberDirection - (userDirection ?? 0.0);
 
       return directionDifference;
@@ -44,8 +44,8 @@ class DistanceCalculatorService {
       final distance = _calculateDistanceBetweenTwoLocations(
           location.latitude!,
           location.longitude!,
-          currentUserLocation!.latitude!,
-          currentUserLocation!.longitude!);
+          currentUserLocation.latitude!,
+          currentUserLocation.longitude!);
       return distance;
     }
     return 0;
