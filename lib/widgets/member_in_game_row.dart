@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:squad_tracker_flutter/models/member_in_game_model.dart';
-import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 
 class MemberInGameRow extends StatelessWidget {
   const MemberInGameRow({

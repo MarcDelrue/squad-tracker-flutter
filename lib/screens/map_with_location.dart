@@ -4,7 +4,7 @@ import 'package:squad_tracker_flutter/widgets/draggable_bottom_sheet_for_map.dar
 import 'package:squad_tracker_flutter/widgets/fly_to_user_fab.dart';
 import 'package:squad_tracker_flutter/widgets/map_fab.dart';
 import 'package:squad_tracker_flutter/widgets/map.dart';
-import 'package:squad_tracker_flutter/widgets/member_in_game_row.dart';
+import 'package:squad_tracker_flutter/widgets/members_in_game_list.dart';
 import 'package:squad_tracker_flutter/widgets/user_status_buttons.dart';
 
 class MapWithLocation extends StatefulWidget {
@@ -20,8 +20,8 @@ class MapWithLocationState extends State<MapWithLocation> {
   final userSquadLocationService = UserSquadLocationService();
 
   static final List<Widget> bottomSheetContent = [
-    const MemberInGameRow(),
-    UserStatusButtons(),
+    MembersInGameList(),
+    const UserStatusButtons(),
     // Add more widgets as needed
   ];
 

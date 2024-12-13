@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:squad_tracker_flutter/models/member_in_game_model.dart';
 import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -39,6 +40,11 @@ class UserSquadLocationService {
       StreamController<List<UserSquadLocation>>.broadcast();
   Stream<List<UserSquadLocation>> get currentMembersLocationStream =>
       _currentMembersLocationController.stream;
+
+  final _membersDataController =
+      StreamController<List<MemberInGame>>.broadcast();
+  Stream<List<MemberInGame>> get membersDataStream =>
+      _membersDataController.stream;
 
   final Map<String, double>? _currentMembersDistanceFromUser = {};
   Map<String, double>? get currentMembersDistanceFromUser =>
@@ -105,12 +111,13 @@ class UserSquadLocationService {
               _calculateDistanceFromUser(memberLocation);
           currentMembersDirectionFromUser![memberId] =
               _calculateDirectionFromUser(memberLocation, 0);
-
           locations.add(memberLocation);
         }
       }
-      debugPrint('Fetched locations: $locations');
+      debugPrint(
+          'Fetched locations: $locations, ${currentMembersDistanceFromUser}, ${currentMembersDirectionFromUser}');
       currentMembersLocation = locations;
+      _updateMembersData();
       return locations;
     } catch (e) {
       debugPrint('Error in fetchMembersLocation: $e');
@@ -154,6 +161,7 @@ class UserSquadLocationService {
               }).toList();
 
               currentMembersLocation = updatedMembersLocation;
+              _updateMembersData();
             })
         .subscribe();
 
@@ -189,6 +197,26 @@ class UserSquadLocationService {
       debugPrint(
           'Updated direction from user for member $memberId: ${currentMembersDirectionFromUser![memberId]}');
     }
+  }
+
+  void updateMembersData(List<MemberInGame> newData) {
+    _membersDataController.add(newData);
+  }
+
+  void _updateMembersData() {
+    if (currentUserLocation == null || currentMembersLocation == null) return;
+
+    List<MemberInGame> updatedData = currentMembersLocation!.map((member) {
+      return MemberInGame(
+        id: member.user_id,
+        name: 'Unknown',
+        status: 'Unknown',
+        distance: currentMembersDistanceFromUser![member.user_id] ?? 0.0,
+        direction: currentMembersDirectionFromUser![member.user_id] ?? 0.0,
+        lastUpdated: DateTime.now(),
+      );
+    }).toList();
+    updateMembersData(updatedData);
   }
 
   _calculateDirectionFromUser(
