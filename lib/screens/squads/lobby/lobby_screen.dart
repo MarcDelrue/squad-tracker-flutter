@@ -214,9 +214,10 @@ class _SquadLobbyScreenState extends State<SquadLobbyScreen> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: ListenableBuilder(
-                listenable: squadMembersService,
-                builder: (BuildContext context, Widget? child) {
+              child: StreamBuilder<List<UserWithSession>?>(
+                stream: squadMembersService.currentSquadMembersStream,
+                builder: (BuildContext context,
+                    AsyncSnapshot<List<UserWithSession>?> snapshot) {
                   final currentMembers =
                       squadMembersService.currentSquadMembers;
 

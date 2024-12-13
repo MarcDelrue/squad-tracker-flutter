@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
@@ -5,7 +7,7 @@ import 'package:squad_tracker_flutter/models/users_model.dart' as users_model;
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class SquadMembersService extends ChangeNotifier {
+class SquadMembersService {
   // Singleton setup
   static final SquadMembersService _singleton = SquadMembersService._internal();
   factory SquadMembersService() => _singleton;
@@ -17,12 +19,17 @@ class SquadMembersService extends ChangeNotifier {
   RealtimeChannel? currentSquadChannel;
   Map<String, RealtimeChannel>? currentMembersChannels;
 
+  final _currentSquadMembersController =
+      StreamController<List<UserWithSession>?>.broadcast();
+  Stream<List<UserWithSession>?> get currentSquadMembersStream =>
+      _currentSquadMembersController.stream;
+
   List<UserWithSession>? _currentSquadMembers;
   List<UserWithSession>? get currentSquadMembers => _currentSquadMembers;
 
   set currentSquadMembers(List<UserWithSession>? value) {
     _currentSquadMembers = value;
-    notifyListeners();
+    _currentSquadMembersController.add(value);
   }
 
   Future<void> getCurrentSquadMembers(String userId, String squadId) async {
@@ -171,7 +178,7 @@ class SquadMembersService extends ChangeNotifier {
         member.user = user;
       }
     });
-    notifyListeners();
+    _currentSquadMembersController.add(currentSquadMembers);
   }
 
   _updateMemberSession(UserSquadSession session) {
@@ -181,12 +188,12 @@ class SquadMembersService extends ChangeNotifier {
         member.session = session;
       }
     });
-    notifyListeners();
+    _currentSquadMembersController.add(currentSquadMembers);
   }
 
   _removeSquadMember(String memberId) {
     currentSquadMembers?.removeWhere((member) => member.user.id == memberId);
-    notifyListeners();
+    _currentSquadMembersController.add(currentSquadMembers);
   }
 
   UserWithSession getMemberDataById(String memberId) {
