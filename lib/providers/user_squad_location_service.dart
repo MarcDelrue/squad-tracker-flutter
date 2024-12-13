@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:squad_tracker_flutter/models/member_in_game_model.dart';
 import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
+import 'package:squad_tracker_flutter/providers/distance_calculator_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserSquadLocationService {
@@ -15,6 +16,8 @@ class UserSquadLocationService {
   UserSquadLocationService._internal();
 
   final SupabaseClient _supabase = Supabase.instance.client;
+  late DistanceCalculatorService distanceCalculatorService =
+      DistanceCalculatorService();
   late List<UserSquadLocation>? differenceWithPreviousLocation;
   Map<String, RealtimeChannel>? membersLocationsChannels;
 
@@ -107,10 +110,11 @@ class UserSquadLocationService {
           _listenMemberLocations(memberId, squadId);
           UserSquadLocation memberLocation =
               UserSquadLocation.fromJson(response);
-          currentMembersDistanceFromUser![memberId] =
-              _calculateDistanceFromUser(memberLocation);
+          currentMembersDistanceFromUser![memberId] = distanceCalculatorService
+              .calculateDistanceFromUser(memberLocation, currentUserLocation);
           currentMembersDirectionFromUser![memberId] =
-              _calculateDirectionFromUser(memberLocation, 0);
+              distanceCalculatorService.calculateDirectionFromUser(
+                  memberLocation, currentUserLocation, 0);
           locations.add(memberLocation);
         }
       }
@@ -148,9 +152,11 @@ class UserSquadLocationService {
               final updatedLocation =
                   UserSquadLocation.fromJson(payload.newRecord);
               currentMembersDistanceFromUser![memberId] =
-                  _calculateDistanceFromUser(updatedLocation);
+                  distanceCalculatorService.calculateDistanceFromUser(
+                      updatedLocation, currentUserLocation);
               currentMembersDirectionFromUser![memberId] =
-                  _calculateDirectionFromUser(updatedLocation, 0);
+                  distanceCalculatorService.calculateDirectionFromUser(
+                      updatedLocation, currentUserLocation, 0);
 
               // Update currentMembersLocation
               final updatedMembersLocation =
@@ -176,9 +182,11 @@ class UserSquadLocationService {
       return;
     }
     for (String memberId in currentMembersDistanceFromUser!.keys) {
-      currentMembersDistanceFromUser![memberId] = _calculateDistanceFromUser(
-          currentMembersLocation!
-              .firstWhere((location) => location.user_id == memberId));
+      currentMembersDistanceFromUser![memberId] =
+          distanceCalculatorService.calculateDistanceFromUser(
+              currentMembersLocation!
+                  .firstWhere((location) => location.user_id == memberId),
+              currentUserLocation);
       debugPrint(
           'Updated distance from user for member $memberId: ${currentMembersDistanceFromUser![memberId]}');
     }
@@ -190,10 +198,12 @@ class UserSquadLocationService {
       return;
     }
     for (String memberId in currentMembersDirectionFromUser!.keys) {
-      currentMembersDirectionFromUser![memberId] = _calculateDirectionFromUser(
-          currentMembersLocation!
-              .firstWhere((location) => location.user_id == memberId),
-          userDirection);
+      currentMembersDirectionFromUser![memberId] =
+          distanceCalculatorService.calculateDirectionFromUser(
+              currentMembersLocation!
+                  .firstWhere((location) => location.user_id == memberId),
+              currentUserLocation,
+              userDirection);
       debugPrint(
           'Updated direction from user for member $memberId: ${currentMembersDirectionFromUser![memberId]}');
     }
@@ -217,75 +227,6 @@ class UserSquadLocationService {
       );
     }).toList();
     updateMembersData(updatedData);
-  }
-
-  _calculateDirectionFromUser(
-      UserSquadLocation location, double? userDirection) {
-    if (currentUserLocation != null) {
-      double memberDirection = calculateBearing(
-          location.latitude!,
-          location.longitude!,
-          currentUserLocation!.latitude!,
-          currentUserLocation!.longitude!);
-      double directionDifference = memberDirection - (userDirection ?? 0.0);
-
-      return directionDifference;
-    }
-    return 0.0;
-  }
-
-  double calculateBearing(num lat1, num lon1, num lat2, num lon2) {
-    lat1 = _degreesToRadians(lat1);
-    lon1 = _degreesToRadians(lon1);
-    lat2 = _degreesToRadians(lat2);
-    lon2 = _degreesToRadians(lon2);
-
-    num dLon = lon2 - lon1;
-
-    double x = sin(dLon) * cos(lat2);
-    double y = cos(lat1) * sin(lat2) - (sin(lat1) * cos(lat2) * cos(dLon));
-
-    double initialBearing = atan2(x, y);
-
-    initialBearing = initialBearing * 180 / pi;
-
-    double compassBearing = (initialBearing + 360) % 360;
-
-    return compassBearing;
-  }
-
-  _calculateDistanceFromUser(UserSquadLocation location) {
-    if (currentUserLocation != null) {
-      final distance = _calculateDistanceBetweenTwoLocations(
-          location.latitude!,
-          location.longitude!,
-          currentUserLocation!.latitude!,
-          currentUserLocation!.longitude!);
-      return distance;
-    }
-    return 0;
-  }
-
-  double _calculateDistanceBetweenTwoLocations(
-      num lat1, num lon1, num lat2, num lon2) {
-    const earthRadiusMeters = 6371000.0;
-
-    double dLat = _degreesToRadians(lat2 - lat1);
-    double dLon = _degreesToRadians(lon2 - lon1);
-
-    double a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_degreesToRadians(lat1)) *
-            cos(_degreesToRadians(lat2)) *
-            sin(dLon / 2) *
-            sin(dLon / 2);
-
-    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
-    return earthRadiusMeters * c;
-  }
-
-  double _degreesToRadians(num degrees) {
-    return degrees * pi / 180;
   }
 
   unsubscribeMemberLocations(String memberId) {
