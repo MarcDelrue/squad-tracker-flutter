@@ -75,16 +75,18 @@ class MapUserLocationService {
   }
 
   getUserDirection() {
-    // Cancel any existing compassStream subscription
+    double? currentDirection;
 
     compassStream = FlutterCompass.events!.listen((CompassEvent event) {
-      double? currentDirection = event.heading;
-
-      if (currentDirection == null) {
+      if (event.heading == null) {
         debugPrint('Device does not have sensors!');
       } else {
-        userSquadLocationService
-            .updateMemberDirectionFromUser(currentDirection);
+        if (currentDirection != null &&
+            (currentDirection! - event.heading!).abs() > 5) {
+          currentDirection = event.heading;
+          userSquadLocationService
+              .updateMemberDirectionFromUser(currentDirection);
+        }
       }
     });
   }

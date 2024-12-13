@@ -200,7 +200,6 @@ class UserSquadLocationService {
           currentUserLocation!.latitude!,
           currentUserLocation!.longitude!);
       double directionDifference = memberDirection - (userDirection ?? 0.0);
-      debugPrint('Member direction: $directionDifference');
 
       return directionDifference;
     }
