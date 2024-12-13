@@ -28,7 +28,7 @@ class UserService extends ChangeNotifier {
           .eq('id', _supabase.auth.currentUser!.id)
           .single();
 
-      _currentUser = users_model.User(
+      currentUser = users_model.User(
         id: response['id'] as String,
         username: response['username'] as String?,
         full_name: response['full_name'] as String?,
@@ -36,7 +36,6 @@ class UserService extends ChangeNotifier {
         main_role: response['main_role'] as String?,
         main_color: response['main_color'] as String?,
       );
-      notifyListeners();
     } catch (e) {
       debugPrint("Failed to set user info: $e");
     }
@@ -51,8 +50,7 @@ class UserService extends ChangeNotifier {
           .select()
           .single();
 
-      _currentUser = updatedUserData;
-      notifyListeners();
+      currentUser = updatedUserData;
     } catch (e) {
       debugPrint("Failed to update user info: $e");
     }

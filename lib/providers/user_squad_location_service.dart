@@ -40,11 +40,11 @@ class UserSquadLocationService {
   Stream<List<UserSquadLocation>> get currentMembersLocationStream =>
       _currentMembersLocationController.stream;
 
-  Map<String, double>? _currentMembersDistanceFromUser = {};
+  final Map<String, double>? _currentMembersDistanceFromUser = {};
   Map<String, double>? get currentMembersDistanceFromUser =>
       _currentMembersDistanceFromUser;
 
-  Map<String, double>? _currentMembersDirectionFromUser = {};
+  final Map<String, double>? _currentMembersDirectionFromUser = {};
   Map<String, double>? get currentMembersDirectionFromUser =>
       _currentMembersDirectionFromUser;
 

@@ -3,6 +3,8 @@ import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_session_service.dart';
 
 class UserStatusButtons extends StatefulWidget {
+  const UserStatusButtons({super.key});
+
   @override
   _UserStatusButtonsState createState() => _UserStatusButtonsState();
 }
