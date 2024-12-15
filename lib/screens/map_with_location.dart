@@ -41,7 +41,10 @@ class MapWithLocationState extends State<MapWithLocation> {
 
   Widget _buildDraggableBottomSheet() {
     return DraggableBottomSheetForMap(
-      content: bottomSheetContent[bottomSheetContentIndex],
+      content: IndexedStack(
+        index: bottomSheetContentIndex,
+        children: bottomSheetContent,
+      ),
     );
   }
 
