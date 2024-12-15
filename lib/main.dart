@@ -24,6 +24,30 @@ final supabase = Supabase.instance.client;
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  Future<bool> _checkSession() async {
+    final session = supabase.auth.currentSession;
+    if (session == null) {
+      return false;
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch / 1000;
+    final expiresAt = session.expiresAt ?? 0;
+    final isExpiringSoon =
+        expiresAt - now < 60; // Refresh if expiring within 60 seconds
+
+    if (isExpiringSoon) {
+      try {
+        await supabase.auth.refreshSession();
+        return true;
+      } catch (e) {
+        debugPrint('Failed to refresh token: $e');
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -42,9 +66,20 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: supabase.auth.currentSession == null
-          ? const LoginForm()
-          : const NavigationWidget(),
+      home: FutureBuilder<bool>(
+        future: _checkSession(),
+        builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError ||
+              !snapshot.hasData ||
+              !snapshot.data!) {
+            return const LoginForm();
+          } else {
+            return const NavigationWidget();
+          }
+        },
+      ),
     );
   }
 }

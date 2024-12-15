@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:squad_tracker_flutter/models/member_in_game_model.dart';
 import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
 import 'package:squad_tracker_flutter/providers/distance_calculator_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -43,11 +42,11 @@ class UserSquadLocationService {
   Stream<List<UserSquadLocation>> get currentMembersLocationStream =>
       _currentMembersLocationController.stream;
 
-  final Map<String, double>? _currentMembersDistanceFromUser = {};
+  final Map<String, double> _currentMembersDistanceFromUser = {};
   Map<String, double>? get currentMembersDistanceFromUser =>
       _currentMembersDistanceFromUser;
 
-  final Map<String, double>? _currentMembersDirectionFromUser = {};
+  final Map<String, double> _currentMembersDirectionFromUser = {};
   Map<String, double>? get currentMembersDirectionFromUser =>
       _currentMembersDirectionFromUser;
 
@@ -113,7 +112,7 @@ class UserSquadLocationService {
         }
       }
       debugPrint(
-          'Fetched locations: $locations, ${currentMembersDistanceFromUser}, ${currentMembersDirectionFromUser}');
+          'Fetched locations: $locations, $currentMembersDistanceFromUser, $currentMembersDirectionFromUser');
       currentMembersLocation = locations;
       return locations;
     } catch (e) {

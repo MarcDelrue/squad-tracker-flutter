@@ -145,8 +145,10 @@ class MapUserLocationService {
             locationPuck2D: mapbox.DefaultLocationPuck2D(topImage: list))));
   }
 
-  flyToUserLocation() {
-    if (userSquadLocationService.currentUserLocation == null) return;
+  flyToUserLocation() async {
+    final hasPermission = await getLocationPermission();
+    if (hasPermission == true &&
+        userSquadLocationService.currentUserLocation == null) return;
     flyToLocation(userSquadLocationService.currentUserLocation!.longitude!,
         userSquadLocationService.currentUserLocation!.latitude!);
   }

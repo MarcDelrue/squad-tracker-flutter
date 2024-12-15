@@ -6,6 +6,7 @@ class MapFab extends StatefulWidget {
   final VoidCallback onFAB3Pressed;
 
   const MapFab({
+    super.key,
     required this.onFAB1Pressed,
     required this.onFAB2Pressed,
     required this.onFAB3Pressed,

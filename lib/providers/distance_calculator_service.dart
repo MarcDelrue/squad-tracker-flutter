@@ -5,17 +5,19 @@ import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
 class DistanceCalculatorService {
   calculateDirectionFromUser(UserSquadLocation location,
       UserSquadLocation? currentUserLocation, double? userDirection) {
-    if (currentUserLocation != null) {
-      double memberDirection = calculateBearing(
-          location.latitude!,
-          location.longitude!,
-          currentUserLocation.latitude!,
-          currentUserLocation.longitude!);
-      double directionDifference = memberDirection - (userDirection ?? 0.0);
-
-      return directionDifference;
+    if (location.latitude == null ||
+        location.longitude == null ||
+        currentUserLocation == null) {
+      return 0.0;
     }
-    return 0.0;
+    double memberDirection = calculateBearing(
+        location.latitude!,
+        location.longitude!,
+        currentUserLocation.latitude!,
+        currentUserLocation.longitude!);
+    double directionDifference = memberDirection - (userDirection ?? 0.0);
+
+    return directionDifference;
   }
 
   double calculateBearing(num lat1, num lon1, num lat2, num lon2) {
@@ -40,15 +42,17 @@ class DistanceCalculatorService {
 
   calculateDistanceFromUser(
       UserSquadLocation location, UserSquadLocation? currentUserLocation) {
-    if (currentUserLocation != null) {
-      final distance = _calculateDistanceBetweenTwoLocations(
-          location.latitude!,
-          location.longitude!,
-          currentUserLocation.latitude!,
-          currentUserLocation.longitude!);
-      return distance;
+    if (location.latitude == null ||
+        location.longitude == null ||
+        currentUserLocation == null) {
+      return 0;
     }
-    return 0;
+    final distance = _calculateDistanceBetweenTwoLocations(
+        location.latitude!,
+        location.longitude!,
+        currentUserLocation.latitude!,
+        currentUserLocation.longitude!);
+    return distance;
   }
 
   double _calculateDistanceBetweenTwoLocations(

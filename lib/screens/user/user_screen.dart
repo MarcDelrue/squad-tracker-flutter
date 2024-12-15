@@ -26,7 +26,7 @@ class _UserScreenState extends State<UserScreen> {
   List<String> _rolesController = [];
   ColorOption _selectedColorOption = colorOptions.first;
 
-  String? _avatarUrl;
+  // String? _avatarUrl;
   var _loading = true;
 
   /// Called once a user id is received within `onAuthenticated()`
@@ -48,7 +48,7 @@ class _UserScreenState extends State<UserScreen> {
               colorOptions.first, // Fallback to first color if not found
         );
       }
-      _avatarUrl = (data['avatar_url'] ?? '') as String;
+      // _avatarUrl = (data['avatar_url'] ?? '') as String;
     } on PostgrestException catch (error) {
       if (mounted) context.showSnackBar(error.message, isError: true);
     } catch (error) {
