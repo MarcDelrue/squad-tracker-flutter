@@ -63,18 +63,16 @@ class GameMapWidgetState extends State<GameMapWidget> {
                   'cameraChangedEventData: ${mapUserLocationService.isProgrammaticCameraChange}'),
             });
 
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Center(
-            child: SizedBox(
-                width: MediaQuery.of(context).size.width,
-                height: MediaQuery.of(context).size.height - 80,
-                child: mapWidget),
-          ),
-        ],
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Center(
+          child: SizedBox(
+              width: MediaQuery.of(context).size.shortestSide,
+              height: MediaQuery.of(context).size.longestSide - 80,
+              child: mapWidget),
+        ),
+      ],
     );
   }
 }
