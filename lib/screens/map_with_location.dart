@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:squad_tracker_flutter/providers/combined_stream_service.dart';
+import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:squad_tracker_flutter/widgets/draggable_bottom_sheet_for_map.dart';
 import 'package:squad_tracker_flutter/widgets/fly_to_user_fab.dart';
@@ -17,13 +19,26 @@ class MapWithLocation extends StatefulWidget {
 class MapWithLocationState extends State<MapWithLocation> {
   int bottomSheetContentIndex = 0;
 
+  final squadMembersService = SquadMembersService();
   final userSquadLocationService = UserSquadLocationService();
 
-  static final List<Widget> bottomSheetContent = [
-    MembersInGameList(),
-    const UserStatusButtons(),
-    // Add more widgets as needed
-  ];
+  late final combinedStreamService = CombinedStreamService(
+    squadMembersService: squadMembersService,
+    userSquadLocationService: userSquadLocationService,
+  );
+  late final List<Widget> bottomSheetContent;
+
+  @override
+  void initState() {
+    super.initState();
+    bottomSheetContent = [
+      MembersInGameList(
+        combinedStreamService: combinedStreamService,
+      ),
+      const UserStatusButtons(),
+      // Add more widgets as needed
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {

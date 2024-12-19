@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
+import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
 
 class MemberInGameRow extends StatelessWidget {
   final String? name;
   final UserSquadSessionStatus? status;
+  final double? latitude;
+  final double? longitude;
+  final MapUserLocationService mapUserLocationService =
+      MapUserLocationService();
 
-  const MemberInGameRow({
+  MemberInGameRow({
     super.key,
     this.name,
     this.status,
+    this.latitude,
+    this.longitude,
   });
 
   @override
@@ -20,6 +27,9 @@ class MemberInGameRow extends StatelessWidget {
         onTap: () {
           print('Member Name: $name');
           print('Status: $status');
+          if (latitude != null && longitude != null) {
+            mapUserLocationService.flyToLocation(latitude!, longitude!);
+          }
         },
       ),
     );

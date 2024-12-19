@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:squad_tracker_flutter/models/squad_session_model.dart';
-import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
-import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
-import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
+import 'package:squad_tracker_flutter/models/user_with_location_session_model.dart';
+import 'package:squad_tracker_flutter/providers/combined_stream_service.dart';
 import 'package:squad_tracker_flutter/widgets/member_in_game_row.dart';
 
 class MembersInGameList extends StatelessWidget {
-  final UserSquadLocationService userSquadLocationService =
-      UserSquadLocationService();
-  final squadMembersService = SquadMembersService();
+  final CombinedStreamService combinedStreamService;
 
-  MembersInGameList({super.key});
+  MembersInGameList({
+    Key? key,
+    required this.combinedStreamService,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<UserWithSession>?>(
-      stream: squadMembersService.currentSquadMembersStream,
+    return StreamBuilder<List<UserWithLocationSession>>(
+      stream:
+          combinedStreamService.combinedStream?.map((event) => event ?? []) ??
+              const Stream.empty(),
       builder: (BuildContext context,
-          AsyncSnapshot<List<UserWithSession>?> snapshot) {
+          AsyncSnapshot<List<UserWithLocationSession>> snapshot) {
         if (snapshot.hasData) {
           return Expanded(
             child: ListView.builder(
@@ -27,8 +28,10 @@ class MembersInGameList extends StatelessWidget {
               itemBuilder: (context, index) {
                 final member = snapshot.data![index];
                 return MemberInGameRow(
-                  name: member.user.username,
-                  status: member.session.user_status,
+                  name: member.userWithSession.user.username,
+                  status: member.userWithSession.session.user_status,
+                  latitude: member.location?.latitude?.toDouble(),
+                  longitude: member.location?.longitude?.toDouble(),
                 );
               },
             ),

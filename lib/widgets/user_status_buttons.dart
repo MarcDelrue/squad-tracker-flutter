@@ -33,16 +33,37 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
               backgroundColor: Colors.transparent,
               side: BorderSide(color: color),
             ),
-      onPressed: () {
+      onPressed: () async {
         setState(() {
           if (_currentStatus != value) {
             _currentStatus = value;
           } else {
             _currentStatus = UserSquadSessionStatus.alive;
           }
-          userSquadSessionService
-              .updateUserSquadSessionUserStatus(_currentStatus!);
         });
+
+        try {
+          await userSquadSessionService
+              .updateUserSquadSessionUserStatus(_currentStatus!);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    'Successfully updated status to ${_currentStatus!.value.toLowerCase()}'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to update status. Please try again.'),
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+          }
+        }
       },
       child: _currentStatus == value ? Text(toggledText) : Text(text),
     );

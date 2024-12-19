@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
+import 'package:squad_tracker_flutter/models/user_with_location_session_model.dart';
 import 'package:squad_tracker_flutter/providers/distance_calculator_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
