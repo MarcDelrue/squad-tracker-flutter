@@ -6,10 +6,10 @@ import 'package:squad_tracker_flutter/widgets/member_in_game_row.dart';
 class MembersInGameList extends StatelessWidget {
   final CombinedStreamService combinedStreamService;
 
-  MembersInGameList({
-    Key? key,
+  const MembersInGameList({
+    super.key,
     required this.combinedStreamService,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

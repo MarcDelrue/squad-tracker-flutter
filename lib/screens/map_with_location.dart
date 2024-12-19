@@ -19,22 +19,22 @@ class MapWithLocation extends StatefulWidget {
 class MapWithLocationState extends State<MapWithLocation> {
   int bottomSheetContentIndex = 0;
 
-  final squadMembersService = SquadMembersService();
-  final userSquadLocationService = UserSquadLocationService();
+  // final squadMembersService = SquadMembersService();
+  // final userSquadLocationService = UserSquadLocationService();
 
-  late final combinedStreamService = CombinedStreamService(
-    squadMembersService: squadMembersService,
-    userSquadLocationService: userSquadLocationService,
-  );
+  // late final combinedStreamService = CombinedStreamService(
+  //   squadMembersService: squadMembersService,
+  //   userSquadLocationService: userSquadLocationService,
+  // );
   late final List<Widget> bottomSheetContent;
 
   @override
   void initState() {
     super.initState();
     bottomSheetContent = [
-      MembersInGameList(
-        combinedStreamService: combinedStreamService,
-      ),
+      // MembersInGameList(
+      //   combinedStreamService: combinedStreamService,
+      // ),
       const UserStatusButtons(),
       // Add more widgets as needed
     ];
