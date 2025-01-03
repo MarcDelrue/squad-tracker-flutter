@@ -1,43 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
 
-class FlyToUserFab extends StatefulWidget {
-  const FlyToUserFab({
-    super.key,
-  });
+class FlyToUserFab extends StatelessWidget {
+  final bool isDisabled;
 
-  @override
-  _FlyToUserFabState createState() => _FlyToUserFabState();
-}
-
-class _FlyToUserFabState extends State<FlyToUserFab> {
-  final mapUserLocationService = MapUserLocationService();
-
-  @override
-  void initState() {
-    super.initState();
-  }
+  const FlyToUserFab({super.key, required this.isDisabled});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: FloatingActionButton.small(
-        onPressed: () => {
-          mapUserLocationService.flyToUserLocation(),
-        },
-        backgroundColor: Colors.white,
-        shape: const CircleBorder(
-          side: BorderSide(
-            color: Colors.green,
-            width: 2.0,
+    final mapUserLocationService = MapUserLocationService();
+
+    return Stack(
+      children: [
+        Positioned(
+          top: 16.0 + MediaQuery.of(context).padding.top,
+          left: 16.0,
+          child: FloatingActionButton.small(
+            onPressed: isDisabled
+                ? null
+                : () => mapUserLocationService.flyToUserLocation(),
+            backgroundColor: isDisabled ? Colors.grey : Colors.white,
+            shape: CircleBorder(
+              side: BorderSide(
+                color: isDisabled ? Colors.grey : Colors.green,
+                width: 2.0,
+              ),
+            ),
+            child: Icon(
+              Icons.my_location,
+              color: isDisabled ? Colors.white : Colors.green,
+            ),
           ),
         ),
-        child: const Icon(
-          Icons.my_location,
-          color: Colors.green,
-        ),
-      ),
+      ],
     );
   }
 }

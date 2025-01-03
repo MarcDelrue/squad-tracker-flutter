@@ -17,8 +17,17 @@ class MapUserLocationService {
 
   final userSquadLocationService = UserSquadLocationService();
 
-  late StreamSubscription<locator.Position> positionStream;
-  late StreamSubscription<CompassEvent> compassStream;
+  late StreamSubscription<locator.Position>? positionStream;
+  bool _isStreamInitialized = false;
+
+  bool get isPositionStreamPaused {
+    if (!_isStreamInitialized) {
+      return true;
+    }
+    return positionStream?.isPaused ?? true;
+  }
+
+  late StreamSubscription<CompassEvent>? compassStream;
   mapbox.MapboxMap? mapboxMap;
   late locator.LocationSettings? locationSettings;
   var currentDirection = 0.0;
@@ -72,6 +81,20 @@ class MapUserLocationService {
           ? 'Unknown'
           : 'Current position: ${position.latitude.toString()}, ${position.longitude.toString()}');
     });
+    _isStreamInitialized = true;
+  }
+
+  pauseTrackingUserLocation() {
+    positionStream?.pause();
+    compassStream?.pause();
+    mapboxMap?.location
+        .updateSettings(mapbox.LocationComponentSettings(enabled: false));
+  }
+
+  unpauseTrackingUserLocation() {
+    positionStream?.resume();
+    compassStream?.resume();
+    loadUserPuck();
   }
 
   getUserDirection() {
@@ -132,8 +155,6 @@ class MapUserLocationService {
   }
 
   loadUserPuck() async {
-    mapboxMap?.location.updateSettings(mapbox.LocationComponentSettings(
-        enabled: true, showAccuracyRing: true));
     final ByteData bytes =
         await rootBundle.load('assets/images/soldiers/default_soldier.png');
     final Uint8List list = bytes.buffer.asUint8List();
@@ -141,6 +162,7 @@ class MapUserLocationService {
     mapboxMap?.location.updateSettings(mapbox.LocationComponentSettings(
         enabled: true,
         puckBearingEnabled: true,
+        showAccuracyRing: true,
         locationPuck: mapbox.LocationPuck(
             locationPuck2D: mapbox.DefaultLocationPuck2D(topImage: list))));
   }

@@ -60,7 +60,7 @@ class _MapFabState extends State<MapFab> {
           onPressed: () => _onFabPressed(2, widget.onFAB3Pressed),
           backgroundColor: _selectedIndex == 2 ? Colors.green : Colors.white,
           child: Icon(
-            Icons.military_tech,
+            Icons.settings,
             color: _selectedIndex == 2 ? Colors.white : Colors.green,
           ),
         ),

@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:squad_tracker_flutter/providers/combined_stream_service.dart';
-import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
-import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:squad_tracker_flutter/widgets/draggable_bottom_sheet_for_map.dart';
 import 'package:squad_tracker_flutter/widgets/fly_to_user_fab.dart';
 import 'package:squad_tracker_flutter/widgets/map_fab.dart';
 import 'package:squad_tracker_flutter/widgets/map.dart';
-import 'package:squad_tracker_flutter/widgets/members_in_game_list.dart';
+import 'package:squad_tracker_flutter/widgets/map_settings.dart';
 import 'package:squad_tracker_flutter/widgets/user_status_buttons.dart';
 
 class MapWithLocation extends StatefulWidget {
@@ -18,15 +15,13 @@ class MapWithLocation extends StatefulWidget {
 
 class MapWithLocationState extends State<MapWithLocation> {
   int bottomSheetContentIndex = 0;
-
-  // final squadMembersService = SquadMembersService();
-  // final userSquadLocationService = UserSquadLocationService();
-
-  // late final combinedStreamService = CombinedStreamService(
-  //   squadMembersService: squadMembersService,
-  //   userSquadLocationService: userSquadLocationService,
-  // );
   late final List<Widget> bottomSheetContent;
+  bool _isGeolocationEnabled = true;
+  void _handleGeolocationToggle(bool isEnabled) {
+    setState(() {
+      _isGeolocationEnabled = isEnabled;
+    });
+  }
 
   @override
   void initState() {
@@ -36,6 +31,8 @@ class MapWithLocationState extends State<MapWithLocation> {
       //   combinedStreamService: combinedStreamService,
       // ),
       const UserStatusButtons(),
+      const Text('Salut'),
+      MapSettings(onGeolocationToggled: _handleGeolocationToggle),
       // Add more widgets as needed
     ];
   }
@@ -46,7 +43,7 @@ class MapWithLocationState extends State<MapWithLocation> {
       body: Stack(
         children: [
           const GameMapWidget(),
-          const FlyToUserFab(),
+          FlyToUserFab(isDisabled: !_isGeolocationEnabled),
           _buildDraggableBottomSheet(),
           _buildFabPositioned(),
         ],

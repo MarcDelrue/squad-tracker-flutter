@@ -48,8 +48,8 @@ class GameMapWidgetState extends State<GameMapWidget> {
   void dispose() {
     _locationSubscription.cancel();
     mapAnnotationsService.pointAnnotationManager.deleteAll();
-    mapUserLocationService.positionStream.cancel();
-    mapUserLocationService.compassStream.cancel();
+    mapUserLocationService.positionStream?.cancel();
+    mapUserLocationService.compassStream?.cancel();
     super.dispose();
   }
 
