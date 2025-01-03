@@ -65,7 +65,7 @@ class MapWithLocationState extends State<MapWithLocation> {
 
   Widget _buildFabPositioned() {
     return Positioned(
-      top: 16,
+      top: 16 + MediaQuery.of(context).padding.top,
       right: 16,
       child: MapFab(
         onFAB1Pressed: () => _onFabPressed(0),

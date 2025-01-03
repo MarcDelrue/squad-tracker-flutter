@@ -25,8 +25,6 @@ class MemberInGameRow extends StatelessWidget {
         title: Text(name ?? 'No Name'),
         subtitle: Text(status?.value ?? 'No Status'),
         onTap: () {
-          print('Member Name: $name');
-          print('Status: $status');
           if (latitude != null && longitude != null) {
             mapUserLocationService.flyToLocation(latitude!, longitude!);
           }
