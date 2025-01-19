@@ -89,13 +89,19 @@ class _SquadsRecentListState extends State<SquadsRecentList> {
       final success = await userSquadSessionService.joinSquad(
           userService.currentUser!.id, squad.id);
       if (success) {
-        context.showSnackBar('Joined squad successfully!');
-        Navigator.pop(context);
+        if (mounted) {
+          context.showSnackBar('Joined squad successfully!');
+          Navigator.pop(context);
+        }
       } else {
-        context.showSnackBar('Failed to join squad', isError: true);
+        if (mounted) {
+          context.showSnackBar('Failed to join squad', isError: true);
+        }
       }
     } catch (e) {
-      context.showSnackBar('Error: $e', isError: true);
+      if (mounted) {
+        context.showSnackBar('Error: $e', isError: true);
+      }
     }
   }
 }

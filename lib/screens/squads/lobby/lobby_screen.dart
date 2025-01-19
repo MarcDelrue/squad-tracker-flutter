@@ -14,10 +14,10 @@ class SquadLobbyScreen extends StatefulWidget {
   const SquadLobbyScreen({super.key});
 
   @override
-  _SquadLobbyScreenState createState() => _SquadLobbyScreenState();
+  SquadLobbyScreenState createState() => SquadLobbyScreenState();
 }
 
-class _SquadLobbyScreenState extends State<SquadLobbyScreen> {
+class SquadLobbyScreenState extends State<SquadLobbyScreen> {
   final userService = UserService();
   final squadService = SquadService();
   final userSquadSessionService = UserSquadSessionService();

@@ -8,12 +8,13 @@ class ColorOption {
 }
 
 String colorToHex(Color color) {
-  return '#${color.value.toRadixString(16).padLeft(8, '0').substring(2)}'; // Drops the alpha
+  return '#${color.r.toInt().toRadixString(16).padLeft(2, '0')}${color.g.toInt().toRadixString(16).padLeft(2, '0')}${color.b.toInt().toRadixString(16).padLeft(2, '0')}';
 }
 
 // Convert a hex string to a Color
 Color hexToColor(String hex) {
-  return Color(int.parse(hex.replaceFirst('#', '0xFF'))); // Adds full opacity if missing
+  return Color(
+      int.parse(hex.replaceFirst('#', '0xFF'))); // Adds full opacity if missing
 }
 
 final List<ColorOption> colorOptions = [

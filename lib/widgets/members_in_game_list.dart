@@ -14,9 +14,7 @@ class MembersInGameList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<UserWithLocationSession>>(
-      stream:
-          combinedStreamService.combinedStream?.map((event) => event ?? []) ??
-              const Stream.empty(),
+      stream: combinedStreamService.combinedStream.map((event) => event ?? []),
       builder: (BuildContext context,
           AsyncSnapshot<List<UserWithLocationSession>> snapshot) {
         if (snapshot.hasData) {

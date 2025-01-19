@@ -66,7 +66,7 @@ class SquadMembersService {
       final List<String> userIdList =
           sessionsData.map((item) => item['user_id'] as String).toList();
 
-      print('User IDs: $userIdList');
+      debugPrint('User IDs: $userIdList');
       // Now fetch user details from the users table
       final userResponse =
           await _supabase.from('users').select().inFilter('id', userIdList);
@@ -161,7 +161,7 @@ class SquadMembersService {
               value: memberId,
             ),
             callback: (PostgresChangePayload payload) {
-              print('Callback triggered for member data change: $payload');
+              debugPrint('Callback triggered for member data change: $payload');
               _updateMemberData(users_model.User.fromJson(payload.newRecord));
               debugPrint('Squad member data change detected: $payload');
             })
@@ -169,7 +169,7 @@ class SquadMembersService {
 
     currentMembersChannels ??= {};
     currentMembersChannels![memberId] = channel;
-    print('Listener setup complete for member: $memberId');
+    debugPrint('Listener setup complete for member: $memberId');
   }
 
   _updateMemberData(users_model.User user) {

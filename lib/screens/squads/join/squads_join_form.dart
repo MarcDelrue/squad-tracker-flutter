@@ -75,7 +75,7 @@ class _SquadJoinFormState extends State<SquadJoinForm> {
 
                     if (result != null) {
                       // Handle the result (the scanned barcode value)
-                      print('Scanned barcode: $result');
+                      debugPrint('Scanned barcode: $result');
                       _squadCodeController.text = result;
                       _onSubmit();
                     }

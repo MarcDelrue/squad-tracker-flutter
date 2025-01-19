@@ -103,7 +103,7 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
             child: Container(
               alignment: Alignment.bottomCenter,
               height: 100,
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black,
               child: Center(child: _buildBarcode(_barcode)),
             ),
           ),
