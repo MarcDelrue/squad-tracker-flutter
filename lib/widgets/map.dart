@@ -69,7 +69,9 @@ class GameMapWidgetState extends State<GameMapWidget> {
         Center(
           child: SizedBox(
               width: MediaQuery.of(context).size.shortestSide,
-              height: MediaQuery.of(context).size.longestSide - 80,
+              height: MediaQuery.of(context).size.longestSide -
+                  MediaQuery.of(context).padding.top -
+                  80,
               child: mapWidget),
         ),
       ],
