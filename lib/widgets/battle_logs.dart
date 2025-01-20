@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
 import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
@@ -10,8 +11,53 @@ class BattleLogsWidget extends StatefulWidget {
 }
 
 class BattleLogsWidgetState extends State<BattleLogsWidget> {
-  getNewUpdate(List<UserWithSession> event) {
-    debugPrint('BattleLogs: ' + event.toString());
+  List<UserWithSession> _lastSquadMembersData = [];
+
+// TODO: Still not working
+  void getNewUpdate(List<UserWithSession> newSquadMembers) {
+    final Map<String, UserWithSession> lastMembersMap = {
+      for (var member in _lastSquadMembersData) member.user.id: member
+    };
+
+    final addedMembers = <UserWithSession>[];
+    final removedMembers = <UserWithSession>[];
+    final updatedMembers = <UserWithSession>[];
+
+    for (final newMember in newSquadMembers) {
+      final oldMember = lastMembersMap[newMember.user.id];
+
+      // If old member doesn't exist or is_active went from false to true
+      if (oldMember == null ||
+          (!oldMember.session.is_active && newMember.session.is_active)) {
+        addedMembers.add(newMember);
+      }
+
+      // Check for updates in sessions.status
+      else if (oldMember.session.user_status != newMember.session.user_status) {
+        updatedMembers.add(newMember);
+      }
+    }
+
+    for (final oldMember in _lastSquadMembersData) {
+      final UserWithSession? newMember = newSquadMembers
+          .firstWhereOrNull((m) => m.user.id == oldMember.user.id);
+
+      if (newMember != null) {
+        // If new member doesn't exist or is_active went from true to false
+        if (oldMember.session.is_active == true &&
+            (newMember.session.is_active == false)) {
+          removedMembers.add(oldMember);
+        }
+      }
+    }
+
+    // Debug prints or handle the updates as needed
+    print('Added members: ${addedMembers.map((m) => m.user.id)}');
+    print('Removed members: ${removedMembers.map((m) => m.user.id)}');
+    print('Updated members: ${updatedMembers.map((m) => m.user.id)}');
+
+    // Update the last known state
+    _lastSquadMembersData = newSquadMembers;
   }
 
   @override
