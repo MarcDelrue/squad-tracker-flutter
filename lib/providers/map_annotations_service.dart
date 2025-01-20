@@ -79,6 +79,9 @@ class MapAnnotationsService extends ChangeNotifier {
     List<mapbox.PointAnnotationOptions> annotations = [];
     // Iterate through each member's location and create a PointAnnotationOptions
     for (var location in userSquadLocationService.currentMembersLocation!) {
+      if (location.longitude == null || location.latitude == null) {
+        continue;
+      }
       UserWithSession foundMember =
           squadMembersService.getMemberDataById(location.user_id);
       mapbox.PointAnnotationOptions pointAnnotationOptions =

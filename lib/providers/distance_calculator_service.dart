@@ -41,13 +41,14 @@ class DistanceCalculatorService {
   }
 
   calculateDistanceFromUser(
-      UserSquadLocation location, UserSquadLocation? currentUserLocation) {
-    if (location.latitude == null ||
+      UserSquadLocation? location, UserSquadLocation? currentUserLocation) {
+    if (location == null ||
+        location.latitude == null ||
         location.longitude == null ||
         currentUserLocation == null) {
-      return 0;
+      return 0.0;
     }
-    final distance = _calculateDistanceBetweenTwoLocations(
+    final double distance = _calculateDistanceBetweenTwoLocations(
         location.latitude!,
         location.longitude!,
         currentUserLocation.latitude!,

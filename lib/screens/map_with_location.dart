@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:squad_tracker_flutter/widgets/battle_logs.dart';
 import 'package:squad_tracker_flutter/widgets/draggable_bottom_sheet_for_map.dart';
 import 'package:squad_tracker_flutter/widgets/fly_to_user_fab.dart';
 import 'package:squad_tracker_flutter/widgets/map_fab.dart';
@@ -44,6 +45,7 @@ class MapWithLocationState extends State<MapWithLocation> {
         children: [
           const GameMapWidget(),
           FlyToUserFab(isDisabled: !_isGeolocationEnabled),
+          BattleLogsWidget(),
           _buildDraggableBottomSheet(),
           _buildFabPositioned(),
         ],

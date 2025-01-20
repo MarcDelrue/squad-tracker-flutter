@@ -169,7 +169,7 @@ class MapUserLocationService {
 
   flyToUserLocation() async {
     final hasPermission = await getLocationPermission();
-    if (hasPermission == true &&
+    if (hasPermission == false ||
         userSquadLocationService.currentUserLocation == null) {
       return;
     }
