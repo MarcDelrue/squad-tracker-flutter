@@ -59,7 +59,9 @@ class MapAnnotationsService extends ChangeNotifier {
         var location = userSquadLocationService.currentMembersLocation![i];
         var annotation = membersPointAnnotations![i];
 
-        if (location.longitude == null || location.latitude == null) {
+        if (location.longitude == null ||
+            location.latitude == null ||
+            annotation == null) {
           continue;
         }
 

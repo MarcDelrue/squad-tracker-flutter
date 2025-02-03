@@ -14,6 +14,14 @@ class User {
       this.main_role,
       this.main_color});
 
+  User.copy(User user)
+      : id = user.id,
+        username = user.username,
+        full_name = user.full_name,
+        avatar_url = user.avatar_url,
+        main_role = user.main_role,
+        main_color = user.main_color;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'username': username,

@@ -9,4 +9,8 @@ class UserWithSession {
     required this.user,
     required this.session,
   });
+
+  UserWithSession.deepCopy(UserWithSession userWithSession)
+      : user = User.copy(userWithSession.user),
+        session = UserSquadSession.copy(userWithSession.session);
 }

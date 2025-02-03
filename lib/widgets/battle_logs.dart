@@ -16,7 +16,8 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
 // TODO: Still not working
   void getNewUpdate(List<UserWithSession> newSquadMembers) {
     final Map<String, UserWithSession> lastMembersMap = {
-      for (var member in _lastSquadMembersData) member.user.id: member
+      for (var member in _lastSquadMembersData)
+        member.user.id: UserWithSession.deepCopy(member)
     };
 
     final addedMembers = <UserWithSession>[];
@@ -25,6 +26,9 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
 
     for (final newMember in newSquadMembers) {
       final oldMember = lastMembersMap[newMember.user.id];
+
+      print(
+          'Old status: ${oldMember?.session.user_status}, New status: ${newMember.session.user_status}');
 
       // If old member doesn't exist or is_active went from false to true
       if (oldMember == null ||
@@ -42,6 +46,10 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
       final UserWithSession? newMember = newSquadMembers
           .firstWhereOrNull((m) => m.user.id == oldMember.user.id);
 
+      if (newMember == null) {
+        removedMembers.add(oldMember);
+      }
+
       if (newMember != null) {
         // If new member doesn't exist or is_active went from true to false
         if (oldMember.session.is_active == true &&
@@ -57,7 +65,9 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
     print('Updated members: ${updatedMembers.map((m) => m.user.id)}');
 
     // Update the last known state
-    _lastSquadMembersData = newSquadMembers;
+    _lastSquadMembersData = List<UserWithSession>.from(newSquadMembers);
+
+    print('getNewUpdate completed. Last squad members data updated.');
   }
 
   @override
