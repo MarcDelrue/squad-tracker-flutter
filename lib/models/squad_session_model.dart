@@ -19,6 +19,19 @@ extension UserSquadSessionStatusExtension on UserSquadSessionStatus {
     }
   }
 
+  String get toText {
+    switch (this) {
+      case UserSquadSessionStatus.alive:
+        return 'respawned';
+      case UserSquadSessionStatus.dead:
+        return 'died';
+      case UserSquadSessionStatus.help:
+        return 'need help';
+      case UserSquadSessionStatus.medic:
+        return 'need a medic';
+    }
+  }
+
   static UserSquadSessionStatus fromValue(String value) {
     switch (value) {
       case 'ALIVE':

@@ -45,6 +45,7 @@ dependencies:
   flutter_compass: ^0.8.1
   rxdart: ^0.28.0
   collection: ^1.19.0
+  timeago: ^3.2.2
 
 dev_dependencies:
   flutter_test:

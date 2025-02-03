@@ -3,6 +3,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:squad_tracker_flutter/screens/login/login_form.dart';
 import 'package:squad_tracker_flutter/widgets/navigation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 /// Flutter code sample for [NavigationBar].
 
@@ -16,6 +17,7 @@ void main() async {
   String mapboxToken = const String.fromEnvironment("MAPBOX_TOKEN");
   // Uncomment to work on map
   MapboxOptions.setAccessToken(mapboxToken);
+  timeago.setLocaleMessages('en_short', timeago.EnShortMessages());
   runApp(const MyApp());
 }
 
