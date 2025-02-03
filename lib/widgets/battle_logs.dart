@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
 import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
+import 'dart:convert';
 
 class BattleLogsWidget extends StatefulWidget {
   const BattleLogsWidget({super.key});
@@ -13,11 +14,15 @@ class BattleLogsWidget extends StatefulWidget {
 class BattleLogsWidgetState extends State<BattleLogsWidget> {
   List<UserWithSession> _lastSquadMembersData = [];
 
-// TODO: Still not working
   void getNewUpdate(List<UserWithSession> newSquadMembers) {
+    // Creating a deep copy of _lastSquadMembersData for comparison
+    final List<UserWithSession> lastSquadMembersDeepCopy = _lastSquadMembersData
+        .map((member) =>
+            UserWithSession.fromJson(json.decode(json.encode(member.toJson()))))
+        .toList();
+
     final Map<String, UserWithSession> lastMembersMap = {
-      for (var member in _lastSquadMembersData)
-        member.user.id: UserWithSession.deepCopy(member)
+      for (var member in lastSquadMembersDeepCopy) member.user.id: member
     };
 
     final addedMembers = <UserWithSession>[];
@@ -27,47 +32,33 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
     for (final newMember in newSquadMembers) {
       final oldMember = lastMembersMap[newMember.user.id];
 
-      print(
-          'Old status: ${oldMember?.session.user_status}, New status: ${newMember.session.user_status}');
-
-      // If old member doesn't exist or is_active went from false to true
       if (oldMember == null ||
           (!oldMember.session.is_active && newMember.session.is_active)) {
         addedMembers.add(newMember);
-      }
-
-      // Check for updates in sessions.status
-      else if (oldMember.session.user_status != newMember.session.user_status) {
+      } else if (oldMember.session.user_status !=
+          newMember.session.user_status) {
         updatedMembers.add(newMember);
       }
     }
 
-    for (final oldMember in _lastSquadMembersData) {
-      final UserWithSession? newMember = newSquadMembers
-          .firstWhereOrNull((m) => m.user.id == oldMember.user.id);
-
-      if (newMember == null) {
+    // Identifying removed members
+    _lastSquadMembersData.forEach((oldMember) {
+      if (!newSquadMembers
+          .any((newMember) => newMember.user.id == oldMember.user.id)) {
         removedMembers.add(oldMember);
       }
+    });
 
-      if (newMember != null) {
-        // If new member doesn't exist or is_active went from true to false
-        if (oldMember.session.is_active == true &&
-            (newMember.session.is_active == false)) {
-          removedMembers.add(oldMember);
-        }
-      }
-    }
-
-    // Debug prints or handle the updates as needed
+    // Debug prints to check the results
     print('Added members: ${addedMembers.map((m) => m.user.id)}');
     print('Removed members: ${removedMembers.map((m) => m.user.id)}');
     print('Updated members: ${updatedMembers.map((m) => m.user.id)}');
 
-    // Update the last known state
-    _lastSquadMembersData = List<UserWithSession>.from(newSquadMembers);
-
-    print('getNewUpdate completed. Last squad members data updated.');
+    // Updating _lastSquadMembersData with a deep copy of newSquadMembers
+    _lastSquadMembersData = newSquadMembers
+        .map((member) =>
+            UserWithSession.fromJson(json.decode(json.encode(member.toJson()))))
+        .toList();
   }
 
   @override

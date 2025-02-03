@@ -10,7 +10,15 @@ class UserWithSession {
     required this.session,
   });
 
-  UserWithSession.deepCopy(UserWithSession userWithSession)
-      : user = User.copy(userWithSession.user),
-        session = UserSquadSession.copy(userWithSession.session);
+  Map<String, dynamic> toJson() => {
+        'user': user.toJson(),
+        'session': session.toJson(),
+      };
+
+  factory UserWithSession.fromJson(Map<String, dynamic> json) {
+    return UserWithSession(
+      user: User.fromJson(json['user']),
+      session: UserSquadSession.fromJson(json['session']),
+    );
+  }
 }

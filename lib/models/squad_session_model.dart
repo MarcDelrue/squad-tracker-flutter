@@ -51,13 +51,16 @@ class UserSquadSession {
       required this.is_active,
       this.user_status});
 
-  UserSquadSession.copy(UserSquadSession userSquadSession)
-      : id = userSquadSession.id,
-        user_id = userSquadSession.user_id,
-        squad_id = userSquadSession.squad_id,
-        is_host = userSquadSession.is_host,
-        is_active = userSquadSession.is_active,
-        user_status = userSquadSession.user_status;
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': user_id,
+      'squad_id': squad_id,
+      'is_host': is_host,
+      'is_active': is_active,
+      'user_status': user_status?.value,
+    };
+  }
 
   factory UserSquadSession.fromJson(Map<String, dynamic> json) {
     return UserSquadSession(
