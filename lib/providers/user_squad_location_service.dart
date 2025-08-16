@@ -54,6 +54,10 @@ class UserSquadLocationService {
   Map<String, double>? get currentMembersDirectionFromUser =>
       _currentMembersDirectionFromUser;
 
+  final Map<String, double> _currentMembersDirectionToMember = {};
+  Map<String, double>? get currentMembersDirectionToMember =>
+      _currentMembersDirectionToMember;
+
   Future<void> getLastUserLocation(String userId, String squadId) async {
     try {
       final hasUserSquadLocation = await _supabase
@@ -126,6 +130,9 @@ class UserSquadLocationService {
                   _currentMembersDirectionFromUser[memberId] =
                       distanceCalculatorService.calculateDirectionFromUser(
                           memberLocation, currentUserLocation, 0);
+                  _currentMembersDirectionToMember[memberId] =
+                      distanceCalculatorService.calculateDirectionToMember(
+                          memberLocation, currentUserLocation);
                 } catch (e) {
                   // Handle distance calculation errors silently
                 }
@@ -184,6 +191,9 @@ class UserSquadLocationService {
                   _currentMembersDirectionFromUser[memberId] =
                       distanceCalculatorService.calculateDirectionFromUser(
                           updatedLocation, currentUserLocation, 0);
+                  _currentMembersDirectionToMember[memberId] =
+                      distanceCalculatorService.calculateDirectionToMember(
+                          updatedLocation, currentUserLocation);
                 }
 
                 // Update currentMembersLocation
@@ -234,6 +244,11 @@ class UserSquadLocationService {
                   .firstWhere((location) => location.user_id == memberId),
               currentUserLocation,
               userDirection);
+      _currentMembersDirectionToMember[memberId] =
+          distanceCalculatorService.calculateDirectionToMember(
+              currentMembersLocation!
+                  .firstWhere((location) => location.user_id == memberId),
+              currentUserLocation);
       debugPrint(
           'Updated direction from user for member $memberId: ${_currentMembersDirectionFromUser[memberId]}');
     }

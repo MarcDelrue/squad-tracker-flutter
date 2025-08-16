@@ -20,6 +20,22 @@ class DistanceCalculatorService {
     return directionDifference;
   }
 
+  // New method specifically for edge indicators - direction FROM user TO member
+  calculateDirectionToMember(
+      UserSquadLocation location, UserSquadLocation? currentUserLocation) {
+    if (location.latitude == null ||
+        location.longitude == null ||
+        currentUserLocation == null) {
+      return 0.0;
+    }
+    // Calculate bearing FROM user TO member
+    return calculateBearing(
+        currentUserLocation.latitude!,
+        currentUserLocation.longitude!,
+        location.latitude!,
+        location.longitude!);
+  }
+
   double calculateBearing(num lat1, num lon1, num lat2, num lon2) {
     lat1 = _degreesToRadians(lat1);
     lon1 = _degreesToRadians(lon1);
