@@ -32,6 +32,9 @@ class MapAnnotationsService extends ChangeNotifier {
   double _pulseScale = 1.0;
   bool _pulseGrowing = true;
 
+  // Track which markers need pulsating
+  Set<String> _pulsatingMarkers = {};
+
   initMembersAnnotation(mapbox.MapboxMap mapboxMap) async {
     pointAnnotationManager =
         await mapboxMap.annotations.createPointAnnotationManager();
@@ -80,7 +83,7 @@ class MapAnnotationsService extends ChangeNotifier {
 
   void _startPulseAnimation() {
     _pulseTimer?.cancel();
-    _pulseTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+    _pulseTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (_pulseGrowing) {
         _pulseScale += 0.05;
         if (_pulseScale >= 1.5) {
@@ -92,14 +95,45 @@ class MapAnnotationsService extends ChangeNotifier {
           _pulseGrowing = true;
         }
       }
-      // Update existing annotations for pulsating effect
-      _updateExistingAnnotations();
+      // Only update markers that need pulsating
+      _updatePulsatingMarkers();
     });
   }
 
   void _stopPulseAnimation() {
     _pulseTimer?.cancel();
     _pulseTimer = null;
+  }
+
+  void _updatePulsatingMarkers() {
+    if (membersPointAnnotations == null || _pulsatingMarkers.isEmpty) {
+      return;
+    }
+
+    for (var i = 0; i < membersPointAnnotations!.length; i++) {
+      final annotation = membersPointAnnotations![i];
+      final username = annotation.textField;
+
+      if (username != null && _pulsatingMarkers.contains(username)) {
+        try {
+          // Only update the icon size for pulsating markers
+          annotation.iconSize = 1.5 * _pulseScale;
+          pointAnnotationManager.update(annotation);
+        } catch (e) {
+          // Handle errors silently
+        }
+      }
+    }
+  }
+
+  void _updatePulsatingMarkersList(List<UserWithSession> squadMembers) {
+    _pulsatingMarkers.clear();
+    for (final member in squadMembers) {
+      if (member.session.user_status == UserSquadSessionStatus.help ||
+          member.session.user_status == UserSquadSessionStatus.medic) {
+        _pulsatingMarkers.add(member.user.username ?? '');
+      }
+    }
   }
 
   Uint8List _getStatusIcon(UserSquadSessionStatus? status) {
@@ -129,9 +163,9 @@ class MapAnnotationsService extends ChangeNotifier {
       case UserSquadSessionStatus.dead:
         return 1.5; // 64px image - scale up to match 250px (250/64 ≈ 3.9)
       case UserSquadSessionStatus.help:
-        return 1.5 * _pulseScale; // 64px image - scale up + pulsating
+        return 1.5; // Base size for help (pulsating will be applied separately)
       case UserSquadSessionStatus.medic:
-        return 1.5 * _pulseScale; // 64px image - scale up + pulsating
+        return 1.5; // Base size for medic (pulsating will be applied separately)
       default:
         return 1.0;
     }
@@ -173,6 +207,12 @@ class MapAnnotationsService extends ChangeNotifier {
         userSquadLocationService.currentMembersLocation!.isEmpty ||
         membersPointAnnotations == null) {
       return;
+    }
+
+    // Get current squad members to update pulsating list
+    final squadMembers = SquadMembersService().currentSquadMembers;
+    if (squadMembers != null) {
+      _updatePulsatingMarkersList(squadMembers);
     }
 
     for (var i = 0;
@@ -227,6 +267,17 @@ class MapAnnotationsService extends ChangeNotifier {
   }
 
   setInitialMembersAnnotation() async {
+    if (userSquadLocationService.currentMembersLocation == null ||
+        userSquadLocationService.currentMembersLocation!.isEmpty) {
+      return;
+    }
+
+    // Get current squad members to update pulsating list
+    final squadMembers = SquadMembersService().currentSquadMembers;
+    if (squadMembers != null) {
+      _updatePulsatingMarkersList(squadMembers);
+    }
+
     List<mapbox.PointAnnotationOptions> annotations = [];
     // Iterate through each member's location and create a PointAnnotationOptions
     for (var location in userSquadLocationService.currentMembersLocation!) {
