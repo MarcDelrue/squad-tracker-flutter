@@ -14,7 +14,7 @@ class UserSquadLocationService {
   UserSquadLocationService._internal();
 
   final SupabaseClient _supabase = Supabase.instance.client;
-  late DistanceCalculatorService distanceCalculatorService =
+  final DistanceCalculatorService distanceCalculatorService =
       DistanceCalculatorService();
   late List<UserSquadLocation>? differenceWithPreviousLocation;
   Map<String, RealtimeChannel>? membersLocationsChannels;
@@ -107,22 +107,33 @@ class UserSquadLocationService {
 
         if (response != null) {
           _listenMemberLocations(memberId, squadId);
-          UserSquadLocation memberLocation =
-              UserSquadLocation.fromJson(response);
 
-          // Only add location if it has valid coordinates
-          if (memberLocation.longitude != null &&
-              memberLocation.latitude != null) {
-            // Only calculate distances if current user location exists
-            if (currentUserLocation != null) {
-              currentMembersDistanceFromUser![memberId] =
-                  distanceCalculatorService.calculateDistanceFromUser(
-                      memberLocation, currentUserLocation);
-              currentMembersDirectionFromUser![memberId] =
-                  distanceCalculatorService.calculateDirectionFromUser(
-                      memberLocation, currentUserLocation, 0);
+          try {
+            UserSquadLocation memberLocation =
+                UserSquadLocation.fromJson(response);
+
+            // Only add location if it has valid coordinates
+            if (memberLocation.longitude != null &&
+                memberLocation.latitude != null) {
+              // Only calculate distances if current user location exists and has valid coordinates
+              if (currentUserLocation != null &&
+                  currentUserLocation!.longitude != null &&
+                  currentUserLocation!.latitude != null) {
+                try {
+                  _currentMembersDistanceFromUser[memberId] =
+                      distanceCalculatorService.calculateDistanceFromUser(
+                          memberLocation, currentUserLocation);
+                  _currentMembersDirectionFromUser[memberId] =
+                      distanceCalculatorService.calculateDirectionFromUser(
+                          memberLocation, currentUserLocation, 0);
+                } catch (e) {
+                  // Handle distance calculation errors silently
+                }
+              }
+              locations.add(memberLocation);
             }
-            locations.add(memberLocation);
+          } catch (e) {
+            // Handle parsing errors silently
           }
         }
       }
@@ -157,25 +168,36 @@ class UserSquadLocationService {
               value: memberId,
             ),
             callback: (PostgresChangePayload payload) {
-              debugPrint('User squad location change detected: $payload');
-              final updatedLocation =
-                  UserSquadLocation.fromJson(payload.newRecord);
-              currentMembersDistanceFromUser![memberId] =
-                  distanceCalculatorService.calculateDistanceFromUser(
-                      updatedLocation, currentUserLocation);
-              currentMembersDirectionFromUser![memberId] =
-                  distanceCalculatorService.calculateDirectionFromUser(
-                      updatedLocation, currentUserLocation, 0);
+              try {
+                if (payload.newRecord == null) {
+                  return;
+                }
 
-              // Update currentMembersLocation
-              final updatedMembersLocation =
-                  currentMembersLocation?.map((location) {
-                return location.user_id == memberId
-                    ? updatedLocation
-                    : location;
-              }).toList();
+                final updatedLocation =
+                    UserSquadLocation.fromJson(payload.newRecord);
 
-              currentMembersLocation = updatedMembersLocation;
+                // Only calculate distances if current user location exists
+                if (currentUserLocation != null) {
+                  _currentMembersDistanceFromUser[memberId] =
+                      distanceCalculatorService.calculateDistanceFromUser(
+                          updatedLocation, currentUserLocation);
+                  _currentMembersDirectionFromUser[memberId] =
+                      distanceCalculatorService.calculateDirectionFromUser(
+                          updatedLocation, currentUserLocation, 0);
+                }
+
+                // Update currentMembersLocation
+                final updatedMembersLocation =
+                    currentMembersLocation?.map((location) {
+                  return location.user_id == memberId
+                      ? updatedLocation
+                      : location;
+                }).toList();
+
+                currentMembersLocation = updatedMembersLocation;
+              } catch (e) {
+                // Handle errors silently
+              }
             })
         .subscribe();
 
@@ -185,35 +207,35 @@ class UserSquadLocationService {
   }
 
   _updateMembersDistanceFromUser() {
-    if (currentMembersDistanceFromUser == {} ||
+    if (_currentMembersDistanceFromUser.isEmpty ||
         currentMembersLocation == null) {
       return;
     }
-    for (String memberId in currentMembersDistanceFromUser!.keys) {
-      currentMembersDistanceFromUser![memberId] =
+    for (String memberId in _currentMembersDistanceFromUser.keys) {
+      _currentMembersDistanceFromUser[memberId] =
           distanceCalculatorService.calculateDistanceFromUser(
               currentMembersLocation!
                   .firstWhere((location) => location.user_id == memberId),
               currentUserLocation);
       debugPrint(
-          'Updated distance from user for member $memberId: ${currentMembersDistanceFromUser![memberId]}');
+          'Updated distance from user for member $memberId: ${_currentMembersDistanceFromUser[memberId]}');
     }
   }
 
   updateMemberDirectionFromUser(double? userDirection) {
-    if (currentMembersDirectionFromUser == {} ||
+    if (_currentMembersDirectionFromUser.isEmpty ||
         currentMembersLocation == null) {
       return;
     }
-    for (String memberId in currentMembersDirectionFromUser!.keys) {
-      currentMembersDirectionFromUser![memberId] =
+    for (String memberId in _currentMembersDirectionFromUser.keys) {
+      _currentMembersDirectionFromUser[memberId] =
           distanceCalculatorService.calculateDirectionFromUser(
               currentMembersLocation!
                   .firstWhere((location) => location.user_id == memberId),
               currentUserLocation,
               userDirection);
       debugPrint(
-          'Updated direction from user for member $memberId: ${currentMembersDirectionFromUser![memberId]}');
+          'Updated direction from user for member $memberId: ${_currentMembersDirectionFromUser[memberId]}');
     }
   }
 
