@@ -81,7 +81,13 @@ class MapWithLocationState extends State<MapWithLocation> {
           color: Colors.black,
           border: Border.all(color: Colors.blue, width: 2),
         ),
-        child: const BattleLogsWidget(),
+        child: BattleLogsWidget(
+          onClose: () {
+            setState(() {
+              _showBattleLogs = false;
+            });
+          },
+        ),
       ),
     );
   }

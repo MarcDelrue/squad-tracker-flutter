@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/models/battle_log_model.dart';
+import 'package:squad_tracker_flutter/models/users_model.dart';
 import 'package:squad_tracker_flutter/providers/battle_logs_service.dart';
+import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
+import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class BattleLogsWidget extends StatefulWidget {
-  const BattleLogsWidget({super.key});
+  final VoidCallback? onClose;
+
+  const BattleLogsWidget({super.key, this.onClose});
 
   @override
   BattleLogsWidgetState createState() => BattleLogsWidgetState();
@@ -62,7 +67,33 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
           timeago.format(battleLog.date, locale: 'en_short'),
           style: const TextStyle(color: Colors.grey),
         ),
+        onTap: () {
+          // Fly to the member and close battle logs
+          _flyToMember(battleLog.user);
+          widget.onClose?.call();
+        },
       ),
     );
+  }
+
+  void _flyToMember(User user) {
+    // Import the map user location service to fly to the member
+    final mapUserLocationService = MapUserLocationService();
+    final userSquadLocationService = UserSquadLocationService();
+
+    // Find the member's location
+    final memberLocation = userSquadLocationService.currentMembersLocation
+        ?.where((location) => location.user_id == user.id)
+        .firstOrNull;
+
+    if (memberLocation != null &&
+        memberLocation.latitude != null &&
+        memberLocation.longitude != null) {
+      // Fly to the member's location
+      mapUserLocationService.flyToLocation(
+        memberLocation.longitude!,
+        memberLocation.latitude!,
+      );
+    }
   }
 }
