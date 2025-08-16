@@ -11,61 +11,73 @@ class UserAddButton extends StatelessWidget {
   void _showSquadUuidModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true, // Allow the modal to be scrollable
       builder: (BuildContext context) {
         return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Invite to Squad',
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Share this code with users to join the squad:',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              const SizedBox(height: 10),
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min, // Center the Row
-                  children: [
-                    SelectableText(
-                      squad.uuid,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.copy),
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: squad.uuid));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Squad code copied to clipboard')),
-                        );
-                      },
-                    ),
-                  ],
+          padding: EdgeInsets.only(
+            left: 16.0,
+            right: 16.0,
+            top: 16.0,
+            bottom: 16.0 +
+                MediaQuery.of(context).padding.bottom, // Add safe area padding
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Invite to Squad',
+                  style: Theme.of(context).textTheme.headlineLarge,
                 ),
-              ),
-              const SizedBox(height: 16),
-              QrImageView(
-                data: squad.uuid,
-                backgroundColor: Colors.white,
-                version: QrVersions.auto,
-                size: 200.0,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Close'),
-              ),
-            ],
+                const SizedBox(height: 10),
+                Text(
+                  'Share this code with users to join the squad:',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 10),
+                Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min, // Center the Row
+                    children: [
+                      SelectableText(
+                        squad.uuid,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.copy),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: squad.uuid));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content:
+                                    Text('Squad code copied to clipboard')),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                QrImageView(
+                  data: squad.uuid,
+                  backgroundColor: Colors.white,
+                  version: QrVersions.auto,
+                  size: 200.0,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Close'),
+                ),
+                // Add extra bottom padding for better spacing
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
         );
       },
