@@ -18,6 +18,7 @@ class MapWithLocationState extends State<MapWithLocation> {
   int bottomSheetContentIndex = 0;
   late final List<Widget> bottomSheetContent;
   bool _isGeolocationEnabled = true;
+  bool _showBattleLogs = false;
   void _handleGeolocationToggle(bool isEnabled) {
     setState(() {
       _isGeolocationEnabled = isEnabled;
@@ -44,8 +45,15 @@ class MapWithLocationState extends State<MapWithLocation> {
       body: Stack(
         children: [
           const GameMapWidget(),
-          FlyToUserFab(isDisabled: !_isGeolocationEnabled),
-          BattleLogsWidget(),
+          MapControlButtons(
+            isGeolocationDisabled: !_isGeolocationEnabled,
+            onBattleLogsPressed: () {
+              setState(() {
+                _showBattleLogs = !_showBattleLogs;
+              });
+            },
+          ),
+          if (_showBattleLogs) _buildBattleLogsPositioned(),
           _buildDraggableBottomSheet(),
           _buildFabPositioned(),
         ],
@@ -58,6 +66,23 @@ class MapWithLocationState extends State<MapWithLocation> {
       content: IndexedStack(
         index: bottomSheetContentIndex,
         children: bottomSheetContent,
+      ),
+    );
+  }
+
+  Widget _buildBattleLogsPositioned() {
+    return Positioned(
+      top: 80 + MediaQuery.of(context).padding.top,
+      left: 16,
+      right: 16,
+      child: Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.blue, width: 2),
+        ),
+        child: const BattleLogsWidget(),
       ),
     );
   }

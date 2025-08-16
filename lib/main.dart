@@ -14,9 +14,9 @@ void main() async {
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnbHNsZWVyd2dhdHVlbW1vZGZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzNTY0NDMsImV4cCI6MjA3MDkzMjQ0M30.v3UsXfqhzeqQCT-f4WZOjSDWKawdh6M1qh3wg3qaShM',
   );
-  String mapboxToken = const String.fromEnvironment("MAPBOX_TOKEN");
-  // Uncomment to work on map
-  MapboxOptions.setAccessToken(mapboxToken);
+  // Set Mapbox access token - it's now in AndroidManifest.xml
+  MapboxOptions.setAccessToken(
+      "sk.eyJ1IjoibWFyY2RlbHJ1ZSIsImEiOiJjbTNodW5sNmswZ3N0Mm1zNjk0aDVjYzM5In0.Mbv7uMcYheJ4bXHmzK707g");
   timeago.setLocaleMessages('en_short', timeago.EnShortMessages());
   runApp(const MyApp());
 }
