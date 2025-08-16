@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
 import 'package:squad_tracker_flutter/models/users_model.dart' as users_model;
+import 'package:squad_tracker_flutter/providers/map_annotations_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -15,7 +16,7 @@ class SquadMembersService {
 
   final SupabaseClient _supabase = Supabase.instance.client;
   final userSquadLocationService = UserSquadLocationService();
-  // final mapAnnotationsService = MapAnnotationsService();
+  final mapAnnotationsService = MapAnnotationsService();
   RealtimeChannel? currentSquadChannel;
   Map<String, RealtimeChannel>? currentMembersChannels;
 
@@ -212,6 +213,8 @@ class SquadMembersService {
     }
     _supabase.removeChannel(currentSquadChannel!);
     currentSquadChannel?.unsubscribe();
+    // Clear all markers when unsubscribing from squad members (leaving squad)
+    mapAnnotationsService.removeEveryAnnotations();
   }
 
   kickFromSquad(String userId, String squadId) async {

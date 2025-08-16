@@ -15,7 +15,6 @@ class MapAnnotationsService extends ChangeNotifier {
   MapAnnotationsService._internal();
 
   final userSquadLocationService = UserSquadLocationService();
-  final squadMembersService = SquadMembersService();
 
   late mapbox.PointAnnotationManager pointAnnotationManager;
   List<mapbox.PointAnnotation>? membersPointAnnotations;
@@ -33,7 +32,12 @@ class MapAnnotationsService extends ChangeNotifier {
   }
 
   removeEveryAnnotations() {
-    pointAnnotationManager.deleteAll();
+    try {
+      pointAnnotationManager.deleteAll();
+    } catch (e) {
+      // PointAnnotationManager might not be initialized yet
+      debugPrint('Could not delete annotations: $e');
+    }
     membersPointAnnotations = null;
   }
 
@@ -50,9 +54,14 @@ class MapAnnotationsService extends ChangeNotifier {
   }
 
   updateMembersAnnotation() {
+    debugPrint(
+        'updateMembersAnnotation called - membersPointAnnotations: ${membersPointAnnotations?.length ?? 0}, locations: ${userSquadLocationService.currentMembersLocation?.length ?? 0}');
+
     if (membersPointAnnotations == null) {
+      debugPrint('Creating initial members annotations');
       setInitialMembersAnnotation();
     } else {
+      debugPrint('Updating existing members annotations');
       for (var i = 0;
           i < userSquadLocationService.currentMembersLocation!.length;
           i++) {
@@ -78,14 +87,19 @@ class MapAnnotationsService extends ChangeNotifier {
   }
 
   setInitialMembersAnnotation() async {
+    debugPrint(
+        'setInitialMembersAnnotation called with ${userSquadLocationService.currentMembersLocation?.length ?? 0} locations');
+
     List<mapbox.PointAnnotationOptions> annotations = [];
     // Iterate through each member's location and create a PointAnnotationOptions
     for (var location in userSquadLocationService.currentMembersLocation!) {
       if (location.longitude == null || location.latitude == null) {
+        debugPrint(
+            'Skipping location for user ${location.user_id} - no coordinates');
         continue;
       }
       UserWithSession foundMember =
-          squadMembersService.getMemberDataById(location.user_id);
+          SquadMembersService().getMemberDataById(location.user_id);
       mapbox.PointAnnotationOptions pointAnnotationOptions =
           mapbox.PointAnnotationOptions(
         geometry: mapbox.Point(
@@ -103,9 +117,18 @@ class MapAnnotationsService extends ChangeNotifier {
       );
 
       annotations.add(pointAnnotationOptions);
+      debugPrint(
+          'Created annotation for ${foundMember.user.username} at ${location.longitude}, ${location.latitude}');
     }
-    membersPointAnnotations =
-        (await pointAnnotationManager.createMulti(annotations))
-            .cast<mapbox.PointAnnotation>();
+
+    if (annotations.isNotEmpty) {
+      membersPointAnnotations =
+          (await pointAnnotationManager.createMulti(annotations))
+              .cast<mapbox.PointAnnotation>();
+      debugPrint(
+          'Created ${membersPointAnnotations?.length ?? 0} member annotations');
+    } else {
+      debugPrint('No annotations created - no valid locations');
+    }
   }
 }

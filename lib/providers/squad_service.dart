@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:squad_tracker_flutter/models/squad_model.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
+import 'package:squad_tracker_flutter/providers/map_annotations_service.dart';
 import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
@@ -18,6 +19,7 @@ class SquadService extends ChangeNotifier {
   final squadMembersService = SquadMembersService();
   final userSquadLocationService = UserSquadLocationService();
   final userService = UserService();
+  final mapAnnotationsService = MapAnnotationsService();
   RealtimeChannel? currentSquadChannel;
 
   List<Squad>? recentSquads;
@@ -173,6 +175,7 @@ class SquadService extends ChangeNotifier {
                     squadId: payload.newRecord['squad_id'].toString());
               } else if (payload.newRecord['is_active'] == false) {
                 // User left the squad
+                mapAnnotationsService.removeEveryAnnotations();
                 currentSquad = null;
                 userSquadSessionService.currentSquadSession = null;
                 debugPrint('User left the squad');
