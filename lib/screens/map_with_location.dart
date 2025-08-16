@@ -78,8 +78,7 @@ class MapWithLocationState extends State<MapWithLocation> {
       child: Container(
         height: 200,
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.8),
-          borderRadius: BorderRadius.circular(8),
+          color: Colors.black,
           border: Border.all(color: Colors.blue, width: 2),
         ),
         child: const BattleLogsWidget(),

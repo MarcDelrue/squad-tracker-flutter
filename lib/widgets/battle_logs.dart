@@ -58,8 +58,8 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
     for (final newMember in newSquadMembers) {
       final oldMember = lastMembersMap[newMember.user.id];
 
-      if (oldMember == null ||
-          (!oldMember.session.is_active && newMember.session.is_active)) {
+      if (oldMember == null) {
+        // New member joined
         newBattleLogs.add(BattleLogModel(
           user: newMember.user,
           status: "Joined",
@@ -68,6 +68,7 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
         ));
       } else if (oldMember.session.user_status !=
           newMember.session.user_status) {
+        // Status changed
         newBattleLogs.add(BattleLogModel(
           user: newMember.user,
           status: newMember.session.user_status?.toText ?? "",
@@ -83,7 +84,6 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
     _lastSquadMembersData.forEach((oldMember) {
       if (!newSquadMembers
           .any((newMember) => newMember.user.id == oldMember.user.id)) {
-        // removedMembers.add(oldMember);
         newBattleLogs.add(BattleLogModel(
           user: oldMember.user,
           status: "Left",
@@ -93,30 +93,29 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
       }
     });
 
-    setState(() {
-      for (var battleLog in newBattleLogs) {
-        // Add new log at the beginning of the list
-        _battleLogs.insert(0, battleLog);
-        _listKey.currentState?.insertItem(0);
+    // Only update if there are new battle logs
+    if (newBattleLogs.isNotEmpty) {
+      setState(() {
+        for (var battleLog in newBattleLogs) {
+          // Add new log at the beginning of the list
+          _battleLogs.insert(0, battleLog);
+          _listKey.currentState?.insertItem(0);
 
-        // If list exceeds 5 items, remove the last one
-        if (_battleLogs.length > 5) {
-          // Correct index to remove is always 5, since we want to remove
-          // the "oldest" item which now is the last item visually and in the list
-          var removedItem = _battleLogs.removeAt(
-              5); // This actually removes the 6th item, making the list have 5 items again
-          _listKey.currentState?.removeItem(
-            5, // This is the visual index of the item to remove
-            (context, animation) => FadeTransition(
-              opacity: animation,
-              child: battleLogToWidget(removedItem),
-            ),
-            duration: const Duration(
-                milliseconds: 300), // Duration of the fade transition
-          );
+          // If list exceeds 5 items, remove the last one
+          if (_battleLogs.length > 5) {
+            var removedItem = _battleLogs.removeAt(5);
+            _listKey.currentState?.removeItem(
+              5,
+              (context, animation) => FadeTransition(
+                opacity: animation,
+                child: battleLogToWidget(removedItem),
+              ),
+              duration: const Duration(milliseconds: 300),
+            );
+          }
         }
-      }
-    });
+      });
+    }
 
     // Updating _lastSquadMembersData with a deep copy of newSquadMembers
     _lastSquadMembersData = newSquadMembers
@@ -129,6 +128,15 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
   void initState() {
     super.initState();
     final squadMembersService = SquadMembersService();
+
+    // Initialize with current squad members if available
+    if (squadMembersService.currentSquadMembers != null) {
+      _lastSquadMembersData = squadMembersService.currentSquadMembers!
+          .map((member) => UserWithSession.fromJson(
+              json.decode(json.encode(member.toJson()))))
+          .toList();
+    }
+
     _subscription =
         squadMembersService.currentSquadMembersStream.listen((newSquadMembers) {
       if (newSquadMembers != null) {
@@ -148,13 +156,28 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
     return StreamBuilder<List<UserWithSession>?>(
       stream: SquadMembersService().currentSquadMembersStream,
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Text("Waiting for member events...");
+        if (!snapshot.hasData && _battleLogs.isEmpty) {
+          return const Center(
+            child: Text(
+              "Waiting for member events...",
+              style: TextStyle(color: Colors.white),
+            ),
+          );
+        }
+
+        if (_battleLogs.isEmpty) {
+          return const Center(
+            child: Text(
+              "No battle logs yet",
+              style: TextStyle(color: Colors.white),
+            ),
+          );
         }
 
         return AnimatedList(
           key: _listKey,
           initialItemCount: _battleLogs.length,
+          padding: EdgeInsets.zero,
           itemBuilder: (context, index, animation) {
             final battleLog = _battleLogs[index];
             return FadeTransition(
@@ -170,12 +193,14 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
     final difference = now.difference(battleLog.date);
 
     return Container(
-      color: Colors.black.withOpacity(0.5), // Semi-transparent background
+      color: Colors.black, // Fully opaque background
       child: ListTile(
         dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         title: Text(
           battleLog.text,
-          style: TextStyle(color: Colors.white), // White text for readability
+          style: const TextStyle(
+              color: Colors.white), // White text for readability
         ),
         subtitle: Text(
           timeago.format(now.subtract(difference)),
