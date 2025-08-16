@@ -4,6 +4,7 @@ import 'package:squad_tracker_flutter/models/users_model.dart';
 import 'package:squad_tracker_flutter/providers/battle_logs_service.dart';
 import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
+import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class BattleLogsWidget extends StatefulWidget {
@@ -17,6 +18,7 @@ class BattleLogsWidget extends StatefulWidget {
 
 class BattleLogsWidgetState extends State<BattleLogsWidget> {
   final battleLogsService = BattleLogsService();
+  final userService = UserService();
 
   @override
   void initState() {
@@ -68,6 +70,10 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
           style: const TextStyle(color: Colors.grey),
         ),
         onTap: () {
+          // Don't do anything if it's the current user's log
+          if (battleLog.user.id == userService.currentUser?.id) {
+            return;
+          }
           // Fly to the member and close battle logs
           _flyToMember(battleLog.user);
           widget.onClose?.call();
