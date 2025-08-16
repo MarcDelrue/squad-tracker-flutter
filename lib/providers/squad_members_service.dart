@@ -214,8 +214,13 @@ class SquadMembersService {
     }
     _supabase.removeChannel(currentSquadChannel!);
     currentSquadChannel?.unsubscribe();
+    currentSquadChannel = null;
+
     // Clear all markers when unsubscribing from squad members (leaving squad)
     mapAnnotationsService.removeEveryAnnotations();
+
+    // Clear current squad members and emit empty list
+    currentSquadMembers = null;
   }
 
   kickFromSquad(String userId, String squadId) async {

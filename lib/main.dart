@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:squad_tracker_flutter/providers/battle_logs_service.dart';
 import 'package:squad_tracker_flutter/screens/login/login_form.dart';
 import 'package:squad_tracker_flutter/widgets/navigation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,6 +19,10 @@ void main() async {
   MapboxOptions.setAccessToken(
       "sk.eyJ1IjoibWFyY2RlbHJ1ZSIsImEiOiJjbTNodW5sNmswZ3N0Mm1zNjk0aDVjYzM5In0.Mbv7uMcYheJ4bXHmzK707g");
   timeago.setLocaleMessages('en_short', timeago.EnShortMessages());
+
+  // Start battle logs service to listen continuously
+  BattleLogsService().startListening();
+
   runApp(const MyApp());
 }
 
