@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
+import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:squad_tracker_flutter/utils/colors_option.dart';
@@ -18,17 +20,51 @@ class MapAnnotationsService extends ChangeNotifier {
 
   late mapbox.PointAnnotationManager pointAnnotationManager;
   List<mapbox.PointAnnotation>? membersPointAnnotations;
-  late Uint8List soldierImage = Uint8List(0);
+
+  // Status-based soldier images
+  late Uint8List soldierAliveImage = Uint8List(0);
+  late Uint8List soldierDeadImage = Uint8List(0);
+  late Uint8List soldierHelpImage = Uint8List(0);
+  late Uint8List soldierMedicImage = Uint8List(0);
+
+  // Animation timer for pulsating effects
+  Timer? _pulseTimer;
+  double _pulseScale = 1.0;
+  bool _pulseGrowing = true;
 
   initMembersAnnotation(mapbox.MapboxMap mapboxMap) async {
     pointAnnotationManager =
         await mapboxMap.annotations.createPointAnnotationManager();
     pointAnnotationManager
         .setIconRotationAlignment(mapbox.IconRotationAlignment.MAP);
-    // Load the image from assets
-    final ByteData bytes =
-        await rootBundle.load('assets/images/soldiers/default_soldier.png');
-    soldierImage = bytes.buffer.asUint8List();
+
+    // Load all status-based soldier images
+    try {
+      final ByteData aliveBytes =
+          await rootBundle.load('assets/images/soldiers/default_soldier.png');
+      soldierAliveImage = aliveBytes.buffer.asUint8List();
+      debugPrint('Loaded alive image, size: ${soldierAliveImage.length}');
+
+      final ByteData deadBytes =
+          await rootBundle.load('assets/images/soldiers/soldier_dead.png');
+      soldierDeadImage = deadBytes.buffer.asUint8List();
+      debugPrint('Loaded dead image, size: ${soldierDeadImage.length}');
+
+      final ByteData helpBytes =
+          await rootBundle.load('assets/images/soldiers/soldier_help.png');
+      soldierHelpImage = helpBytes.buffer.asUint8List();
+      debugPrint('Loaded help image, size: ${soldierHelpImage.length}');
+
+      final ByteData medicBytes =
+          await rootBundle.load('assets/images/soldiers/soldier_medic.png');
+      soldierMedicImage = medicBytes.buffer.asUint8List();
+      debugPrint('Loaded medic image, size: ${soldierMedicImage.length}');
+    } catch (e) {
+      debugPrint('Error loading soldier images: $e');
+    }
+
+    // Start pulsating animation for urgent statuses
+    _startPulseAnimation();
   }
 
   removeEveryAnnotations() {
@@ -39,6 +75,76 @@ class MapAnnotationsService extends ChangeNotifier {
       debugPrint('Could not delete annotations: $e');
     }
     membersPointAnnotations = null;
+    _stopPulseAnimation();
+  }
+
+  void _startPulseAnimation() {
+    _pulseTimer?.cancel();
+    _pulseTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+      if (_pulseGrowing) {
+        _pulseScale += 0.05;
+        if (_pulseScale >= 1.5) {
+          _pulseGrowing = false;
+        }
+      } else {
+        _pulseScale -= 0.05;
+        if (_pulseScale <= 1.0) {
+          _pulseGrowing = true;
+        }
+      }
+      // Update existing annotations for pulsating effect
+      _updateExistingAnnotations();
+    });
+  }
+
+  void _stopPulseAnimation() {
+    _pulseTimer?.cancel();
+    _pulseTimer = null;
+  }
+
+  Uint8List _getStatusIcon(UserSquadSessionStatus? status) {
+    switch (status) {
+      case UserSquadSessionStatus.alive:
+        return soldierAliveImage;
+      case UserSquadSessionStatus.dead:
+        return soldierDeadImage;
+      case UserSquadSessionStatus.help:
+        return soldierHelpImage;
+      case UserSquadSessionStatus.medic:
+        return soldierMedicImage;
+      default:
+        return soldierAliveImage;
+    }
+  }
+
+  Color _getStatusColor(UserSquadSessionStatus? status, String? userColor) {
+    // Always use the user's main color for text, regardless of status
+    return hexToColor(userColor ?? '#000000');
+  }
+
+  double _getStatusIconSize(UserSquadSessionStatus? status) {
+    switch (status) {
+      case UserSquadSessionStatus.alive:
+        return 1.0; // 250px image - normal scale
+      case UserSquadSessionStatus.dead:
+        return 1.5; // 64px image - scale up to match 250px (250/64 ≈ 3.9)
+      case UserSquadSessionStatus.help:
+        return 1.5 * _pulseScale; // 64px image - scale up + pulsating
+      case UserSquadSessionStatus.medic:
+        return 1.5 * _pulseScale; // 64px image - scale up + pulsating
+      default:
+        return 1.0;
+    }
+  }
+
+  double _getStatusIconRotation(
+      UserSquadSessionStatus? status, num? direction) {
+    // Only rotate if user is alive and has a direction
+    if (status == UserSquadSessionStatus.alive && direction != null) {
+      return direction.toDouble();
+    }
+    // Dead, help, and medic statuses don't rotate
+    return 0.0;
   }
 
   void removeMembersAnnotation(String username) {
@@ -57,26 +163,66 @@ class MapAnnotationsService extends ChangeNotifier {
     if (membersPointAnnotations == null) {
       setInitialMembersAnnotation();
     } else {
-      for (var i = 0;
-          i < userSquadLocationService.currentMembersLocation!.length;
-          i++) {
-        var location = userSquadLocationService.currentMembersLocation![i];
-        var annotation = membersPointAnnotations![i];
+      // Force recreate annotations when status changes to ensure icons update
+      _forceRecreateAnnotations();
+    }
+  }
 
-        if (location.longitude == null ||
-            location.latitude == null ||
-            annotation == null) {
-          continue;
-        }
+  void _updateExistingAnnotations() {
+    if (userSquadLocationService.currentMembersLocation == null ||
+        userSquadLocationService.currentMembersLocation!.isEmpty ||
+        membersPointAnnotations == null) {
+      return;
+    }
+
+    for (var i = 0;
+        i < userSquadLocationService.currentMembersLocation!.length;
+        i++) {
+      var location = userSquadLocationService.currentMembersLocation![i];
+      var annotation = membersPointAnnotations![i];
+
+      if (location.longitude == null ||
+          location.latitude == null ||
+          annotation == null) {
+        continue;
+      }
+
+      try {
+        UserWithSession foundMember =
+            SquadMembersService().getMemberDataById(location.user_id);
+
+        final statusIcon = _getStatusIcon(foundMember.session.user_status);
+        final statusColor = _getStatusColor(
+            foundMember.session.user_status, foundMember.user.main_color);
+        final iconSize = _getStatusIconSize(foundMember.session.user_status);
+        final iconRotation = _getStatusIconRotation(
+            foundMember.session.user_status, location.direction);
 
         annotation.geometry = mapbox.Point(
             coordinates: mapbox.Position(
                 location.longitude as num, location.latitude as num));
-        annotation.iconRotate = location.direction?.toDouble() ?? 0;
+        annotation.iconRotate = iconRotation;
+        annotation.image = statusIcon;
+        annotation.textColor = statusColor.value;
+        annotation.iconSize = iconSize;
 
-        // Optionally update the annotation manager to reflect these changes on the map
         pointAnnotationManager.update(annotation);
+      } catch (e) {
+        // Handle errors silently
       }
+    }
+  }
+
+  void _forceRecreateAnnotations() async {
+    try {
+      // Clear existing annotations
+      await pointAnnotationManager.deleteAll();
+      membersPointAnnotations = null;
+
+      // Recreate with new status-based icons
+      await setInitialMembersAnnotation();
+    } catch (e) {
+      debugPrint('Error recreating annotations: $e');
     }
   }
 
@@ -89,20 +235,27 @@ class MapAnnotationsService extends ChangeNotifier {
       }
       UserWithSession foundMember =
           SquadMembersService().getMemberDataById(location.user_id);
+      final statusIcon = _getStatusIcon(foundMember.session.user_status);
+      final statusColor = _getStatusColor(
+          foundMember.session.user_status, foundMember.user.main_color);
+      final iconSize = _getStatusIconSize(foundMember.session.user_status);
+      final iconRotation = _getStatusIconRotation(
+          foundMember.session.user_status, location.direction);
+
       mapbox.PointAnnotationOptions pointAnnotationOptions =
           mapbox.PointAnnotationOptions(
         geometry: mapbox.Point(
             coordinates: mapbox.Position(
                 location.longitude as num, location.latitude as num)),
-        image: soldierImage,
-        iconRotate: location.direction?.toDouble() ?? 0,
+        image: statusIcon,
+        iconRotate: iconRotation,
         textField: foundMember.user.username,
-        textColor: hexToColor(foundMember.user.main_color ?? '#000000').value,
+        textColor: statusColor.value,
         textOffset: [0, 2.0],
         textHaloBlur: 1.0,
         textHaloWidth: 1.0,
         textHaloColor: Colors.black.value,
-        iconSize: 1.0,
+        iconSize: iconSize,
       );
 
       annotations.add(pointAnnotationOptions);
@@ -113,5 +266,9 @@ class MapAnnotationsService extends ChangeNotifier {
           (await pointAnnotationManager.createMulti(annotations))
               .cast<mapbox.PointAnnotation>();
     }
+  }
+
+  void dispose() {
+    _stopPulseAnimation();
   }
 }
