@@ -30,6 +30,9 @@ class SquadService extends ChangeNotifier {
     if (value != null) {
       squadMembersService.listenToSquadMembers(
           userService.currentUser!.id, value.id);
+      // Load initial squad members data
+      squadMembersService.getCurrentSquadMembers(
+          userService.currentUser!.id, value.id);
       userSquadLocationService.getLastUserLocation(
           userService.currentUser!.id, value.id);
     } else {

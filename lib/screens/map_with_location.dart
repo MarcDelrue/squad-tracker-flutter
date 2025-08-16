@@ -6,6 +6,7 @@ import 'package:squad_tracker_flutter/widgets/fly_to_user_fab.dart';
 import 'package:squad_tracker_flutter/widgets/map_fab.dart';
 import 'package:squad_tracker_flutter/widgets/map.dart';
 import 'package:squad_tracker_flutter/widgets/map_settings.dart';
+import 'package:squad_tracker_flutter/widgets/squad_members_list.dart';
 import 'package:squad_tracker_flutter/widgets/user_status_buttons.dart';
 
 class MapWithLocation extends StatefulWidget {
@@ -20,6 +21,7 @@ class MapWithLocationState extends State<MapWithLocation> {
   late final List<Widget> bottomSheetContent;
   bool _isGeolocationEnabled = true;
   bool _showBattleLogs = false;
+  bool _showBottomSheet = false; // Track if bottom sheet should be shown
   void _handleGeolocationToggle(bool isEnabled) {
     setState(() {
       _isGeolocationEnabled = isEnabled;
@@ -30,11 +32,14 @@ class MapWithLocationState extends State<MapWithLocation> {
   void initState() {
     super.initState();
     bottomSheetContent = [
-      // MembersInGameList(
-      //   combinedStreamService: combinedStreamService,
-      // ),
+      SquadMembersList(
+        onFlyToMember: () {
+          setState(() {
+            _showBottomSheet = false;
+          });
+        },
+      ),
       const UserStatusButtons(),
-      const Text('Salut'),
       MapSettings(onGeolocationToggled: _handleGeolocationToggle),
       // Add more widgets as needed
     ];
@@ -56,7 +61,7 @@ class MapWithLocationState extends State<MapWithLocation> {
           ),
           if (_showBattleLogs) _buildBattleLogsPositioned(),
           // const EdgeIndicators(), // Edge indicators for off-screen members TODO: TO BE IMPROVED
-          _buildDraggableBottomSheet(),
+          if (_showBottomSheet) _buildDraggableBottomSheet(),
           _buildFabPositioned(),
         ],
       ),
@@ -108,7 +113,14 @@ class MapWithLocationState extends State<MapWithLocation> {
 
   void _onFabPressed(int index) {
     setState(() {
-      bottomSheetContentIndex = index;
+      if (_showBottomSheet && bottomSheetContentIndex == index) {
+        // If clicking the same button that's already active, hide the bottom sheet
+        _showBottomSheet = false;
+      } else {
+        // Show bottom sheet and set the content index
+        _showBottomSheet = true;
+        bottomSheetContentIndex = index;
+      }
     });
   }
 }
