@@ -10,9 +10,9 @@ import 'package:timeago/timeago.dart' as timeago;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(
-    url: 'https://gqpznsicyqvthcfpngms.supabase.co',
+    url: 'https://uglsleerwgatuemmodfv.supabase.co',
     anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcHpuc2ljeXF2dGhjZnBuZ21zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg4MzQxMjUsImV4cCI6MjA0NDQxMDEyNX0.j38omnpIUud1tbTP68Fpk09XwVPoBxp9UVgKupDj020',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnbHNsZWVyd2dhdHVlbW1vZGZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzNTY0NDMsImV4cCI6MjA3MDkzMjQ0M30.v3UsXfqhzeqQCT-f4WZOjSDWKawdh6M1qh3wg3qaShM',
   );
   String mapboxToken = const String.fromEnvironment("MAPBOX_TOKEN");
   // Uncomment to work on map
