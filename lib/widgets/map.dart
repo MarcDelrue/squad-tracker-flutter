@@ -83,22 +83,14 @@ class GameMapWidgetState extends State<GameMapWidget> {
         key: const ValueKey("mapWidget"),
         onMapCreated: _onMapCreated,
         onCameraChangeListener: (cameraChangedEventData) => {
-              debugPrint(
-                  'cameraChangedEventData: ${mapUserLocationService.isProgrammaticCameraChange}'),
+              // Camera change listener - removed debug log
             });
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Center(
-          child: SizedBox(
-              width: MediaQuery.of(context).size.shortestSide,
-              height: MediaQuery.of(context).size.longestSide -
-                  MediaQuery.of(context).padding.top -
-                  80,
-              child: mapWidget),
-        ),
-      ],
+    return Expanded(
+      child: Center(
+        child: SizedBox(
+            width: MediaQuery.of(context).size.shortestSide, child: mapWidget),
+      ),
     );
   }
 }
