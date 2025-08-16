@@ -34,7 +34,11 @@ class UserSquadLocationService {
   set currentMembersLocation(List<UserSquadLocation>? value) {
     _getDifferencesWithPreviousLocation(value, _currentMembersLocation);
     _currentMembersLocation = value;
-    _currentMembersLocationController.add(_currentMembersLocation!);
+    if (_currentMembersLocation != null) {
+      _currentMembersLocationController.add(_currentMembersLocation!);
+    } else {
+      _currentMembersLocationController.add([]);
+    }
   }
 
   final _currentMembersLocationController =
@@ -61,6 +65,7 @@ class UserSquadLocationService {
 
       if (hasUserSquadLocation == null) {
         debugPrint('No user squad location found for user ID: $userId');
+        currentUserLocation = null;
       } else {
         currentUserLocation = UserSquadLocation(
             id: hasUserSquadLocation['id'],
@@ -71,6 +76,7 @@ class UserSquadLocationService {
       }
     } catch (e) {
       debugPrint('Error in getLastUserLocation: $e');
+      currentUserLocation = null;
     }
   }
 
@@ -103,17 +109,28 @@ class UserSquadLocationService {
           _listenMemberLocations(memberId, squadId);
           UserSquadLocation memberLocation =
               UserSquadLocation.fromJson(response);
-          currentMembersDistanceFromUser![memberId] = distanceCalculatorService
-              .calculateDistanceFromUser(memberLocation, currentUserLocation);
-          currentMembersDirectionFromUser![memberId] =
-              distanceCalculatorService.calculateDirectionFromUser(
-                  memberLocation, currentUserLocation, 0);
-          locations.add(memberLocation);
+
+          // Only add location if it has valid coordinates
+          if (memberLocation.longitude != null &&
+              memberLocation.latitude != null) {
+            // Only calculate distances if current user location exists
+            if (currentUserLocation != null) {
+              currentMembersDistanceFromUser![memberId] =
+                  distanceCalculatorService.calculateDistanceFromUser(
+                      memberLocation, currentUserLocation);
+              currentMembersDirectionFromUser![memberId] =
+                  distanceCalculatorService.calculateDirectionFromUser(
+                      memberLocation, currentUserLocation, 0);
+            }
+            locations.add(memberLocation);
+          }
         }
       }
-      debugPrint(
-          'Fetched locations: $locations, $currentMembersDistanceFromUser, $currentMembersDirectionFromUser');
-      currentMembersLocation = locations;
+      if (locations.isNotEmpty) {
+        currentMembersLocation = locations;
+      } else {
+        currentMembersLocation = [];
+      }
       return locations;
     } catch (e) {
       debugPrint('Error in fetchMembersLocation: $e');

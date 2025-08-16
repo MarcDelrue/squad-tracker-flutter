@@ -54,14 +54,9 @@ class MapAnnotationsService extends ChangeNotifier {
   }
 
   updateMembersAnnotation() {
-    debugPrint(
-        'updateMembersAnnotation called - membersPointAnnotations: ${membersPointAnnotations?.length ?? 0}, locations: ${userSquadLocationService.currentMembersLocation?.length ?? 0}');
-
     if (membersPointAnnotations == null) {
-      debugPrint('Creating initial members annotations');
       setInitialMembersAnnotation();
     } else {
-      debugPrint('Updating existing members annotations');
       for (var i = 0;
           i < userSquadLocationService.currentMembersLocation!.length;
           i++) {
@@ -82,20 +77,14 @@ class MapAnnotationsService extends ChangeNotifier {
         // Optionally update the annotation manager to reflect these changes on the map
         pointAnnotationManager.update(annotation);
       }
-      debugPrint('Updated members annotation $membersPointAnnotations');
     }
   }
 
   setInitialMembersAnnotation() async {
-    debugPrint(
-        'setInitialMembersAnnotation called with ${userSquadLocationService.currentMembersLocation?.length ?? 0} locations');
-
     List<mapbox.PointAnnotationOptions> annotations = [];
     // Iterate through each member's location and create a PointAnnotationOptions
     for (var location in userSquadLocationService.currentMembersLocation!) {
       if (location.longitude == null || location.latitude == null) {
-        debugPrint(
-            'Skipping location for user ${location.user_id} - no coordinates');
         continue;
       }
       UserWithSession foundMember =
@@ -117,18 +106,12 @@ class MapAnnotationsService extends ChangeNotifier {
       );
 
       annotations.add(pointAnnotationOptions);
-      debugPrint(
-          'Created annotation for ${foundMember.user.username} at ${location.longitude}, ${location.latitude}');
     }
 
     if (annotations.isNotEmpty) {
       membersPointAnnotations =
           (await pointAnnotationManager.createMulti(annotations))
               .cast<mapbox.PointAnnotation>();
-      debugPrint(
-          'Created ${membersPointAnnotations?.length ?? 0} member annotations');
-    } else {
-      debugPrint('No annotations created - no valid locations');
     }
   }
 }

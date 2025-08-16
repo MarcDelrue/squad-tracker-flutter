@@ -6,6 +6,7 @@ import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
 import 'package:squad_tracker_flutter/providers/map_annotations_service.dart';
 import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
 import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
+import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 
 class GameMapWidget extends StatefulWidget {
@@ -20,10 +21,12 @@ class GameMapWidgetState extends State<GameMapWidget> {
 
   final userSquadLocationService = UserSquadLocationService();
   final squadMembersService = SquadMembersService();
+  final squadService = SquadService();
   final mapAnnotationsService = MapAnnotationsService();
   final mapUserLocationService = MapUserLocationService();
 
-  late StreamSubscription<List<UserSquadLocation>> _locationSubscription;
+  StreamSubscription<List<UserSquadLocation>>? _locationSubscription;
+  VoidCallback? _squadListener;
 
   mapbox.MapboxMap? mapboxMap;
 
@@ -32,21 +35,42 @@ class GameMapWidgetState extends State<GameMapWidget> {
     mapboxMap.loadStyleURI(mapbox.MapboxStyles.SATELLITE);
     mapUserLocationService.init(mapboxMap);
     mapAnnotationsService.initMembersAnnotation(mapboxMap);
+    _setupLocationSubscription();
+  }
+
+  void _setupLocationSubscription() {
+    // Cancel existing subscription if any
+    _locationSubscription?.cancel();
+
+    // Set up new subscription
     _locationSubscription = userSquadLocationService
         .currentMembersLocationStream
         .listen((location) {
-      mapAnnotationsService.updateMembersAnnotation();
+      if (mapboxMap != null) {
+        mapAnnotationsService.updateMembersAnnotation();
+      }
     });
   }
 
   @override
   void initState() {
     super.initState();
+    // Set up location subscription immediately
+    _setupLocationSubscription();
+
+    // Listen to squad changes to re-setup location subscription
+    _squadListener = () {
+      _setupLocationSubscription();
+    };
+    squadService.addListener(_squadListener!);
   }
 
   @override
   void dispose() {
-    _locationSubscription.cancel();
+    _locationSubscription?.cancel();
+    if (_squadListener != null) {
+      squadService.removeListener(_squadListener!);
+    }
     mapAnnotationsService.removeEveryAnnotations();
     mapUserLocationService.positionStream?.cancel();
     mapUserLocationService.compassStream?.cancel();

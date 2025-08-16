@@ -52,6 +52,7 @@ class SquadMembersService {
           .map<String>((session) => session['user_id'] as String)
           .where((id) => id != userId)
           .toList();
+
       userSquadLocationService.fetchMembersLocation(filteredUserIds, squadId);
 
       currentSquadMembers = squadMembers;
