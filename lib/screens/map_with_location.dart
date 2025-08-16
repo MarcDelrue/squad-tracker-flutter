@@ -74,7 +74,7 @@ class MapWithLocationState extends State<MapWithLocation> {
     return Positioned(
       top: 80 + MediaQuery.of(context).padding.top,
       left: 16,
-      right: 16,
+      right: 80, // Leave space for the FAB buttons on the right
       child: Container(
         height: 200,
         decoration: BoxDecoration(
