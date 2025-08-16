@@ -6,6 +6,7 @@ import 'package:squad_tracker_flutter/models/users_model.dart';
 import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'package:timeago/timeago.dart' as timeago;
 
 class BattleLogsWidget extends StatefulWidget {
@@ -20,6 +21,7 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
   List<UserWithSession> _lastSquadMembersData = [];
   final List<BattleLogModel> _battleLogs = [];
   final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
+  StreamSubscription<List<UserWithSession>?>? _subscription;
 
   String youOrOtherUsername(User user) {
     return user.id == userService.currentUser!.id ? "You" : user.username ?? "";
@@ -38,6 +40,9 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
   }
 
   void getNewUpdate(List<UserWithSession> newSquadMembers) {
+    // Check if widget is still mounted before calling setState
+    if (!mounted) return;
+
     // Creating a deep copy of _lastSquadMembersData for comparison
     final List<UserWithSession> lastSquadMembersDeepCopy = _lastSquadMembersData
         .map((member) =>
@@ -123,13 +128,19 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
   @override
   void initState() {
     super.initState();
-    final squadMembersService =
-        SquadMembersService(); // Initialize it appropriately
-    squadMembersService.currentSquadMembersStream.listen((newSquadMembers) {
+    final squadMembersService = SquadMembersService();
+    _subscription =
+        squadMembersService.currentSquadMembersStream.listen((newSquadMembers) {
       if (newSquadMembers != null) {
         getNewUpdate(newSquadMembers);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   @override

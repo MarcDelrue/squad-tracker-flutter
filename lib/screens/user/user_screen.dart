@@ -84,7 +84,14 @@ class _UserScreenState extends State<UserScreen> {
     setState(() {
       _loading = true;
     });
-    if (!_formKey.currentState!.validate()) return;
+
+    // Only validate form if we're updating from the form (not from color picker)
+    if (_formKey.currentState != null && !_formKey.currentState!.validate()) {
+      setState(() {
+        _loading = false;
+      });
+      return;
+    }
 
     final user = supabase.auth.currentUser;
     final updates = users_model.User(
@@ -95,8 +102,8 @@ class _UserScreenState extends State<UserScreen> {
     );
 
     try {
+      // Use only the userService to avoid double updates
       await userService.updateUser(updates);
-      await supabase.from('users').upsert(updates);
       setState(() {
         _loading = false;
       });
@@ -107,6 +114,9 @@ class _UserScreenState extends State<UserScreen> {
       if (mounted) {
         context.showSnackBar(error.message, isError: true);
       }
+      setState(() {
+        _loading = false;
+      });
     } catch (error) {
       if (mounted) {
         context.showSnackBar(
