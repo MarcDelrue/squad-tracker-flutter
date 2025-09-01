@@ -31,9 +31,18 @@ class MapUserLocationService {
   mapbox.MapboxMap? mapboxMap;
   late locator.LocationSettings? locationSettings;
   var currentDirection = 0.0;
+  DateTime? _lastHeadingUpdateAt;
+  final Duration _minHeadingUpdateInterval = const Duration(milliseconds: 500);
+  final double _headingDeltaThresholdDegrees = 5.0;
   bool cameraInitialized = false;
   bool isProgrammaticCameraChange = false;
   late Uint8List soldierImage = Uint8List(0);
+
+  // Throttling/power settings for saving location to backend
+  DateTime? _lastSavedLocationAt;
+  locator.Position? _lastSavedPosition;
+  final Duration _minSaveInterval = const Duration(seconds: 15);
+  final double _minSaveDistanceMeters = 10.0;
 
   init(mapbox.MapboxMap mapboxMapReference) async {
     mapboxMap = mapboxMapReference;
@@ -70,16 +79,41 @@ class MapUserLocationService {
             position.latitude;
         userSquadLocationService.currentUserLocation?.longitude =
             position.longitude;
-        userSquadLocationService.saveCurrentLocation(
-            position.longitude, position.latitude, currentDirection);
+        // Throttle backend writes based on time and distance moved
+        final now = DateTime.now();
+        final bool timeOk = _lastSavedLocationAt == null ||
+            now.difference(_lastSavedLocationAt!) >= _minSaveInterval;
+
+        double movedMeters = 0.0;
+        if (_lastSavedPosition != null) {
+          movedMeters = locator.Geolocator.distanceBetween(
+            _lastSavedPosition!.latitude,
+            _lastSavedPosition!.longitude,
+            position.latitude,
+            position.longitude,
+          );
+        }
+        final bool distanceOk =
+            _lastSavedPosition == null || movedMeters >= _minSaveDistanceMeters;
+
+        if (timeOk || distanceOk) {
+          if (userSquadLocationService.currentUserLocation != null) {
+            userSquadLocationService.saveCurrentLocation(
+                position.longitude, position.latitude, currentDirection);
+          }
+          _lastSavedLocationAt = now;
+          _lastSavedPosition = position;
+        }
         if (cameraInitialized == false) {
           flyToLocation(position.longitude, position.latitude);
           cameraInitialized = true;
         }
       }
-      debugPrint(position == null
-          ? 'Unknown'
-          : 'Current position: ${position.latitude.toString()}, ${position.longitude.toString()}');
+      if (kDebugMode) {
+        debugPrint(position == null
+            ? 'Unknown'
+            : 'Current position: ${position.latitude.toString()}, ${position.longitude.toString()}');
+      }
     });
     _isStreamInitialized = true;
   }
@@ -98,18 +132,24 @@ class MapUserLocationService {
   }
 
   getUserDirection() {
-    double? currentDirection;
-
     compassStream = FlutterCompass.events!.listen((CompassEvent event) {
-      if (event.heading == null) {
-        debugPrint('Device does not have sensors!');
-      } else {
-        if (currentDirection != null &&
-            (currentDirection! - event.heading!).abs() > 5) {
-          currentDirection = event.heading;
-          userSquadLocationService
-              .updateMemberDirectionFromUser(currentDirection);
-        }
+      final heading = event.heading;
+      if (heading == null) {
+        if (kDebugMode) debugPrint('Device does not have sensors!');
+        return;
+      }
+
+      final now = DateTime.now();
+      final bool timeOk = _lastHeadingUpdateAt == null ||
+          now.difference(_lastHeadingUpdateAt!) >= _minHeadingUpdateInterval;
+      final double delta = (currentDirection - heading).abs();
+      final bool deltaOk = delta >= _headingDeltaThresholdDegrees;
+
+      if (timeOk && (deltaOk || currentDirection == 0.0)) {
+        currentDirection = heading;
+        _lastHeadingUpdateAt = now;
+        userSquadLocationService
+            .updateMemberDirectionFromUser(currentDirection);
       }
     });
   }
@@ -117,10 +157,10 @@ class MapUserLocationService {
   setLocationSettingsPerPlatform() {
     if (defaultTargetPlatform == TargetPlatform.android) {
       locationSettings = locator.AndroidSettings(
-          accuracy: locator.LocationAccuracy.best,
-          distanceFilter: 1,
+          accuracy: locator.LocationAccuracy.low,
+          distanceFilter: 10,
           forceLocationManager: true,
-          intervalDuration: const Duration(seconds: 10),
+          intervalDuration: const Duration(seconds: 20),
           //(Optional) Set foreground notification config to keep the app alive
           //when going to the background
           foregroundNotificationConfig:
@@ -133,23 +173,23 @@ class MapUserLocationService {
     } else if (defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS) {
       locationSettings = locator.AppleSettings(
-        accuracy: locator.LocationAccuracy.best,
+        accuracy: locator.LocationAccuracy.low,
         activityType: locator.ActivityType.fitness,
-        distanceFilter: 1,
+        distanceFilter: 10,
         pauseLocationUpdatesAutomatically: true,
         // Only set to true if our app will be started up in the background.
         showBackgroundLocationIndicator: false,
       );
     } else if (kIsWeb) {
       locationSettings = locator.WebSettings(
-        accuracy: locator.LocationAccuracy.best,
-        distanceFilter: 1,
+        accuracy: locator.LocationAccuracy.medium,
+        distanceFilter: 10,
         maximumAge: const Duration(minutes: 5),
       );
     } else {
       locationSettings = const locator.LocationSettings(
-        accuracy: locator.LocationAccuracy.high,
-        distanceFilter: 1,
+        accuracy: locator.LocationAccuracy.low,
+        distanceFilter: 10,
       );
     }
   }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/models/user_with_location_session_model.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
@@ -25,7 +26,9 @@ class CombinedStreamService {
           location: location,
         );
       }).toList();
-      debugPrint('Users with location: $usersWithLocation');
+      if (kDebugMode) {
+        debugPrint('Users with location: $usersWithLocation');
+      }
       yield usersWithLocation;
     }
   }

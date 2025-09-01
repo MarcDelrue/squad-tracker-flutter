@@ -70,7 +70,9 @@ class SquadMembersService {
       final List<String> userIdList =
           sessionsData.map((item) => item['user_id'] as String).toList();
 
-      debugPrint('User IDs: $userIdList');
+      if (kDebugMode) {
+        debugPrint('User IDs: $userIdList');
+      }
       // Now fetch user details from the users table
       final userResponse =
           await _supabase.from('users').select().inFilter('id', userIdList);
@@ -113,7 +115,9 @@ class SquadMembersService {
               value: squadId,
             ),
             callback: (PostgresChangePayload payload) async {
-              debugPrint('Squad member session change detected: $payload');
+              if (kDebugMode) {
+                debugPrint('Squad member session change detected: $payload');
+              }
               if (payload.newRecord['is_active'] == true) {
                 if (currentMembersChannels
                         ?.containsKey(payload.newRecord['user_id']) ==
@@ -121,7 +125,7 @@ class SquadMembersService {
                   _updateMemberSession(
                       UserSquadSession.fromJson(payload.newRecord));
                 } else {
-                  debugPrint('User joined the squad');
+                  if (kDebugMode) debugPrint('User joined the squad');
                   final newSquadMember =
                       await _fetchUsersFromSquadSession([payload.newRecord]);
                   if (payload.newRecord['user_id'] != userId) {
@@ -141,8 +145,10 @@ class SquadMembersService {
                 if (leavingUserId == currentUserId) {
                   // Current user is leaving - remove all markers and clean up
                   mapAnnotationsService.removeEveryAnnotations();
-                  debugPrint(
-                      'Current user left the squad - removing all markers');
+                  if (kDebugMode) {
+                    debugPrint(
+                        'Current user left the squad - removing all markers');
+                  }
                 } else {
                   // Another member is leaving - just remove their marker
                   final leavingMember = currentSquadMembers?.firstWhere(
@@ -152,8 +158,10 @@ class SquadMembersService {
                   if (leavingMember != null) {
                     mapAnnotationsService.removeMembersAnnotation(
                         leavingMember.user.username ?? '');
-                    debugPrint(
-                        'Member ${leavingMember.user.username} left the squad - removing their marker');
+                    if (kDebugMode) {
+                      debugPrint(
+                          'Member ${leavingMember.user.username} left the squad - removing their marker');
+                    }
                   }
                 }
 
@@ -161,7 +169,7 @@ class SquadMembersService {
                 userSquadLocationService
                     .unsubscribeMemberLocations(leavingUserId);
                 unsubscribeFromMembersData(leavingUserId);
-                debugPrint('User left the squad');
+                if (kDebugMode) debugPrint('User left the squad');
               }
             })
         .subscribe();
@@ -186,15 +194,22 @@ class SquadMembersService {
               value: memberId,
             ),
             callback: (PostgresChangePayload payload) {
-              debugPrint('Callback triggered for member data change: $payload');
+              if (kDebugMode) {
+                debugPrint(
+                    'Callback triggered for member data change: $payload');
+              }
               _updateMemberData(users_model.User.fromJson(payload.newRecord));
-              debugPrint('Squad member data change detected: $payload');
+              if (kDebugMode) {
+                debugPrint('Squad member data change detected: $payload');
+              }
             })
         .subscribe();
 
     currentMembersChannels ??= {};
     currentMembersChannels![memberId] = channel;
-    debugPrint('Listener setup complete for member: $memberId');
+    if (kDebugMode) {
+      debugPrint('Listener setup complete for member: $memberId');
+    }
   }
 
   _updateMemberData(users_model.User user) {

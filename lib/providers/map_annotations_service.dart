@@ -31,9 +31,10 @@ class MapAnnotationsService extends ChangeNotifier {
   Timer? _pulseTimer;
   double _pulseScale = 1.0;
   bool _pulseGrowing = true;
+  static const Duration _pulseTick = Duration(milliseconds: 250);
 
   // Track which markers need pulsating
-  Set<String> _pulsatingMarkers = {};
+  final Set<String> _pulsatingMarkers = {};
 
   initMembersAnnotation(mapbox.MapboxMap mapboxMap) async {
     pointAnnotationManager =
@@ -46,28 +47,38 @@ class MapAnnotationsService extends ChangeNotifier {
       final ByteData aliveBytes =
           await rootBundle.load('assets/images/soldiers/default_soldier.png');
       soldierAliveImage = aliveBytes.buffer.asUint8List();
-      debugPrint('Loaded alive image, size: ${soldierAliveImage.length}');
+      if (kDebugMode) {
+        debugPrint('Loaded alive image, size: ${soldierAliveImage.length}');
+      }
 
       final ByteData deadBytes =
           await rootBundle.load('assets/images/soldiers/soldier_dead.png');
       soldierDeadImage = deadBytes.buffer.asUint8List();
-      debugPrint('Loaded dead image, size: ${soldierDeadImage.length}');
+      if (kDebugMode) {
+        debugPrint('Loaded dead image, size: ${soldierDeadImage.length}');
+      }
 
       final ByteData helpBytes =
           await rootBundle.load('assets/images/soldiers/soldier_help.png');
       soldierHelpImage = helpBytes.buffer.asUint8List();
-      debugPrint('Loaded help image, size: ${soldierHelpImage.length}');
+      if (kDebugMode) {
+        debugPrint('Loaded help image, size: ${soldierHelpImage.length}');
+      }
 
       final ByteData medicBytes =
           await rootBundle.load('assets/images/soldiers/soldier_medic.png');
       soldierMedicImage = medicBytes.buffer.asUint8List();
-      debugPrint('Loaded medic image, size: ${soldierMedicImage.length}');
+      if (kDebugMode) {
+        debugPrint('Loaded medic image, size: ${soldierMedicImage.length}');
+      }
     } catch (e) {
       debugPrint('Error loading soldier images: $e');
     }
 
-    // Start pulsating animation for urgent statuses
-    _startPulseAnimation();
+    // Start pulsating animation only if needed
+    if (_pulsatingMarkers.isNotEmpty) {
+      _startPulseAnimation();
+    }
   }
 
   removeEveryAnnotations() {
@@ -82,8 +93,12 @@ class MapAnnotationsService extends ChangeNotifier {
   }
 
   void _startPulseAnimation() {
-    _pulseTimer?.cancel();
-    _pulseTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    if (_pulseTimer != null) return;
+    _pulseTimer = Timer.periodic(_pulseTick, (timer) {
+      if (_pulsatingMarkers.isEmpty) {
+        _stopPulseAnimation();
+        return;
+      }
       if (_pulseGrowing) {
         _pulseScale += 0.05;
         if (_pulseScale >= 1.5) {
@@ -95,7 +110,6 @@ class MapAnnotationsService extends ChangeNotifier {
           _pulseGrowing = true;
         }
       }
-      // Only update markers that need pulsating
       _updatePulsatingMarkers();
     });
   }
@@ -133,6 +147,11 @@ class MapAnnotationsService extends ChangeNotifier {
           member.session.user_status == UserSquadSessionStatus.medic) {
         _pulsatingMarkers.add(member.user.username ?? '');
       }
+    }
+    if (_pulsatingMarkers.isNotEmpty) {
+      _startPulseAnimation();
+    } else {
+      _stopPulseAnimation();
     }
   }
 
@@ -190,7 +209,9 @@ class MapAnnotationsService extends ChangeNotifier {
 
     pointAnnotationManager.delete(foundMemberAnnotation);
     membersPointAnnotations!.remove(foundMemberAnnotation);
-    debugPrint('Removed member annotation for $username');
+    if (kDebugMode) {
+      debugPrint('Removed member annotation for $username');
+    }
   }
 
   updateMembersAnnotation() {
@@ -221,9 +242,7 @@ class MapAnnotationsService extends ChangeNotifier {
       var location = userSquadLocationService.currentMembersLocation![i];
       var annotation = membersPointAnnotations![i];
 
-      if (location.longitude == null ||
-          location.latitude == null ||
-          annotation == null) {
+      if (location.longitude == null || location.latitude == null) {
         continue;
       }
 
@@ -319,7 +338,9 @@ class MapAnnotationsService extends ChangeNotifier {
     }
   }
 
+  @override
   void dispose() {
+    super.dispose();
     _stopPulseAnimation();
   }
 }

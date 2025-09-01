@@ -176,10 +176,6 @@ class UserSquadLocationService {
             ),
             callback: (PostgresChangePayload payload) {
               try {
-                if (payload.newRecord == null) {
-                  return;
-                }
-
                 final updatedLocation =
                     UserSquadLocation.fromJson(payload.newRecord);
 
@@ -213,7 +209,9 @@ class UserSquadLocationService {
 
     membersLocationsChannels ??= {};
     membersLocationsChannels![memberId] = channel;
-    debugPrint('Listener setup complete for member locations: $memberId');
+    if (kDebugMode) {
+      debugPrint('Listener setup complete for member locations: $memberId');
+    }
   }
 
   _updateMembersDistanceFromUser() {
@@ -227,8 +225,10 @@ class UserSquadLocationService {
               currentMembersLocation!
                   .firstWhere((location) => location.user_id == memberId),
               currentUserLocation);
-      debugPrint(
-          'Updated distance from user for member $memberId: ${_currentMembersDistanceFromUser[memberId]}');
+      if (kDebugMode) {
+        debugPrint(
+            'Updated distance from user for member $memberId: ${_currentMembersDistanceFromUser[memberId]}');
+      }
     }
   }
 
@@ -249,8 +249,10 @@ class UserSquadLocationService {
               currentMembersLocation!
                   .firstWhere((location) => location.user_id == memberId),
               currentUserLocation);
-      debugPrint(
-          'Updated direction from user for member $memberId: ${_currentMembersDirectionFromUser[memberId]}');
+      if (kDebugMode) {
+        debugPrint(
+            'Updated direction from user for member $memberId: ${_currentMembersDirectionFromUser[memberId]}');
+      }
     }
   }
 
