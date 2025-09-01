@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/widgets/battle_logs.dart';
 import 'package:squad_tracker_flutter/widgets/draggable_bottom_sheet_for_map.dart';
-import 'package:squad_tracker_flutter/widgets/edge_indicators.dart';
 import 'package:squad_tracker_flutter/widgets/fly_to_user_fab.dart';
 import 'package:squad_tracker_flutter/widgets/map_fab.dart';
 import 'package:squad_tracker_flutter/widgets/map.dart';
@@ -36,6 +35,8 @@ class MapWithLocationState extends State<MapWithLocation> {
         onFlyToMember: () {
           setState(() {
             _showBottomSheet = false;
+            // Reset FAB state when flying to member
+            bottomSheetContentIndex = -1;
           });
         },
       ),
@@ -104,6 +105,7 @@ class MapWithLocationState extends State<MapWithLocation> {
       top: 16 + MediaQuery.of(context).padding.top,
       right: 16,
       child: MapFab(
+        selectedIndex: _showBottomSheet ? bottomSheetContentIndex : -1,
         onFAB1Pressed: () => _onFabPressed(0),
         onFAB2Pressed: () => _onFabPressed(1),
         onFAB3Pressed: () => _onFabPressed(2),

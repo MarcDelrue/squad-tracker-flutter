@@ -4,12 +4,14 @@ class MapFab extends StatefulWidget {
   final VoidCallback onFAB1Pressed;
   final VoidCallback onFAB2Pressed;
   final VoidCallback onFAB3Pressed;
+  final int? selectedIndex; // External control of selected index
 
   const MapFab({
     super.key,
     required this.onFAB1Pressed,
     required this.onFAB2Pressed,
     required this.onFAB3Pressed,
+    this.selectedIndex,
   });
 
   @override
@@ -17,7 +19,18 @@ class MapFab extends StatefulWidget {
 }
 
 class _MapFabState extends State<MapFab> {
-  int _selectedIndex = 0;
+  int _selectedIndex = -1; // Start with no button selected
+
+  @override
+  void didUpdateWidget(MapFab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update internal state when external selectedIndex changes
+    if (widget.selectedIndex != oldWidget.selectedIndex) {
+      setState(() {
+        _selectedIndex = widget.selectedIndex ?? -1;
+      });
+    }
+  }
 
   void _onFabPressed(int index, VoidCallback onPressed) {
     setState(() {

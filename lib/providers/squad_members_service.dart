@@ -6,6 +6,7 @@ import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
 import 'package:squad_tracker_flutter/models/users_model.dart' as users_model;
 import 'package:squad_tracker_flutter/providers/map_annotations_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
+import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SquadMembersService {
@@ -17,6 +18,7 @@ class SquadMembersService {
   final SupabaseClient _supabase = Supabase.instance.client;
   final userSquadLocationService = UserSquadLocationService();
   final mapAnnotationsService = MapAnnotationsService();
+  final userService = UserService();
   RealtimeChannel? currentSquadChannel;
   Map<String, RealtimeChannel>? currentMembersChannels;
 
@@ -132,12 +134,33 @@ class SquadMembersService {
                   ];
                 }
               } else if (payload.newRecord['is_active'] == false) {
-                _removeSquadMember(payload.newRecord['user_id']);
-                // mapAnnotationsService
-                //     .removeMembersAnnotation(payload.newRecord['username']);
+                final leavingUserId = payload.newRecord['user_id'];
+                final currentUserId = userService.currentUser?.id;
+
+                // Check if the current user is leaving the squad
+                if (leavingUserId == currentUserId) {
+                  // Current user is leaving - remove all markers and clean up
+                  mapAnnotationsService.removeEveryAnnotations();
+                  debugPrint(
+                      'Current user left the squad - removing all markers');
+                } else {
+                  // Another member is leaving - just remove their marker
+                  final leavingMember = currentSquadMembers?.firstWhere(
+                    (member) => member.user.id == leavingUserId,
+                    orElse: () => throw Exception('Member not found'),
+                  );
+                  if (leavingMember != null) {
+                    mapAnnotationsService.removeMembersAnnotation(
+                        leavingMember.user.username ?? '');
+                    debugPrint(
+                        'Member ${leavingMember.user.username} left the squad - removing their marker');
+                  }
+                }
+
+                _removeSquadMember(leavingUserId);
                 userSquadLocationService
-                    .unsubscribeMemberLocations(payload.newRecord['user_id']);
-                unsubscribeFromMembersData(payload.newRecord['user_id']);
+                    .unsubscribeMemberLocations(leavingUserId);
+                unsubscribeFromMembersData(leavingUserId);
                 debugPrint('User left the squad');
               }
             })
