@@ -39,7 +39,6 @@ class MapUserLocationService {
   bool isProgrammaticCameraChange = false;
   bool isCameraAnimationInProgress = false;
   DateTime? followModeActivatedAt;
-  late Uint8List soldierImage = Uint8List(0);
 
   // Follow mode is a manual toggle: when true, keep camera centered on user.
   final ValueNotifier<bool> isFollowingUser = ValueNotifier<bool>(false);
@@ -213,7 +212,7 @@ class MapUserLocationService {
   loadUserPuck() async {
     final ByteData bytes =
         await rootBundle.load('assets/images/soldiers/default_soldier.png');
-    final Uint8List list = bytes.buffer.asUint8List();
+    final list = bytes.buffer.asUint8List();
 
     mapboxMap?.location.updateSettings(mapbox.LocationComponentSettings(
         enabled: true,
