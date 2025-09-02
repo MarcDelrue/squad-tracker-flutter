@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
 import 'package:squad_tracker_flutter/models/users_model.dart';
+import 'package:squad_tracker_flutter/providers/game_service.dart';
 import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
 import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
@@ -22,11 +23,15 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
   final squadService = SquadService();
   final userSquadSessionService = UserSquadSessionService();
   final squadMembersService = SquadMembersService();
+  final gameService = GameService();
+
+  int? _activeGameId;
 
   @override
   void initState() {
     super.initState();
     _fetchCurrentSquadMembers();
+    _loadActiveGame();
   }
 
   Future<void> _fetchCurrentSquadMembers() async {
@@ -36,6 +41,43 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
           userService.currentUser!.id, squadId);
     } else {
       return;
+    }
+  }
+
+  Future<void> _loadActiveGame() async {
+    final squadIdStr = squadService.currentSquad?.id;
+    if (squadIdStr == null) return;
+    final id = await gameService.getActiveGameId(int.parse(squadIdStr));
+    if (mounted) setState(() => _activeGameId = id);
+  }
+
+  Future<void> _startGame() async {
+    final squadIdStr = squadService.currentSquad?.id;
+    if (squadIdStr == null) return;
+    try {
+      final id = await gameService.startGame(int.parse(squadIdStr));
+      if (mounted) {
+        setState(() => _activeGameId = id);
+        context.showSnackBar('Game started');
+      }
+    } catch (e) {
+      if (mounted)
+        context.showSnackBar('Failed to start game: $e', isError: true);
+    }
+  }
+
+  Future<void> _endGame() async {
+    final squadIdStr = squadService.currentSquad?.id;
+    if (squadIdStr == null) return;
+    try {
+      await gameService.endGame(int.parse(squadIdStr));
+      if (mounted) {
+        setState(() => _activeGameId = null);
+        context.showSnackBar('Game ended');
+      }
+    } catch (e) {
+      if (mounted)
+        context.showSnackBar('Failed to end game: $e', isError: true);
     }
   }
 
@@ -205,6 +247,43 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (isHost)
+              Card(
+                color: Colors.black,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _activeGameId == null
+                              ? 'No active game'
+                              : 'Game active (#$_activeGameId)',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      if (_activeGameId == null)
+                        ElevatedButton.icon(
+                          onPressed: _startGame,
+                          icon: const Icon(Icons.play_arrow),
+                          label: const Text('Start game'),
+                        )
+                      else
+                        ElevatedButton.icon(
+                          onPressed: _endGame,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                          ),
+                          icon: const Icon(Icons.stop),
+                          label: const Text('End game'),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
             const Text(
               "Squad Members",
               style: TextStyle(
