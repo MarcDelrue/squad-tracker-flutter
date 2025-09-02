@@ -21,22 +21,33 @@ class MapControlButtons extends StatelessWidget {
         Positioned(
           top: 16.0 + MediaQuery.of(context).padding.top,
           left: 16.0,
-          child: FloatingActionButton.small(
-            onPressed: isGeolocationDisabled
-                ? null
-                : () => mapUserLocationService.flyToUserLocation(),
-            backgroundColor: isGeolocationDisabled ? Colors.grey : Colors.white,
-            shape: CircleBorder(
-              side: BorderSide(
-                color: isGeolocationDisabled ? Colors.grey : Colors.green,
-                width: 2.0,
-              ),
-            ),
-            child: Icon(
-              Icons.my_location,
-              color: isGeolocationDisabled ? Colors.white : Colors.green,
-            ),
-          ),
+          child: ValueListenableBuilder<bool>(
+              valueListenable: mapUserLocationService.isFollowingUser,
+              builder: (context, isFollowing, _) {
+                final bool disabled = isGeolocationDisabled;
+                return FloatingActionButton.small(
+                  onPressed: disabled
+                      ? null
+                      : () => mapUserLocationService.toggleFollow(),
+                  backgroundColor: disabled
+                      ? Colors.grey
+                      : (isFollowing ? Colors.green : Colors.white),
+                  shape: CircleBorder(
+                    side: BorderSide(
+                      color: disabled
+                          ? Colors.grey
+                          : (isFollowing ? Colors.white : Colors.green),
+                      width: 2.0,
+                    ),
+                  ),
+                  child: Icon(
+                    isFollowing ? Icons.gps_fixed : Icons.gps_not_fixed,
+                    color: disabled
+                        ? Colors.white
+                        : (isFollowing ? Colors.white : Colors.green),
+                  ),
+                );
+              }),
         ),
 
         // Show battle logs button

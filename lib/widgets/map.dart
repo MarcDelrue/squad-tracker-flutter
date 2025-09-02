@@ -93,9 +93,27 @@ class GameMapWidgetState extends State<GameMapWidget> {
     final mapbox.MapWidget mapWidget = mapbox.MapWidget(
         key: const ValueKey("mapWidget"),
         onMapCreated: _onMapCreated,
-        onCameraChangeListener: (cameraChangedEventData) => {
-              // Camera change listener - removed debug log
-            });
+        onCameraChangeListener: (cameraChangedEventData) async {
+          if (mapUserLocationService.isProgrammaticCameraChange) return;
+          if (mapUserLocationService.isCameraAnimationInProgress) return;
+          if (mapboxMap == null) return;
+          if (!mapUserLocationService.isFollowingUser.value) return;
+          // Add a short grace period after follow activation to ignore initial frames
+          final activatedAt = mapUserLocationService.followModeActivatedAt;
+          if (activatedAt != null &&
+              DateTime.now().difference(activatedAt) <
+                  const Duration(milliseconds: 350)) {
+            return;
+          }
+          try {
+            final cameraState = await mapboxMap!.getCameraState();
+            final stillCentered =
+                mapUserLocationService.isCameraCenteredOnUser(cameraState);
+            if (!stillCentered) {
+              await mapUserLocationService.disableFollow();
+            }
+          } catch (_) {}
+        });
 
     return Center(
       child: SizedBox(

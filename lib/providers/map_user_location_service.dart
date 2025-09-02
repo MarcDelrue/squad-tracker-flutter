@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -36,7 +37,13 @@ class MapUserLocationService {
   final double _headingDeltaThresholdDegrees = 5.0;
   bool cameraInitialized = false;
   bool isProgrammaticCameraChange = false;
+  bool isCameraAnimationInProgress = false;
+  DateTime? followModeActivatedAt;
   late Uint8List soldierImage = Uint8List(0);
+
+  // Follow mode is a manual toggle: when true, keep camera centered on user.
+  final ValueNotifier<bool> isFollowingUser = ValueNotifier<bool>(false);
+  static const double _centerThresholdPixels = 60.0;
 
   // Throttling/power settings for saving location to backend
   DateTime? _lastSavedLocationAt;
@@ -73,7 +80,7 @@ class MapUserLocationService {
   trackUserLocation() async {
     positionStream =
         locator.Geolocator.getPositionStream(locationSettings: locationSettings)
-            .listen((locator.Position? position) {
+            .listen((locator.Position? position) async {
       if (position != null) {
         userSquadLocationService.currentUserLocation?.latitude =
             position.latitude;
@@ -105,8 +112,15 @@ class MapUserLocationService {
           _lastSavedPosition = position;
         }
         if (cameraInitialized == false) {
-          flyToLocation(position.longitude, position.latitude);
+          // One-time auto-center on first fix; follow remains manual.
+          await flyToLocation(position.longitude, position.latitude,
+              zoom: 17, duration: const Duration(milliseconds: 700));
           cameraInitialized = true;
+        } else {
+          if (isFollowingUser.value) {
+            await _setCameraCenter(position.longitude, position.latitude,
+                animate: false);
+          }
         }
       }
       if (kDebugMode) {
@@ -114,6 +128,8 @@ class MapUserLocationService {
             ? 'Unknown'
             : 'Current position: ${position.latitude.toString()}, ${position.longitude.toString()}');
       }
+
+      // No auto-enable/disable based on camera proximity. Follow is manual.
     });
     _isStreamInitialized = true;
   }
@@ -207,25 +223,96 @@ class MapUserLocationService {
             locationPuck2D: mapbox.DefaultLocationPuck2D(topImage: list))));
   }
 
-  flyToUserLocation() async {
+  Future<void> enableFollow() async {
     final hasPermission = await getLocationPermission();
-    if (hasPermission == false ||
+    if (!hasPermission ||
         userSquadLocationService.currentUserLocation == null) {
       return;
     }
-    flyToLocation(userSquadLocationService.currentUserLocation!.longitude!,
-        userSquadLocationService.currentUserLocation!.latitude!);
+    isFollowingUser.value = true;
+    followModeActivatedAt = DateTime.now();
+    // Only zoom in if current zoom is too far; otherwise preserve current zoom
+    double? desiredZoom;
+    try {
+      final cameraState = await mapboxMap?.getCameraState();
+      if (cameraState != null && cameraState.zoom < 15) {
+        desiredZoom = 17;
+      }
+    } catch (_) {}
+    await flyToLocation(
+      userSquadLocationService.currentUserLocation!.longitude!,
+      userSquadLocationService.currentUserLocation!.latitude!,
+      zoom: desiredZoom,
+      duration: const Duration(milliseconds: 500),
+    );
   }
 
-  flyToLocation(num longitude, num latitude) async {
+  Future<void> disableFollow() async {
+    isFollowingUser.value = false;
+  }
+
+  Future<void> toggleFollow() async {
+    if (isFollowingUser.value) {
+      await disableFollow();
+    } else {
+      await enableFollow();
+    }
+  }
+
+  // Determine if the given camera center is still close enough to the user's
+  // location to consider it centered, using a pixel-based threshold adapted to zoom.
+  bool isCameraCenteredOnUser(mapbox.CameraState cameraState) {
+    final lat = userSquadLocationService.currentUserLocation?.latitude;
+    final lng = userSquadLocationService.currentUserLocation?.longitude;
+    if (lat == null || lng == null) return false;
+
+    final centerLat = cameraState.center.coordinates.lat.toDouble();
+    final centerLng = cameraState.center.coordinates.lng.toDouble();
+    final distanceMeters = locator.Geolocator.distanceBetween(
+        lat.toDouble(), lng.toDouble(), centerLat, centerLng);
+    final metersPerPixel = 156543.03392 *
+        math.cos(centerLat * math.pi / 180.0) /
+        math.pow(2.0, cameraState.zoom);
+    final thresholdMeters =
+        math.max(15.0, _centerThresholdPixels * metersPerPixel);
+    return distanceMeters <= thresholdMeters;
+  }
+
+  flyToLocation(num longitude, num latitude,
+      {double? zoom,
+      Duration duration = const Duration(milliseconds: 800)}) async {
     isProgrammaticCameraChange = true;
+    isCameraAnimationInProgress = true;
     await mapboxMap?.flyTo(
       mapbox.CameraOptions(
         center: mapbox.Point(coordinates: mapbox.Position(longitude, latitude)),
-        zoom: 17,
+        // Only set zoom when requested; otherwise preserve current zoom
+        zoom: zoom,
       ),
-      mapbox.MapAnimationOptions(duration: 2000, startDelay: 0),
+      mapbox.MapAnimationOptions(
+          duration: duration.inMilliseconds, startDelay: 0),
     );
+    isProgrammaticCameraChange = false;
+    isCameraAnimationInProgress = false;
+  }
+
+  // Set camera center immediately or with a short ease, preserving current zoom
+  Future<void> _setCameraCenter(num longitude, num latitude,
+      {bool animate = false,
+      Duration duration = const Duration(milliseconds: 250)}) async {
+    isProgrammaticCameraChange = true;
+    final cameraOptions = mapbox.CameraOptions(
+      center: mapbox.Point(coordinates: mapbox.Position(longitude, latitude)),
+    );
+    if (animate) {
+      await mapboxMap?.easeTo(
+        cameraOptions,
+        mapbox.MapAnimationOptions(
+            duration: duration.inMilliseconds, startDelay: 0),
+      );
+    } else {
+      await mapboxMap?.setCamera(cameraOptions);
+    }
     isProgrammaticCameraChange = false;
   }
 }
