@@ -87,6 +87,8 @@ class SquadMembersService {
           user: users_model.User.fromJson(userData),
           session: UserSquadSession.fromJson(sessionData),
         );
+        // user_status is now per-game; keep alive as default for session visuals
+        userWithSession.session.user_status = UserSquadSessionStatus.alive;
         // Listen to real-time changes for each user
         listenToMembersData(userData['id']);
         return userWithSession;

@@ -32,7 +32,6 @@ class UserSquadSessionService extends ChangeNotifier {
         'user_id': userId,
         'squad_id': squadId,
         'is_host': isHost,
-        'user_status': UserSquadSessionStatus.alive.value
       });
     } catch (e) {
       throw Exception('Failed to join squad: $e');
@@ -113,11 +112,12 @@ class UserSquadSessionService extends ChangeNotifier {
   Future<void> updateUserSquadSessionUserStatus(
       UserSquadSessionStatus userStatus) async {
     try {
-      await _supabase
-          .from('user_squad_sessions')
-          .update({'user_status': userStatus.value})
-          .eq('user_id', currentSquadSession!.user_id)
-          .eq('squad_id', currentSquadSession!.squad_id);
+      // Route through RPC to update per-game status and apply respawn rules
+      final squadId = currentSquadSession!.squad_id;
+      await Supabase.instance.client.rpc('set_user_status', params: {
+        'p_squad_id': squadId,
+        'p_status': userStatus.value,
+      });
     } catch (e) {
       debugPrint("Failed to update user squad session user status: $e");
     }

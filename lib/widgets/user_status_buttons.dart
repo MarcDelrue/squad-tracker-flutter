@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
+import 'package:squad_tracker_flutter/providers/game_service.dart';
+import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_session_service.dart';
 
 class UserStatusButtons extends StatefulWidget {
@@ -11,7 +13,10 @@ class UserStatusButtons extends StatefulWidget {
 
 class _UserStatusButtonsState extends State<UserStatusButtons> {
   final userSquadSessionService = UserSquadSessionService();
+  final gameService = GameService();
+  final squadService = SquadService();
   UserSquadSessionStatus? _currentStatus;
+  // Respawn countdown can be sourced from GameService in future
 
   @override
   void initState() {
@@ -43,8 +48,10 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
         });
 
         try {
-          await userSquadSessionService
-              .updateUserSquadSessionUserStatus(_currentStatus!);
+          final squadId = squadService.currentSquad?.id;
+          if (squadId == null) return;
+          await gameService.setStatus(
+              squadId: int.parse(squadId), status: _currentStatus!.value);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -68,6 +75,8 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
       child: _currentStatus == value ? Text(toggledText) : Text(text),
     );
   }
+
+  // In future, wire to GameService.streamMyStats to show server countdown
 
   @override
   Widget build(BuildContext context) {
