@@ -70,6 +70,9 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
+        unawaited(_subscription?.cancel());
+        _subscription = null;
+        unawaited(controller.stop());
         return;
       case AppLifecycleState.resumed:
         _subscription = controller.barcodes.listen(_handleBarcode);
@@ -118,6 +121,8 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_subscription?.cancel());
     _subscription = null;
+    // Explicitly stop before dispose to avoid buffer leaks
+    unawaited(controller.stop());
     super.dispose();
     await controller.dispose();
   }
