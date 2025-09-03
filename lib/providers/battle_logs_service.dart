@@ -7,6 +7,8 @@ import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'package:squad_tracker_flutter/providers/game_service.dart';
+import 'package:squad_tracker_flutter/providers/squad_service.dart';
 
 class BattleLogsService extends ChangeNotifier {
   // Singleton setup
@@ -16,15 +18,22 @@ class BattleLogsService extends ChangeNotifier {
 
   final userService = UserService();
   final squadMembersService = SquadMembersService();
+  final gameService = GameService();
+  final squadService = SquadService();
 
   List<UserWithSession> _lastSquadMembersData = [];
   final List<BattleLogModel> _battleLogs = [];
   StreamSubscription<List<UserWithSession>?>? _subscription;
+  StreamSubscription<List<Map<String, dynamic>>>? _gameStatsSub;
+  final Map<String, Map<String, dynamic>> _lastStatsByUserId = {};
 
   List<BattleLogModel> get battleLogs => List.unmodifiable(_battleLogs);
 
   String youOrOtherUsername(User user) {
-    return user.id == userService.currentUser!.id ? "You" : user.username ?? "";
+    final currentUserId = userService.currentUser?.id;
+    return currentUserId != null && user.id == currentUserId
+        ? "You"
+        : (user.username ?? "");
   }
 
   String generateLogText(
@@ -65,7 +74,7 @@ class BattleLogsService extends ChangeNotifier {
         ));
       } else if (oldMember.session.user_status !=
           newMember.session.user_status) {
-        // Status changed - only log if both members are active
+        // Session status changed (fallback for non-game)
         if (oldMember.session.is_active && newMember.session.is_active) {
           newBattleLogs.add(BattleLogModel(
             user: newMember.user,
@@ -80,7 +89,7 @@ class BattleLogsService extends ChangeNotifier {
     }
 
     // Identifying removed members (those who are no longer active)
-    _lastSquadMembersData.forEach((oldMember) {
+    for (var oldMember in _lastSquadMembersData) {
       if (!newSquadMembers.any((newMember) =>
           newMember.user.id == oldMember.user.id &&
           newMember.session.is_active)) {
@@ -91,23 +100,9 @@ class BattleLogsService extends ChangeNotifier {
           text: "${youOrOtherUsername(oldMember.user)} left the squad",
         ));
       }
-    });
-
-    // Only update if there are new battle logs
-    if (newBattleLogs.isNotEmpty) {
-      for (var battleLog in newBattleLogs) {
-        // Add new log at the beginning of the list
-        _battleLogs.insert(0, battleLog);
-
-        // If list exceeds 5 items, remove the last one
-        if (_battleLogs.length > 15) {
-          _battleLogs.removeAt(15);
-        }
-      }
-
-      // Notify listeners that battle logs have changed
-      notifyListeners();
     }
+
+    _pushLogs(newBattleLogs);
 
     // Updating _lastSquadMembersData with a deep copy of newSquadMembers
     _lastSquadMembersData = newSquadMembers
@@ -116,17 +111,96 @@ class BattleLogsService extends ChangeNotifier {
         .toList();
   }
 
-  void startListening() {
-    // Don't start if already listening
-    if (_subscription != null) return;
-
-    // Initialize with current squad members if available
-    if (squadMembersService.currentSquadMembers != null) {
-      _lastSquadMembersData = squadMembersService.currentSquadMembers!
-          .map((member) => UserWithSession.fromJson(
-              json.decode(json.encode(member.toJson()))))
-          .toList();
+  void _pushLogs(List<BattleLogModel> newBattleLogs) {
+    if (newBattleLogs.isEmpty) return;
+    for (var battleLog in newBattleLogs) {
+      _battleLogs.insert(0, battleLog);
+      if (_battleLogs.length > 15) {
+        _battleLogs.removeAt(15);
+      }
     }
+    notifyListeners();
+  }
+
+  Future<void> _startGameStatsListening() async {
+    _gameStatsSub?.cancel();
+    final squadIdStr = squadService.currentSquad?.id;
+    if (squadIdStr == null) return;
+    final gameId = await gameService.getActiveGameId(int.parse(squadIdStr));
+    if (gameId == null) return;
+    _gameStatsSub = gameService.streamScoreboardByGame(gameId).listen((rows) {
+      final newLogs = <BattleLogModel>[];
+      final members = squadMembersService.currentSquadMembers;
+      final memberById = {for (final m in (members ?? [])) m.user.id: m.user};
+      for (final r in rows) {
+        final uid = r['user_id'] as String?;
+        if (uid == null) continue;
+        final user = memberById[uid];
+        if (user == null) continue;
+        final prev = _lastStatsByUserId[uid] ?? {};
+        final prevKills = (prev['kills'] as int?) ?? 0;
+        final prevDeaths = (prev['deaths'] as int?) ?? 0;
+        final prevStatus = prev['user_status'] as String?;
+        final kills = (r['kills'] as num? ?? 0).toInt();
+        final deaths = (r['deaths'] as num? ?? 0).toInt();
+        final statusStr = r['user_status'] as String?;
+
+        // Kill bump
+        if (kills > prevKills) {
+          newLogs.add(BattleLogModel(
+            user: user,
+            status: 'KILL',
+            date: DateTime.now(),
+            text: "${youOrOtherUsername(user)} killed an enemy — kills: $kills",
+          ));
+        }
+        // Death bump (status may or may not also change)
+        if (deaths > prevDeaths) {
+          newLogs.add(BattleLogModel(
+            user: user,
+            status: 'DEATH',
+            date: DateTime.now(),
+            text: "${youOrOtherUsername(user)} died — deaths: $deaths",
+          ));
+        }
+        // Status change (per-game)
+        if (statusStr != null && statusStr != prevStatus) {
+          try {
+            final oldS = prevStatus != null
+                ? UserSquadSessionStatusExtension.fromValue(prevStatus)
+                : UserSquadSessionStatus.alive;
+            final newS = UserSquadSessionStatusExtension.fromValue(statusStr);
+            newLogs.add(BattleLogModel(
+              user: user,
+              status: newS.toText,
+              previousStatus: oldS.toText,
+              date: DateTime.now(),
+              text:
+                  "${youOrOtherUsername(user)} ${generateLogText(oldS, newS)}",
+            ));
+          } catch (_) {}
+        }
+
+        _lastStatsByUserId[uid] = {
+          'kills': kills,
+          'deaths': deaths,
+          'user_status': statusStr,
+        };
+      }
+      _pushLogs(newLogs);
+    });
+  }
+
+  void startListening() {
+    // Always log and (re)emit initial state
+    debugPrint('Starting battle logs listening');
+    if (squadMembersService.currentSquadMembers != null) {
+      _getNewUpdate(squadMembersService.currentSquadMembers!);
+    }
+    _startGameStatsListening();
+
+    // Don't duplicate subscription
+    if (_subscription != null) return;
 
     _subscription =
         squadMembersService.currentSquadMembersStream.listen((newSquadMembers) {
@@ -134,6 +208,8 @@ class BattleLogsService extends ChangeNotifier {
       if (newSquadMembers == null) {
         clearLogs();
         _lastSquadMembersData = [];
+        _gameStatsSub?.cancel();
+        _lastStatsByUserId.clear();
         return;
       }
 
@@ -146,20 +222,22 @@ class BattleLogsService extends ChangeNotifier {
       if (!currentUserStillInSquad && _lastSquadMembersData.isNotEmpty) {
         clearLogs();
         _lastSquadMembersData = [];
+        _gameStatsSub?.cancel();
+        _lastStatsByUserId.clear();
         return;
       }
 
       // If we have no previous data and new data is not empty, user joined new squad
       if (_lastSquadMembersData.isEmpty && newSquadMembers.isNotEmpty) {
+        // Start fresh and emit join logs for initial snapshot
         clearLogs();
-        _lastSquadMembersData = newSquadMembers
-            .map((member) => UserWithSession.fromJson(
-                json.decode(json.encode(member.toJson()))))
-            .toList();
+        _getNewUpdate(newSquadMembers);
+        _startGameStatsListening();
       }
       // Normal update - only if we have existing data and new data
       else if (_lastSquadMembersData.isNotEmpty && newSquadMembers.isNotEmpty) {
         _getNewUpdate(newSquadMembers);
+        _startGameStatsListening();
       }
     });
   }
@@ -167,6 +245,8 @@ class BattleLogsService extends ChangeNotifier {
   void stopListening() {
     _subscription?.cancel();
     _subscription = null;
+    _gameStatsSub?.cancel();
+    _gameStatsSub = null;
   }
 
   void clearLogs() {
