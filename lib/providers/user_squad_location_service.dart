@@ -225,10 +225,6 @@ class UserSquadLocationService {
               currentMembersLocation!
                   .firstWhere((location) => location.user_id == memberId),
               currentUserLocation);
-      if (kDebugMode) {
-        debugPrint(
-            'Updated distance from user for member $memberId: ${_currentMembersDistanceFromUser[memberId]}');
-      }
     }
   }
 
@@ -249,10 +245,6 @@ class UserSquadLocationService {
               currentMembersLocation!
                   .firstWhere((location) => location.user_id == memberId),
               currentUserLocation);
-      if (kDebugMode) {
-        debugPrint(
-            'Updated direction from user for member $memberId: ${_currentMembersDirectionFromUser[memberId]}');
-      }
     }
   }
 
@@ -265,7 +257,6 @@ class UserSquadLocationService {
   void _getDifferencesWithPreviousLocation(
       List<UserSquadLocation>? currentLocations,
       List<UserSquadLocation>? previousLocations) {
-    debugPrint('Current locations: $currentLocations');
     if (currentLocations == null ||
         previousLocations == null ||
         currentLocations.isEmpty ||
@@ -285,7 +276,6 @@ class UserSquadLocationService {
           previousLocation.direction != currentLocation.direction;
     }).toList();
 
-    debugPrint('Differences with previous location: $differences');
     differenceWithPreviousLocation = differences;
   }
 

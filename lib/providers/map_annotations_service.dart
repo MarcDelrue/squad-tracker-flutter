@@ -170,9 +170,6 @@ class MapAnnotationsService extends ChangeNotifier {
 
     pointAnnotationManager.delete(foundMemberAnnotation);
     membersPointAnnotations!.remove(foundMemberAnnotation);
-    if (kDebugMode) {
-      debugPrint('Removed member annotation for $username');
-    }
   }
 
   updateMembersAnnotation() {

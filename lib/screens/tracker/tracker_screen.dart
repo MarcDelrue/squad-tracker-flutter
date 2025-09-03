@@ -1,7 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:squad_tracker_flutter/providers/ble_service.dart';
+import 'package:squad_tracker_flutter/providers/combined_stream_service.dart';
+import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
+import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
+import 'package:squad_tracker_flutter/providers/squad_service.dart';
+import 'package:squad_tracker_flutter/providers/game_service.dart';
+import 'package:squad_tracker_flutter/providers/user_service.dart';
+import 'package:squad_tracker_flutter/models/user_with_location_session_model.dart';
+import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 
 class TrackerScreen extends StatefulWidget {
   const TrackerScreen({super.key});
@@ -14,9 +23,122 @@ class _TrackerScreenState extends State<TrackerScreen> {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _filterController =
       TextEditingController(text: "TTGO");
+  String _myStatus = 'alive';
+  int _myKills = 0;
+  int _myDeaths = 0;
+  List<Map<String, dynamic>> _members = <Map<String, dynamic>>[];
+  CombinedStreamService? _combinedService;
+  StreamSubscription<List<UserWithLocationSession>?>? _combinedSub;
+  StreamSubscription<List<Map<String, dynamic>>>? _scoreboardSub;
+  Map<String, Map<String, dynamic>> _scoreByUserId =
+      <String, Map<String, dynamic>>{};
+
+  void _maybeStartDataSync(BleService ble) async {
+    final squad = SquadService().currentSquad;
+    final user = UserService().currentUser;
+    if (squad == null || user == null) return;
+
+    // Combined members stream (name + status)
+    _combinedService ??= CombinedStreamService(
+      squadMembersService: SquadMembersService(),
+      userSquadLocationService: UserSquadLocationService(),
+    );
+    _combinedSub ??= _combinedService!.combinedStream.listen((rows) {
+      if (rows == null) return;
+      // My row first
+      final List<Map<String, dynamic>> list = <Map<String, dynamic>>[];
+      for (final r in rows) {
+        final uid = r.userWithSession.user.id;
+        final name = r.userWithSession.user.username ?? 'member';
+        final s = r.userWithSession.session.user_status;
+        final status = s != null
+            ? UserSquadSessionStatusExtension(s).value.toLowerCase()
+            : 'alive';
+        final score = _scoreByUserId[uid];
+        final kills = score?['kills'] ?? 0;
+        final deaths = score?['deaths'] ?? 0;
+        if (uid == user.id) {
+          _myStatus = status;
+          _myKills = kills;
+          _myDeaths = deaths;
+        } else {
+          list.add({
+            'id': uid,
+            'username': name,
+            'kills': kills,
+            'deaths': deaths,
+          });
+        }
+      }
+      setState(() {
+        _members = list;
+      });
+      if (ble.connectedDevice != null) {
+        ble.sendLines(_buildSnapshotLines());
+      }
+    });
+
+    // Scoreboard stream (K/D)
+    if (_scoreboardSub == null) {
+      final gameId = await GameService().getActiveGameId(int.parse(squad.id));
+      if (gameId != null) {
+        _scoreboardSub =
+            GameService().streamScoreboardByGame(gameId).listen((rows) {
+          final Map<String, Map<String, dynamic>> byId = {};
+          for (final r in rows) {
+            final uid = r['user_id'] as String?;
+            if (uid == null) continue;
+            byId[uid] = {
+              'kills': (r['kills'] ?? 0) as int,
+              'deaths': (r['deaths'] ?? 0) as int,
+            };
+          }
+          setState(() {
+            _scoreByUserId = byId;
+          });
+        });
+      }
+    }
+  }
+
+  List<String> _buildSnapshotLines() {
+    final List<String> lines = <String>[];
+    lines.add('RESET_MEMBERS');
+    lines.add('MY_STATUS $_myStatus');
+    lines.add('MY_KD $_myKills $_myDeaths');
+    for (final m in _members) {
+      final name = (m['username'] ?? m['name'] ?? 'member').toString();
+      final kills = (m['kills'] ?? 0).toString();
+      final deaths = (m['deaths'] ?? 0).toString();
+      lines.add('MEM $name $kills $deaths');
+    }
+    lines.add('EOT');
+    return lines;
+  }
+
+  void _handleInbound(String msg) {
+    // Simple protocol from TTGO:
+    // BTN_A_PRESS => toggle alive/dead
+    // BTN_B_PRESS => bump kill
+    if (msg.contains('BTN_A_PRESS')) {
+      // Toggle status in backend
+      final squad = SquadService().currentSquad;
+      if (squad != null) {
+        final next = _myStatus == 'alive' ? 'DEAD' : 'ALIVE';
+        GameService().setStatus(squadId: squad.id, status: next);
+      }
+    } else if (msg.contains('BTN_B_PRESS')) {
+      final squad = SquadService().currentSquad;
+      if (squad != null) {
+        GameService().bumpKill(int.parse(squad.id));
+      }
+    }
+  }
 
   @override
   void dispose() {
+    _combinedSub?.cancel();
+    _scoreboardSub?.cancel();
     _messageController.dispose();
     _filterController.dispose();
     super.dispose();
@@ -45,6 +167,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
       create: (_) => BleService(),
       child: Consumer<BleService>(
         builder: (context, ble, _) {
+          _maybeStartDataSync(ble);
           return Scaffold(
             appBar: AppBar(
               title: const Text('Tracker (BLE)'),
@@ -154,6 +277,39 @@ class _TrackerScreenState extends State<TrackerScreen> {
                             child: const Text('Disconnect'),
                           ),
                         ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: _myStatus == 'alive'
+                                      ? Colors.green.shade200
+                                      : Colors.red.shade200,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  'Status: ${_myStatus.toUpperCase()}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Chip(
+                                label: Text('K: $_myKills  D: $_myDeaths'),
+                              ),
+                              const Spacer(),
+                              ElevatedButton(
+                                onPressed: () async {
+                                  await ble.sendLines(_buildSnapshotLines());
+                                },
+                                child: const Text('Sync to Device'),
+                              ),
+                            ],
+                          ),
+                        ),
                         const Divider(height: 1),
                         Padding(
                           padding: const EdgeInsets.all(12.0),
@@ -191,6 +347,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
                             itemCount: ble.receivedMessages.length,
                             itemBuilder: (context, index) {
                               final msg = ble.receivedMessages[index];
+                              _handleInbound(msg);
                               return ListTile(
                                 dense: true,
                                 title: Text(msg),

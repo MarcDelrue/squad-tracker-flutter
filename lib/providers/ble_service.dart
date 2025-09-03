@@ -162,4 +162,12 @@ class BleService with ChangeNotifier {
     final List<int> bytes = utf8.encode(message);
     await _rxCharacteristic!.write(bytes, withoutResponse: false);
   }
+
+  Future<void> sendLines(List<String> lines) async {
+    for (final line in lines) {
+      await sendString(line);
+      // Small delay helps some stacks process sequential writes
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+  }
 }

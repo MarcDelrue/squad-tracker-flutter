@@ -136,7 +136,6 @@ class SquadService extends ChangeNotifier {
               value: currentSquad!.id,
             ),
             callback: (PostgresChangePayload payload) {
-              debugPrint('Squad change detected: $payload');
               currentSquad = Squad(
                 id: payload.newRecord['id'].toString(),
                 name: payload.newRecord['name'],
@@ -159,8 +158,6 @@ class SquadService extends ChangeNotifier {
               value: userId,
             ),
             callback: (PostgresChangePayload payload) {
-              debugPrint('User squad session change detected: $payload');
-
               if (payload.newRecord['is_active'] == true) {
                 // User joined a squad
                 userSquadSessionService.currentSquadSession = UserSquadSession(
@@ -179,7 +176,6 @@ class SquadService extends ChangeNotifier {
                 MapAnnotationsService().removeEveryAnnotations();
                 currentSquad = null;
                 userSquadSessionService.currentSquadSession = null;
-                debugPrint('User left the squad');
               }
             })
         .subscribe();

@@ -96,18 +96,12 @@ class _SquadMembersListState extends State<SquadMembersList> {
     final currentSquad = squadService.currentSquad;
 
     if (currentUser != null && currentSquad != null) {
-      debugPrint(
-          'Loading squad members for user: ${currentUser.id}, squad: ${currentSquad.id}');
       try {
         await squadMembersService.getCurrentSquadMembers(
             currentUser.id, currentSquad.id);
-        debugPrint('Squad members loaded successfully');
       } catch (e) {
-        debugPrint('Error loading squad members: $e');
+        // Handle error silently or log to proper logging service
       }
-    } else {
-      debugPrint(
-          'Cannot load squad members - user: ${currentUser?.id}, squad: ${currentSquad?.id}');
     }
   }
 
@@ -116,14 +110,6 @@ class _SquadMembersListState extends State<SquadMembersList> {
     return StreamBuilder<List<UserWithSession>?>(
       stream: squadMembersService.currentSquadMembersStream,
       builder: (context, snapshot) {
-        // Debug information
-        debugPrint(
-            'SquadMembersList - Stream state: ${snapshot.connectionState}');
-        debugPrint('SquadMembersList - Has data: ${snapshot.hasData}');
-        debugPrint('SquadMembersList - Data: ${snapshot.data}');
-        debugPrint(
-            'SquadMembersList - Current squad members: ${squadMembersService.currentSquadMembers}');
-
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
             child: Column(

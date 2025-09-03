@@ -193,7 +193,6 @@ class BattleLogsService extends ChangeNotifier {
 
   void startListening() {
     // Always log and (re)emit initial state
-    debugPrint('Starting battle logs listening');
     if (squadMembersService.currentSquadMembers != null) {
       _getNewUpdate(squadMembersService.currentSquadMembers!);
     }
