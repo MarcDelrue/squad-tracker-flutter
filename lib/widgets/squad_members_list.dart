@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
 import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
@@ -7,6 +9,7 @@ import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
 import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
+import 'package:squad_tracker_flutter/providers/game_service.dart';
 import 'package:squad_tracker_flutter/utils/colors_option.dart';
 
 class SquadMembersList extends StatefulWidget {
@@ -25,12 +28,51 @@ class _SquadMembersListState extends State<SquadMembersList> {
   final userSquadLocationService = UserSquadLocationService();
   final mapUserLocationService = MapUserLocationService();
   final squadService = SquadService();
+  final gameService = GameService();
+
+  StreamSubscription<List<Map<String, dynamic>>>? _scoreboardSub;
+  int? _activeGameId;
+  // user_id -> {kills, deaths}
+  Map<String, Map<String, int>> _statsByUserId = {};
+  // distance or score
+  String _sortMode = 'distance';
 
   @override
   void initState() {
     super.initState();
     // Ensure squad members are loaded when widget initializes
     _loadSquadMembers();
+    _subscribeScoreboard();
+  }
+
+  @override
+  void dispose() {
+    _scoreboardSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _subscribeScoreboard() async {
+    final currentSquad = squadService.currentSquad;
+    if (currentSquad == null) return;
+    final gameId =
+        await gameService.getActiveGameId(int.parse(currentSquad.id));
+    if (!mounted) return;
+    setState(() => _activeGameId = gameId);
+    _scoreboardSub?.cancel();
+    if (gameId != null) {
+      _scoreboardSub =
+          gameService.streamScoreboardByGame(gameId).listen((rows) {
+        final map = <String, Map<String, int>>{};
+        for (final r in rows) {
+          final userId = r['user_id'] as String?;
+          if (userId == null) continue;
+          final kills = (r['kills'] as num? ?? 0).toInt();
+          final deaths = (r['deaths'] as num? ?? 0).toInt();
+          map[userId] = {'kills': kills, 'deaths': deaths};
+        }
+        if (mounted) setState(() => _statsByUserId = map);
+      });
+    }
   }
 
   Future<void> _loadSquadMembers() async {
@@ -119,20 +161,36 @@ class _SquadMembersListState extends State<SquadMembersList> {
         final members = snapshot.data!;
         final currentUserId = userService.currentUser?.id;
 
-        // Filter out current user and sort by distance
+        // Filter out current user
         final otherMembers =
             members.where((member) => member.user.id != currentUserId).toList();
 
-        // Sort by distance (closest first)
-        otherMembers.sort((a, b) {
-          final distanceA = userSquadLocationService
-                  .currentMembersDistanceFromUser?[a.user.id] ??
-              double.infinity;
-          final distanceB = userSquadLocationService
-                  .currentMembersDistanceFromUser?[b.user.id] ??
-              double.infinity;
-          return distanceA.compareTo(distanceB);
-        });
+        // Sort
+        if (_sortMode == 'distance') {
+          otherMembers.sort((a, b) {
+            final distanceA = userSquadLocationService
+                    .currentMembersDistanceFromUser?[a.user.id] ??
+                double.infinity;
+            final distanceB = userSquadLocationService
+                    .currentMembersDistanceFromUser?[b.user.id] ??
+                double.infinity;
+            return distanceA.compareTo(distanceB);
+          });
+        } else if (_sortMode == 'score') {
+          otherMembers.sort((a, b) {
+            final sa = _statsByUserId[a.user.id];
+            final sb = _statsByUserId[b.user.id];
+            final ka = (sa?['kills'] ?? 0);
+            final kb = (sb?['kills'] ?? 0);
+            final da = (sa?['deaths'] ?? 0);
+            final db = (sb?['deaths'] ?? 0);
+            final kda = da == 0 ? ka.toDouble() : ka / da;
+            final kdb = db == 0 ? kb.toDouble() : kb / db;
+            if (kdb != kda) return kdb.compareTo(kda);
+            if (kb != ka) return kb.compareTo(ka);
+            return da.compareTo(db);
+          });
+        }
 
         if (otherMembers.isEmpty) {
           return const Center(
@@ -165,11 +223,31 @@ class _SquadMembersListState extends State<SquadMembersList> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const Spacer(),
+                  if (_activeGameId != null)
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _sortMode =
+                              _sortMode == 'distance' ? 'score' : 'distance';
+                        });
+                      },
+                      icon: Icon(
+                        _sortMode == 'distance'
+                            ? Icons.social_distance
+                            : Icons.leaderboard,
+                        color: Colors.white,
+                      ),
+                      label: Text(
+                        _sortMode == 'distance' ? 'Distance' : 'Score',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
                 ],
               ),
             ),
             // Member tiles
-            ...otherMembers.map((member) => _buildMemberTile(member)).toList(),
+            ...otherMembers.map((member) => _buildMemberTile(member)),
           ],
         );
       },
@@ -188,6 +266,11 @@ class _SquadMembersListState extends State<SquadMembersList> {
 
     final memberColor = hexToColor(member.user.main_color ?? '#000000');
     final statusColor = _getStatusColor(member.session.user_status);
+
+    final stats = _statsByUserId[member.user.id];
+    final kills = (stats?['kills'] ?? 0);
+    final deaths = (stats?['deaths'] ?? 0);
+    final kd = deaths == 0 ? kills.toDouble() : kills / deaths;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -239,6 +322,28 @@ class _SquadMembersListState extends State<SquadMembersList> {
               Text(
                 'Direction: ${_getDirectionText(direction)}',
                 style: const TextStyle(color: Colors.grey),
+              ),
+            if (_activeGameId != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.sports_martial_arts,
+                        size: 14, color: Colors.white70),
+                    const SizedBox(width: 4),
+                    Text('$kills',
+                        style: const TextStyle(color: Colors.white70)),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.heart_broken,
+                        size: 14, color: Colors.white70),
+                    const SizedBox(width: 4),
+                    Text('$deaths',
+                        style: const TextStyle(color: Colors.white70)),
+                    const SizedBox(width: 8),
+                    Text('K/D ${kd.toStringAsFixed(2)}',
+                        style: const TextStyle(color: Colors.white70)),
+                  ],
+                ),
               ),
           ],
         ),

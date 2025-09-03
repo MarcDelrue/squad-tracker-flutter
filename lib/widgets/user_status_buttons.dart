@@ -76,21 +76,67 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
     );
   }
 
+  Widget _buildKillButton() {
+    final squadId = squadService.currentSquad?.id;
+    final canKill = _currentStatus == UserSquadSessionStatus.alive ||
+        _currentStatus == UserSquadSessionStatus.help;
+    if (squadId == null || !canKill) return const SizedBox.shrink();
+    return OutlinedButton.icon(
+      onPressed: () async {
+        try {
+          await gameService.bumpKill(int.parse(squadId));
+          if (!mounted) return;
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: const Text('+1 Kill recorded'),
+              action: SnackBarAction(
+                label: 'Undo',
+                onPressed: () {
+                  // Optional: requires adjust_stats RPC; noop for now
+                },
+              ),
+            ),
+          );
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Failed to add kill'),
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+          }
+        }
+      },
+      icon: const Icon(Icons.add_task),
+      label: const Text('+1 Kill'),
+    );
+  }
+
   // In future, wire to GameService.streamMyStats to show server countdown
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _buildToggleButton(
-            'Died', 'Dead', Colors.grey, UserSquadSessionStatus.dead),
-        const SizedBox(width: 10),
-        _buildToggleButton(
-            'Send help', 'Help asked', Colors.red, UserSquadSessionStatus.help),
-        const SizedBox(width: 10),
-        _buildToggleButton('Send medic', 'Medic asked', Colors.orange,
-            UserSquadSessionStatus.medic),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildToggleButton(
+                'Died', 'Dead', Colors.grey, UserSquadSessionStatus.dead),
+            const SizedBox(width: 10),
+            _buildToggleButton('Send help', 'Help asked', Colors.red,
+                UserSquadSessionStatus.help),
+            const SizedBox(width: 10),
+            _buildToggleButton('Send medic', 'Medic asked', Colors.orange,
+                UserSquadSessionStatus.medic),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildKillButton(),
       ],
     );
   }
