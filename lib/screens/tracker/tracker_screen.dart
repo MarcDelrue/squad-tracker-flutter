@@ -35,8 +35,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
   Map<String, Map<String, dynamic>> _scoreByUserId =
       <String, Map<String, dynamic>>{};
   int _lastProcessedMsgCount = 0;
-  bool _hasCombined = false;
-  bool _hasScoreboard = false;
+  // Flags no longer used for gating snapshot sending, kept for potential UI hooks
+  // but removed to satisfy lints
   String? _lastConnectedRemoteId;
 
   void _maybeStartDataSync(BleService ble) async {
@@ -79,7 +79,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
       }
       setState(() {
         _members = list;
-        _hasCombined = true;
       });
       _sendSnapshotIfConnected(ble);
     });
@@ -112,7 +111,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
           }
           setState(() {
             _scoreByUserId = byId;
-            _hasScoreboard = true;
             if (myStatusFromScore != null) {
               _myStatus = myStatusFromScore;
             }
@@ -132,7 +130,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
               _myKills = kills;
               _myDeaths = deaths;
             });
-            _sendSnapshotIfConnected(ble);
+            if (ble.connectedDevice != null) {
+              ble.sendLines(_buildSnapshotLines());
+            }
           });
         }
       }
@@ -140,7 +140,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   void _sendSnapshotIfConnected(BleService ble) {
-    if (ble.connectedDevice != null && _hasCombined && _hasScoreboard) {
+    if (ble.connectedDevice != null) {
       ble.sendLines(_buildSnapshotLines());
     }
   }
