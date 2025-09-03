@@ -6,7 +6,7 @@ import FlutterMacOS
 import Foundation
 
 import app_links
-import flutter_blue_plus_macos
+import flutter_blue_plus_darwin
 import geolocator_apple
 import mobile_scanner
 import path_provider_foundation
