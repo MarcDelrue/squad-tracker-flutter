@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/providers/game_service.dart';
 import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_session_service.dart';
+import 'package:squad_tracker_flutter/providers/user_service.dart';
 
 class UserStatusButtons extends StatefulWidget {
   const UserStatusButtons({super.key});
@@ -15,13 +17,65 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
   final userSquadSessionService = UserSquadSessionService();
   final gameService = GameService();
   final squadService = SquadService();
+  final userService = UserService();
+
   UserSquadSessionStatus? _currentStatus;
+  StreamSubscription<List<Map<String, dynamic>>>? _scoreboardSub;
+  int? _activeGameId;
+
   // Respawn countdown can be sourced from GameService in future
 
   @override
   void initState() {
     super.initState();
     _currentStatus = userSquadSessionService.currentSquadSession?.user_status;
+    _subscribeToGameStatus();
+  }
+
+  @override
+  void dispose() {
+    _scoreboardSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _subscribeToGameStatus() async {
+    final currentSquad = squadService.currentSquad;
+    if (currentSquad == null) return;
+
+    final gameId =
+        await gameService.getActiveGameId(int.parse(currentSquad.id));
+    if (!mounted) return;
+
+    setState(() => _activeGameId = gameId);
+    _scoreboardSub?.cancel();
+
+    if (gameId != null) {
+      _scoreboardSub =
+          gameService.streamScoreboardByGame(gameId).listen((rows) {
+        final currentUserId = userService.currentUser?.id;
+        if (currentUserId == null) return;
+
+        // Find the current user's status from the game stats
+        final userRow =
+            rows.where((r) => r['user_id'] == currentUserId).firstOrNull;
+        if (userRow != null) {
+          final statusString = userRow['user_status'] as String?;
+          if (statusString != null) {
+            try {
+              final newStatus =
+                  UserSquadSessionStatusExtension.fromValue(statusString);
+              if (mounted && _currentStatus != newStatus) {
+                setState(() {
+                  _currentStatus = newStatus;
+                });
+              }
+            } catch (_) {
+              // Handle invalid status values
+            }
+          }
+        }
+      });
+    }
   }
 
   Widget _buildToggleButton(String text, String toggledText, Color color,
@@ -39,24 +93,22 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
               side: BorderSide(color: color),
             ),
       onPressed: () async {
-        setState(() {
-          if (_currentStatus != value) {
-            _currentStatus = value;
-          } else {
-            _currentStatus = UserSquadSessionStatus.alive;
-          }
-        });
-
         try {
           final squadId = squadService.currentSquad?.id;
           if (squadId == null) return;
+
+          // Determine the new status to set
+          final newStatus =
+              _currentStatus != value ? value : UserSquadSessionStatus.alive;
+
           await gameService.setStatus(
-              squadId: squadId, status: _currentStatus!.value);
+              squadId: squadId, status: newStatus.value);
+
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                    'Successfully updated status to ${_currentStatus!.value.toLowerCase()}'),
+                    'Successfully updated status to ${newStatus.value.toLowerCase()}'),
                 backgroundColor: Colors.green,
               ),
             );

@@ -38,6 +38,7 @@ class BleService with ChangeNotifier {
   final List<String> _receivedMessages = <String>[];
   bool _isScanning = false;
   bool _isConnecting = false;
+  bool _isDisposed = false;
 
   List<DiscoveredDevice> get devices => List.unmodifiable(_devices);
   BluetoothDevice? get connectedDevice => _connectedDevice;
@@ -55,10 +56,11 @@ class BleService with ChangeNotifier {
   }
 
   Future<void> startScan({String? nameFilter}) async {
+    if (_isDisposed) return;
     if (_isScanning) return;
     _devices.clear();
     _isScanning = true;
-    notifyListeners();
+    _notifyIfNotDisposed();
 
     // Using scan results stream so we can update incrementally.
     _scanSub = FlutterBluePlus.scanResults.listen((List<ScanResult> results) {
@@ -78,25 +80,28 @@ class BleService with ChangeNotifier {
         }
       }
       _devices.sort((a, b) => b.rssi.compareTo(a.rssi));
-      notifyListeners();
+      _notifyIfNotDisposed();
     });
 
+    if (_isDisposed) return;
     await FlutterBluePlus.startScan(withServices: <Guid>[BleUartUuids.service]);
   }
 
   Future<void> stopScan() async {
+    if (_isDisposed) return;
     if (!_isScanning) return;
     await FlutterBluePlus.stopScan();
     await _scanSub?.cancel();
     _scanSub = null;
     _isScanning = false;
-    notifyListeners();
+    _notifyIfNotDisposed();
   }
 
   Future<void> connect(BluetoothDevice device) async {
+    if (_isDisposed) return;
     if (_connectedDevice?.remoteId == device.remoteId) return;
     _isConnecting = true;
-    notifyListeners();
+    _notifyIfNotDisposed();
     try {
       await stopScan();
       await device.connect(timeout: const Duration(seconds: 15));
@@ -127,21 +132,25 @@ class BleService with ChangeNotifier {
         throw Exception("UART characteristics not found");
       }
 
+      if (_isDisposed) return;
       await _txCharacteristic!.setNotifyValue(true);
       await _txNotifySub?.cancel();
       _txNotifySub = _txCharacteristic!.lastValueStream.listen((data) {
-        if (data.isEmpty) return;
+        if (_isDisposed || data.isEmpty) return;
         final String msg = utf8.decode(data, allowMalformed: true);
         _receivedMessages.add(msg);
-        notifyListeners();
+        _notifyIfNotDisposed();
       });
     } finally {
-      _isConnecting = false;
-      notifyListeners();
+      if (!_isDisposed) {
+        _isConnecting = false;
+        _notifyIfNotDisposed();
+      }
     }
   }
 
   Future<void> disconnect() async {
+    if (_isDisposed) return;
     await _txNotifySub?.cancel();
     _txNotifySub = null;
     _rxCharacteristic = null;
@@ -152,7 +161,7 @@ class BleService with ChangeNotifier {
       } catch (_) {}
     }
     _connectedDevice = null;
-    notifyListeners();
+    _notifyIfNotDisposed();
   }
 
   Future<void> sendString(String message) async {
@@ -169,5 +178,35 @@ class BleService with ChangeNotifier {
       // Small delay helps some stacks process sequential writes
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
+  }
+
+  void _notifyIfNotDisposed() {
+    if (!_isDisposed) {
+      try {
+        // ignore: invalid_use_of_protected_member
+        notifyListeners();
+      } catch (_) {}
+    }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+
+    // Cancel subscriptions first to prevent late callbacks
+    _txNotifySub?.cancel();
+    _txNotifySub = null;
+    _scanSub?.cancel();
+    _scanSub = null;
+
+    // Best-effort cleanup without notifying listeners
+    try {
+      FlutterBluePlus.stopScan();
+    } catch (_) {}
+    try {
+      _connectedDevice?.disconnect();
+    } catch (_) {}
+
+    super.dispose();
   }
 }

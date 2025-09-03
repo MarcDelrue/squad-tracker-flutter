@@ -23,6 +23,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _filterController =
       TextEditingController(text: "TTGO");
+  final BleService _ble = BleService();
   String _myStatus = 'alive';
   int _myKills = 0;
   int _myDeaths = 0;
@@ -30,8 +31,13 @@ class _TrackerScreenState extends State<TrackerScreen> {
   CombinedStreamService? _combinedService;
   StreamSubscription<List<UserWithLocationSession>?>? _combinedSub;
   StreamSubscription<List<Map<String, dynamic>>>? _scoreboardSub;
+  StreamSubscription<Map<String, dynamic>>? _myStatsSub;
   Map<String, Map<String, dynamic>> _scoreByUserId =
       <String, Map<String, dynamic>>{};
+  int _lastProcessedMsgCount = 0;
+  bool _hasCombined = false;
+  bool _hasScoreboard = false;
+  String? _lastConnectedRemoteId;
 
   void _maybeStartDataSync(BleService ble) async {
     final squad = SquadService().currentSquad;
@@ -51,10 +57,11 @@ class _TrackerScreenState extends State<TrackerScreen> {
         final uid = r.userWithSession.user.id;
         final name = r.userWithSession.user.username ?? 'member';
         final s = r.userWithSession.session.user_status;
-        final status = s != null
-            ? UserSquadSessionStatusExtension(s).value.toLowerCase()
-            : 'alive';
         final score = _scoreByUserId[uid];
+        final status = (score?['status'] as String?)?.toLowerCase() ??
+            (s != null
+                ? UserSquadSessionStatusExtension(s).value.toLowerCase()
+                : 'alive');
         final kills = score?['kills'] ?? 0;
         final deaths = score?['deaths'] ?? 0;
         if (uid == user.id) {
@@ -72,10 +79,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
       }
       setState(() {
         _members = list;
+        _hasCombined = true;
       });
-      if (ble.connectedDevice != null) {
-        ble.sendLines(_buildSnapshotLines());
-      }
+      _sendSnapshotIfConnected(ble);
     });
 
     // Scoreboard stream (K/D)
@@ -91,13 +97,69 @@ class _TrackerScreenState extends State<TrackerScreen> {
             byId[uid] = {
               'kills': (r['kills'] ?? 0) as int,
               'deaths': (r['deaths'] ?? 0) as int,
+              'status': r['user_status'] as String?,
             };
+          }
+          // Update my status immediately from scoreboard to avoid stale session default
+          final me = UserService().currentUser;
+          String? myStatusFromScore;
+          if (me != null) {
+            final mine = byId[me.id];
+            final s = mine != null ? mine['status'] as String? : null;
+            if (s != null && s.isNotEmpty) {
+              myStatusFromScore = s.toLowerCase();
+            }
           }
           setState(() {
             _scoreByUserId = byId;
+            _hasScoreboard = true;
+            if (myStatusFromScore != null) {
+              _myStatus = myStatusFromScore;
+            }
           });
+          _sendSnapshotIfConnected(ble);
         });
+
+        // Faster initial K/D for me only
+        final myStatsStream =
+            await GameService().streamMyStats(int.parse(squad.id));
+        if (myStatsStream != null && _myStatsSub == null) {
+          _myStatsSub = myStatsStream.listen((row) {
+            if (row.isEmpty) return;
+            final kills = (row['kills'] ?? 0) as int;
+            final deaths = (row['deaths'] ?? 0) as int;
+            setState(() {
+              _myKills = kills;
+              _myDeaths = deaths;
+            });
+            _sendSnapshotIfConnected(ble);
+          });
+        }
       }
+    }
+  }
+
+  void _sendSnapshotIfConnected(BleService ble) {
+    if (ble.connectedDevice != null && _hasCombined && _hasScoreboard) {
+      ble.sendLines(_buildSnapshotLines());
+    }
+  }
+
+  void _processNewMessages(BleService ble) {
+    final msgs = ble.receivedMessages;
+    if (_lastProcessedMsgCount < msgs.length) {
+      for (int i = _lastProcessedMsgCount; i < msgs.length; i++) {
+        final msg = msgs[i];
+        if (msg == 'DEVICE_CONNECTED') {
+          // Push snapshot immediately on device connect
+          if (ble.connectedDevice != null) {
+            ble.sendLines(_buildSnapshotLines());
+          }
+        } else {
+          _handleInbound(msg);
+        }
+      }
+      _lastProcessedMsgCount = msgs.length;
     }
   }
 
@@ -139,8 +201,10 @@ class _TrackerScreenState extends State<TrackerScreen> {
   void dispose() {
     _combinedSub?.cancel();
     _scoreboardSub?.cancel();
+    _myStatsSub?.cancel();
     _messageController.dispose();
     _filterController.dispose();
+    _ble.dispose();
     super.dispose();
   }
 
@@ -163,11 +227,20 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<BleService>(
-      create: (_) => BleService(),
+    return ChangeNotifierProvider<BleService>.value(
+      value: _ble,
       child: Consumer<BleService>(
         builder: (context, ble, _) {
           _maybeStartDataSync(ble);
+          // Detect connection change to trigger immediate sync and reset message cursor
+          final currentId = ble.connectedDevice?.remoteId.str;
+          if (currentId != _lastConnectedRemoteId) {
+            _lastConnectedRemoteId = currentId;
+            // Avoid replaying old messages from a previous session/device
+            _lastProcessedMsgCount = ble.receivedMessages.length;
+            _sendSnapshotIfConnected(ble);
+          }
+          _processNewMessages(ble);
           return Scaffold(
             appBar: AppBar(
               title: const Text('Tracker (BLE)'),
@@ -347,7 +420,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
                             itemCount: ble.receivedMessages.length,
                             itemBuilder: (context, index) {
                               final msg = ble.receivedMessages[index];
-                              _handleInbound(msg);
                               return ListTile(
                                 dense: true,
                                 title: Text(msg),
