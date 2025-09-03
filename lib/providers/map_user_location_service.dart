@@ -230,18 +230,9 @@ class MapUserLocationService {
     }
     isFollowingUser.value = true;
     followModeActivatedAt = DateTime.now();
-    // Only zoom in if current zoom is too far; otherwise preserve current zoom
-    double? desiredZoom;
-    try {
-      final cameraState = await mapboxMap?.getCameraState();
-      if (cameraState != null && cameraState.zoom < 15) {
-        desiredZoom = 17;
-      }
-    } catch (_) {}
     await flyToLocation(
       userSquadLocationService.currentUserLocation!.longitude!,
       userSquadLocationService.currentUserLocation!.latitude!,
-      zoom: desiredZoom,
       duration: const Duration(milliseconds: 500),
     );
   }
@@ -282,11 +273,20 @@ class MapUserLocationService {
       Duration duration = const Duration(milliseconds: 800)}) async {
     isProgrammaticCameraChange = true;
     isCameraAnimationInProgress = true;
+    double? effectiveZoom = zoom;
+    if (effectiveZoom == null) {
+      try {
+        final cameraState = await mapboxMap?.getCameraState();
+        if (cameraState != null && cameraState.zoom < 15) {
+          effectiveZoom = 17;
+        }
+      } catch (_) {}
+    }
     await mapboxMap?.flyTo(
       mapbox.CameraOptions(
         center: mapbox.Point(coordinates: mapbox.Position(longitude, latitude)),
         // Only set zoom when requested; otherwise preserve current zoom
-        zoom: zoom,
+        zoom: effectiveZoom,
       ),
       mapbox.MapAnimationOptions(
           duration: duration.inMilliseconds, startDelay: 0),
