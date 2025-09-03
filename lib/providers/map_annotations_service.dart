@@ -7,6 +7,9 @@ import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:squad_tracker_flutter/utils/colors_option.dart';
+import 'package:squad_tracker_flutter/providers/game_service.dart';
+import 'package:squad_tracker_flutter/providers/squad_service.dart';
+import 'dart:async';
 
 class MapAnnotationsService extends ChangeNotifier {
   // Singleton setup
@@ -16,6 +19,8 @@ class MapAnnotationsService extends ChangeNotifier {
   MapAnnotationsService._internal();
 
   final userSquadLocationService = UserSquadLocationService();
+  final gameService = GameService();
+  final squadService = SquadService();
 
   late mapbox.PointAnnotationManager pointAnnotationManager;
   List<mapbox.PointAnnotation>? membersPointAnnotations;
@@ -25,6 +30,10 @@ class MapAnnotationsService extends ChangeNotifier {
   late Uint8List soldierDeadImage = Uint8List(0);
   late Uint8List soldierHelpImage = Uint8List(0);
   late Uint8List soldierMedicImage = Uint8List(0);
+
+  // Per-game status map
+  StreamSubscription<List<Map<String, dynamic>>>? _statusSub;
+  final Map<String, UserSquadSessionStatus?> _statusByUserId = {};
 
   // Pulsating logic removed for performance
 
@@ -66,6 +75,35 @@ class MapAnnotationsService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error loading soldier images: $e');
     }
+
+    // Subscribe to per-game status
+    await subscribeToGameStatus();
+  }
+
+  Future<void> subscribeToGameStatus() async {
+    _statusSub?.cancel();
+    final squadIdStr = squadService.currentSquad?.id;
+    if (squadIdStr == null) return;
+    final gameId = await gameService.getActiveGameId(int.parse(squadIdStr));
+    if (gameId == null) return;
+    _statusSub = gameService.streamScoreboardByGame(gameId).listen((rows) {
+      _statusByUserId.clear();
+      for (final r in rows) {
+        final userId = r['user_id'] as String?;
+        if (userId == null) continue;
+        final s = r['user_status'];
+        if (s is String) {
+          try {
+            _statusByUserId[userId] =
+                UserSquadSessionStatusExtension.fromValue(s);
+          } catch (_) {
+            _statusByUserId[userId] = null;
+          }
+        }
+      }
+      // Force update icons when statuses change
+      _forceRecreateAnnotations();
+    });
   }
 
   removeEveryAnnotations() {
@@ -175,12 +213,14 @@ class MapAnnotationsService extends ChangeNotifier {
       }
       UserWithSession foundMember =
           SquadMembersService().getMemberDataById(location.user_id);
-      final statusIcon = _getStatusIcon(foundMember.session.user_status);
-      final statusColor = _getStatusColor(
-          foundMember.session.user_status, foundMember.user.main_color);
-      final iconSize = _getStatusIconSize(foundMember.session.user_status);
-      final iconRotation = _getStatusIconRotation(
-          foundMember.session.user_status, location.direction);
+      final effectiveStatus = _statusByUserId[foundMember.user.id] ??
+          foundMember.session.user_status;
+      final statusIcon = _getStatusIcon(effectiveStatus);
+      final statusColor =
+          _getStatusColor(effectiveStatus, foundMember.user.main_color);
+      final iconSize = _getStatusIconSize(effectiveStatus);
+      final iconRotation =
+          _getStatusIconRotation(effectiveStatus, location.direction);
 
       mapbox.PointAnnotationOptions pointAnnotationOptions =
           mapbox.PointAnnotationOptions(
@@ -206,10 +246,5 @@ class MapAnnotationsService extends ChangeNotifier {
           (await pointAnnotationManager.createMulti(annotations))
               .cast<mapbox.PointAnnotation>();
     }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 }

@@ -34,6 +34,8 @@ class _SquadMembersListState extends State<SquadMembersList> {
   int? _activeGameId;
   // user_id -> {kills, deaths}
   Map<String, Map<String, int>> _statsByUserId = {};
+  // user_id -> status (from user_game_stats)
+  Map<String, UserSquadSessionStatus?> _statusByUserId = {};
   // distance or score
   String _sortMode = 'distance';
 
@@ -63,14 +65,28 @@ class _SquadMembersListState extends State<SquadMembersList> {
       _scoreboardSub =
           gameService.streamScoreboardByGame(gameId).listen((rows) {
         final map = <String, Map<String, int>>{};
+        final statusMap = <String, UserSquadSessionStatus?>{};
         for (final r in rows) {
           final userId = r['user_id'] as String?;
           if (userId == null) continue;
           final kills = (r['kills'] as num? ?? 0).toInt();
           final deaths = (r['deaths'] as num? ?? 0).toInt();
           map[userId] = {'kills': kills, 'deaths': deaths};
+          final s = r['user_status'];
+          if (s is String) {
+            try {
+              statusMap[userId] = UserSquadSessionStatusExtension.fromValue(s);
+            } catch (_) {
+              statusMap[userId] = null;
+            }
+          }
         }
-        if (mounted) setState(() => _statsByUserId = map);
+        if (mounted) {
+          setState(() {
+            _statsByUserId = map;
+            _statusByUserId = statusMap;
+          });
+        }
       });
     }
   }
@@ -264,7 +280,9 @@ class _SquadMembersListState extends State<SquadMembersList> {
     final direction = directions != null ? directions[member.user.id] : null;
 
     final memberColor = hexToColor(member.user.main_color ?? '#000000');
-    final statusColor = _getStatusColor(member.session.user_status);
+    final effectiveStatus =
+        _statusByUserId[member.user.id] ?? member.session.user_status;
+    final statusColor = _getStatusColor(effectiveStatus);
 
     final stats = _statsByUserId[member.user.id];
     final kills = (stats?['kills'] ?? 0);
@@ -301,7 +319,7 @@ class _SquadMembersListState extends State<SquadMembersList> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                _getStatusText(member.session.user_status),
+                _getStatusText(effectiveStatus),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 10,
