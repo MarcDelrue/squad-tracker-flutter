@@ -36,7 +36,7 @@ class _SquadMembersListState extends State<SquadMembersList> {
   Map<String, Map<String, int>> _statsByUserId = {};
   // user_id -> status (from user_game_stats)
   Map<String, UserSquadSessionStatus?> _statusByUserId = {};
-  // distance or score
+  // sort modes: 'distance', 'kills', 'kd' (alias: 'score' -> 'kd')
   String _sortMode = 'distance';
 
   @override
@@ -191,7 +191,23 @@ class _SquadMembersListState extends State<SquadMembersList> {
                 : double.infinity;
             return distanceA.compareTo(distanceB);
           });
-        } else if (_sortMode == 'score') {
+        } else if (_sortMode == 'kills') {
+          // Sort by kills descending, then K/D descending, then deaths ascending
+          otherMembers.sort((a, b) {
+            final sa = _statsByUserId[a.user.id];
+            final sb = _statsByUserId[b.user.id];
+            final ka = (sa?['kills'] ?? 0);
+            final kb = (sb?['kills'] ?? 0);
+            final da = (sa?['deaths'] ?? 0);
+            final db = (sb?['deaths'] ?? 0);
+            final kda = da == 0 ? ka.toDouble() : ka / da;
+            final kdb = db == 0 ? kb.toDouble() : kb / db;
+            if (kb != ka) return kb.compareTo(ka);
+            if (kdb != kda) return kdb.compareTo(kda);
+            return da.compareTo(db);
+          });
+        } else {
+          // 'kd' or legacy 'score' -> sort by K/D descending, then kills descending, then deaths ascending
           otherMembers.sort((a, b) {
             final sa = _statsByUserId[a.user.id];
             final sb = _statsByUserId[b.user.id];
@@ -243,18 +259,27 @@ class _SquadMembersListState extends State<SquadMembersList> {
                     TextButton.icon(
                       onPressed: () {
                         setState(() {
-                          _sortMode =
-                              _sortMode == 'distance' ? 'score' : 'distance';
+                          if (_sortMode == 'distance') {
+                            _sortMode = 'kills';
+                          } else if (_sortMode == 'kills') {
+                            _sortMode = 'kd';
+                          } else {
+                            _sortMode = 'distance';
+                          }
                         });
                       },
                       icon: Icon(
                         _sortMode == 'distance'
                             ? Icons.social_distance
-                            : Icons.leaderboard,
+                            : (_sortMode == 'kills'
+                                ? Icons.sports_martial_arts
+                                : Icons.leaderboard),
                         color: Colors.white,
                       ),
                       label: Text(
-                        _sortMode == 'distance' ? 'Distance' : 'Score',
+                        _sortMode == 'distance'
+                            ? 'Distance'
+                            : (_sortMode == 'kills' ? 'Kills' : 'K/D'),
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
