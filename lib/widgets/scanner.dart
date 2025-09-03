@@ -20,6 +20,7 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
 
   Barcode? _barcode;
   StreamSubscription<Object?>? _subscription;
+  bool _isClosing = false;
 
   Widget _buildBarcode(Barcode? value) {
     if (value == null) {
@@ -45,7 +46,16 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
 
       // Check if a barcode value is available and pop the value to the previous screen
       if (_barcode != null && _barcode!.displayValue != null) {
-        Navigator.pop(context, _barcode!.displayValue);
+        if (_isClosing) return;
+        _isClosing = true;
+        // Stop camera and cancel subscription before leaving to release buffers cleanly
+        unawaited(_subscription?.cancel());
+        _subscription = null;
+        controller.stop().whenComplete(() {
+          if (mounted) {
+            Navigator.pop(context, _barcode!.displayValue);
+          }
+        });
       }
     }
   }
