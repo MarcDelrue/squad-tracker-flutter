@@ -61,8 +61,9 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
         context.showSnackBar('Game started');
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         context.showSnackBar('Failed to start game: $e', isError: true);
+      }
     }
   }
 
@@ -76,8 +77,9 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
         context.showSnackBar('Game ended');
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         context.showSnackBar('Failed to end game: $e', isError: true);
+      }
     }
   }
 
@@ -247,24 +249,24 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (isHost)
-              Card(
-                color: Colors.black,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _activeGameId == null
-                              ? 'No active game'
-                              : 'Game active (#$_activeGameId)',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+            Card(
+              color: Colors.black,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _activeGameId == null
+                            ? 'No active game'
+                            : 'Game active (#$_activeGameId)',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
+                    ),
+                    if (isHost)
                       if (_activeGameId == null)
                         ElevatedButton.icon(
                           onPressed: _startGame,
@@ -280,10 +282,10 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
                           icon: const Icon(Icons.stop),
                           label: const Text('End game'),
                         ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
+            ),
             const Text(
               "Squad Members",
               style: TextStyle(

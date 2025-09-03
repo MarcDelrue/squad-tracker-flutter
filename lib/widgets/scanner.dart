@@ -12,9 +12,10 @@ class BarcodeScannerSimple extends StatefulWidget {
 
 class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
     with WidgetsBindingObserver {
-  final MobileScannerController controller = MobileScannerController(
-    autoStart: false,
-    useNewCameraSelector: true,
+  final controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+    detectionTimeoutMs: 250,
+    returnImage: false, // set to false unless you truly need images
   );
 
   Barcode? _barcode;

@@ -25,7 +25,8 @@ class GameService extends ChangeNotifier {
     });
   }
 
-  Future<void> setStatus({required int squadId, required String status}) async {
+  Future<void> setStatus(
+      {required String squadId, required String status}) async {
     await _sb.rpc('set_user_status', params: {
       'p_squad_id': squadId,
       'p_status': status,

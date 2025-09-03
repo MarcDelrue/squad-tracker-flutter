@@ -51,7 +51,7 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
           final squadId = squadService.currentSquad?.id;
           if (squadId == null) return;
           await gameService.setStatus(
-              squadId: int.parse(squadId), status: _currentStatus!.value);
+              squadId: squadId, status: _currentStatus!.value);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
