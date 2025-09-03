@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>This app uses Bluetooth to connect to your TTGO T-Display device.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Bluetooth is required to communicate with the TTGO T-Display.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location is required for Bluetooth scanning on iOS and to enhance device discovery.</string>
 </dict>
 </plist>

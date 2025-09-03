@@ -19,7 +19,7 @@ class SquadService extends ChangeNotifier {
   final squadMembersService = SquadMembersService();
   final userSquadLocationService = UserSquadLocationService();
   final userService = UserService();
-  final mapAnnotationsService = MapAnnotationsService();
+  MapAnnotationsService get mapAnnotationsService => MapAnnotationsService();
   RealtimeChannel? currentSquadChannel;
 
   List<Squad>? recentSquads;
@@ -176,7 +176,7 @@ class SquadService extends ChangeNotifier {
                     squadId: payload.newRecord['squad_id'].toString());
               } else if (payload.newRecord['is_active'] == false) {
                 // User left the squad
-                mapAnnotationsService.removeEveryAnnotations();
+                MapAnnotationsService().removeEveryAnnotations();
                 currentSquad = null;
                 userSquadSessionService.currentSquadSession = null;
                 debugPrint('User left the squad');

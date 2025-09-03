@@ -20,7 +20,7 @@ class MapAnnotationsService extends ChangeNotifier {
 
   final userSquadLocationService = UserSquadLocationService();
   final gameService = GameService();
-  final squadService = SquadService();
+  SquadService get squadService => SquadService();
 
   late mapbox.PointAnnotationManager pointAnnotationManager;
   List<mapbox.PointAnnotation>? membersPointAnnotations;
