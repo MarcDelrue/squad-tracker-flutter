@@ -30,6 +30,7 @@ class BleService with ChangeNotifier {
   final List<DiscoveredDevice> _devices = <DiscoveredDevice>[];
   StreamSubscription<List<ScanResult>>? _scanSub;
   StreamSubscription<List<int>>? _txNotifySub;
+  StreamSubscription<BluetoothConnectionState>? _deviceStateSub;
 
   BluetoothDevice? _connectedDevice;
   BluetoothCharacteristic? _rxCharacteristic; // write
@@ -141,6 +142,20 @@ class BleService with ChangeNotifier {
         _receivedMessages.add(msg);
         _notifyIfNotDisposed();
       });
+
+      // Listen for unexpected disconnections (e.g., device powered off)
+      await _deviceStateSub?.cancel();
+      _deviceStateSub = device.connectionState.listen((state) async {
+        if (_isDisposed) return;
+        if (state == BluetoothConnectionState.disconnected) {
+          await _txNotifySub?.cancel();
+          _txNotifySub = null;
+          _rxCharacteristic = null;
+          _txCharacteristic = null;
+          _connectedDevice = null;
+          _notifyIfNotDisposed();
+        }
+      });
     } finally {
       if (!_isDisposed) {
         _isConnecting = false;
@@ -151,6 +166,8 @@ class BleService with ChangeNotifier {
 
   Future<void> disconnect() async {
     if (_isDisposed) return;
+    await _deviceStateSub?.cancel();
+    _deviceStateSub = null;
     await _txNotifySub?.cancel();
     _txNotifySub = null;
     _rxCharacteristic = null;
@@ -194,6 +211,8 @@ class BleService with ChangeNotifier {
     _isDisposed = true;
 
     // Cancel subscriptions first to prevent late callbacks
+    _deviceStateSub?.cancel();
+    _deviceStateSub = null;
     _txNotifySub?.cancel();
     _txNotifySub = null;
     _scanSub?.cancel();
