@@ -367,9 +367,9 @@ class _SquadMembersListState extends State<SquadMembersList> {
           ],
         ),
         trailing: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.location_on,
-            color: Colors.blue,
+            color: memberColor,
           ),
           onPressed: () => _flyToMember(memberLocation),
         ),
