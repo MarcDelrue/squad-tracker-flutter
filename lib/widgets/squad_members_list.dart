@@ -159,21 +159,20 @@ class _SquadMembersListState extends State<SquadMembersList> {
         }
 
         final members = snapshot.data!;
-        final currentUserId = userService.currentUser?.id;
-
-        // Filter out current user
-        final otherMembers =
-            members.where((member) => member.user.id != currentUserId).toList();
+        // Include everyone, but show '(you)' on the current user
+        final otherMembers = [...members];
 
         // Sort
         if (_sortMode == 'distance') {
           otherMembers.sort((a, b) {
-            final distanceA = userSquadLocationService
-                    .currentMembersDistanceFromUser?[a.user.id] ??
-                double.infinity;
-            final distanceB = userSquadLocationService
-                    .currentMembersDistanceFromUser?[b.user.id] ??
-                double.infinity;
+            final distances =
+                userSquadLocationService.currentMembersDistanceFromUser;
+            final distanceA = distances != null
+                ? (distances[a.user.id] ?? double.infinity)
+                : double.infinity;
+            final distanceB = distances != null
+                ? (distances[b.user.id] ?? double.infinity)
+                : double.infinity;
             return distanceA.compareTo(distanceB);
           });
         } else if (_sortMode == 'score') {
@@ -258,11 +257,11 @@ class _SquadMembersListState extends State<SquadMembersList> {
     final memberLocation = userSquadLocationService.currentMembersLocation
         ?.where((location) => location.user_id == member.user.id)
         .firstOrNull;
-
-    final distance = userSquadLocationService
-        .currentMembersDistanceFromUser?[member.user.id];
-    final direction = userSquadLocationService
-        .currentMembersDirectionToMember?[member.user.id];
+    final isSelf = member.user.id == userService.currentUser?.id;
+    final distances = userSquadLocationService.currentMembersDistanceFromUser;
+    final directions = userSquadLocationService.currentMembersDirectionToMember;
+    final distance = distances != null ? distances[member.user.id] : null;
+    final direction = directions != null ? directions[member.user.id] : null;
 
     final memberColor = hexToColor(member.user.main_color ?? '#000000');
     final statusColor = _getStatusColor(member.session.user_status);
@@ -286,7 +285,9 @@ class _SquadMembersListState extends State<SquadMembersList> {
           children: [
             Expanded(
               child: Text(
-                member.user.username ?? 'Unknown',
+                (member.user.id == userService.currentUser?.id)
+                    ? '${member.user.username ?? 'Unknown'} (you)'
+                    : (member.user.username ?? 'Unknown'),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -313,12 +314,12 @@ class _SquadMembersListState extends State<SquadMembersList> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (distance != null)
+            if (!isSelf && distance != null)
               Text(
                 'Distance: ${distance.toStringAsFixed(0)}m',
                 style: const TextStyle(color: Colors.grey),
               ),
-            if (direction != null)
+            if (!isSelf && direction != null)
               Text(
                 'Direction: ${_getDirectionText(direction)}',
                 style: const TextStyle(color: Colors.grey),
@@ -410,18 +411,6 @@ class _SquadMembersListState extends State<SquadMembersList> {
     }
   }
 
-  String _getDirectionText(double direction) {
-    if (direction >= 337.5 || direction < 22.5) return 'N';
-    if (direction >= 22.5 && direction < 67.5) return 'NE';
-    if (direction >= 67.5 && direction < 112.5) return 'E';
-    if (direction >= 112.5 && direction < 157.5) return 'SE';
-    if (direction >= 157.5 && direction < 202.5) return 'S';
-    if (direction >= 202.5 && direction < 247.5) return 'SW';
-    if (direction >= 247.5 && direction < 292.5) return 'W';
-    if (direction >= 292.5 && direction < 337.5) return 'NW';
-    return 'N';
-  }
-
   void _flyToMember(UserSquadLocation? memberLocation) {
     if (memberLocation != null &&
         memberLocation.latitude != null &&
@@ -433,5 +422,17 @@ class _SquadMembersListState extends State<SquadMembersList> {
       // Hide bottom sheet when flying to member
       widget.onFlyToMember?.call();
     }
+  }
+
+  String _getDirectionText(double direction) {
+    if (direction >= 337.5 || direction < 22.5) return 'N';
+    if (direction >= 22.5 && direction < 67.5) return 'NE';
+    if (direction >= 67.5 && direction < 112.5) return 'E';
+    if (direction >= 112.5 && direction < 157.5) return 'SE';
+    if (direction >= 157.5 && direction < 202.5) return 'S';
+    if (direction >= 202.5 && direction < 247.5) return 'SW';
+    if (direction >= 247.5 && direction < 292.5) return 'W';
+    if (direction >= 292.5 && direction < 337.5) return 'NW';
+    return 'N';
   }
 }

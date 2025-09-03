@@ -32,7 +32,9 @@ class UserSessionRow extends StatelessWidget {
           ),
         ),
         title: Text(
-          user.username ?? '',
+          options.is_you
+              ? '${user.username ?? ''} (you)'
+              : (user.username ?? ''),
           style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),

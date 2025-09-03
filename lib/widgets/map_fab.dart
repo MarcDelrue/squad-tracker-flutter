@@ -4,7 +4,7 @@ class MapFab extends StatefulWidget {
   final VoidCallback onFAB1Pressed;
   final VoidCallback onFAB2Pressed;
   final VoidCallback onFAB3Pressed;
-  final VoidCallback onFAB4Pressed;
+  final VoidCallback? onFAB4Pressed;
   final int? selectedIndex; // External control of selected index
 
   const MapFab({
@@ -12,7 +12,7 @@ class MapFab extends StatefulWidget {
     required this.onFAB1Pressed,
     required this.onFAB2Pressed,
     required this.onFAB3Pressed,
-    required this.onFAB4Pressed,
+    this.onFAB4Pressed,
     this.selectedIndex,
   });
 
@@ -79,16 +79,18 @@ class _MapFabState extends State<MapFab> {
             color: _selectedIndex == 2 ? Colors.white : Colors.green,
           ),
         ),
-        const SizedBox(height: 12),
-        FloatingActionButton.small(
-          heroTag: 'fab4',
-          onPressed: () => _onFabPressed(3, widget.onFAB4Pressed),
-          backgroundColor: _selectedIndex == 3 ? Colors.green : Colors.white,
-          child: Icon(
-            Icons.leaderboard,
-            color: _selectedIndex == 3 ? Colors.white : Colors.green,
+        if (widget.onFAB4Pressed != null) ...[
+          const SizedBox(height: 12),
+          FloatingActionButton.small(
+            heroTag: 'fab4',
+            onPressed: () => _onFabPressed(3, widget.onFAB4Pressed!),
+            backgroundColor: _selectedIndex == 3 ? Colors.green : Colors.white,
+            child: Icon(
+              Icons.leaderboard,
+              color: _selectedIndex == 3 ? Colors.white : Colors.green,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
