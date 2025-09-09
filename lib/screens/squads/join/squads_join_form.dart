@@ -67,18 +67,18 @@ class _SquadJoinFormState extends State<SquadJoinForm> {
                 hintText: 'Squad code',
                 suffixIcon: IconButton(
                   onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const BarcodeScannerSimple()),
-                    );
+                    // final result = await Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //       builder: (context) => const BarcodeScannerSimple()),
+                    // );
 
-                    if (result != null) {
-                      // Handle the result (the scanned barcode value)
-                      debugPrint('Scanned barcode: $result');
-                      _squadCodeController.text = result;
-                      _onSubmit();
-                    }
+                    // if (result != null) {
+                    //   // Handle the result (the scanned barcode value)
+                    //   debugPrint('Scanned barcode: $result');
+                    //   _squadCodeController.text = result;
+                    //   _onSubmit();
+                    // }
                   },
                   icon: const Icon(Icons.qr_code_scanner),
                 ),

@@ -441,7 +441,7 @@ class _SquadMembersListState extends State<SquadMembersList> {
             Icons.location_on,
             color: memberColor,
           ),
-          onPressed: () => _flyToMember(memberLocation),
+          onPressed: () => _onGeolocatePressed(isSelf, memberLocation),
         ),
       ),
     );
@@ -510,6 +510,17 @@ class _SquadMembersListState extends State<SquadMembersList> {
       // Hide bottom sheet when flying to member
       widget.onFlyToMember?.call();
     }
+  }
+
+  void _onGeolocatePressed(
+      bool isSelf, UserSquadLocation? memberLocation) async {
+    if (isSelf) {
+      await mapUserLocationService.toggleFollow();
+      // Hide bottom sheet when focusing on self
+      widget.onFlyToMember?.call();
+      return;
+    }
+    _flyToMember(memberLocation);
   }
 
   String _getDirectionText(double direction) {
