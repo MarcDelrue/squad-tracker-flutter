@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
 import 'package:squad_tracker_flutter/models/users_model.dart';
@@ -26,12 +27,26 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
   final gameService = GameService();
 
   int? _activeGameId;
+  DateTime? _startedAt;
+  Timer? _ticker;
+  Duration _elapsed = Duration.zero;
+
+  String _formatElapsed(Duration d) {
+    final hours = d.inHours;
+    final minutes = d.inMinutes % 60;
+    final seconds = d.inSeconds % 60;
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchCurrentSquadMembers();
     _loadActiveGame();
+    _startGameMetaStream();
   }
 
   Future<void> _fetchCurrentSquadMembers() async {
@@ -49,6 +64,42 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
     if (squadIdStr == null) return;
     final id = await gameService.getActiveGameId(int.parse(squadIdStr));
     if (mounted) setState(() => _activeGameId = id);
+  }
+
+  void _startGameMetaStream() {
+    final squadIdStr = squadService.currentSquad?.id;
+    if (squadIdStr == null) return;
+    gameService
+        .streamActiveGameMetaBySquad(int.parse(squadIdStr))
+        .listen((meta) {
+      if (!mounted) return;
+      if (meta == null) {
+        setState(() {
+          _startedAt = null;
+          _elapsed = Duration.zero;
+          _ticker?.cancel();
+          _ticker = null;
+        });
+        return;
+      }
+      final s = meta['started_at']?.toString();
+      final start = s != null ? DateTime.tryParse(s) : null;
+      setState(() {
+        _activeGameId = (meta['id'] as num?)?.toInt();
+        _startedAt = start;
+      });
+      _ensureTicker();
+    });
+  }
+
+  void _ensureTicker() {
+    if (_startedAt == null) return;
+    _ticker ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {
+        _elapsed = DateTime.now().difference(_startedAt!);
+      });
+    });
   }
 
   Future<void> _startGame() async {
@@ -81,6 +132,12 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
         context.showSnackBar('Failed to end game: $e', isError: true);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
   }
 
   Future<void> _kickUser(User user) async {
@@ -259,7 +316,8 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
                       child: Text(
                         _activeGameId == null
                             ? 'No active game'
-                            : 'Game active (#$_activeGameId)',
+                            : 'Game active (#$_activeGameId)  –  ' +
+                                _formatElapsed(_elapsed),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,

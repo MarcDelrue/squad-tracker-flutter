@@ -47,6 +47,41 @@ class GameService extends ChangeNotifier {
     return (resp as num).toInt();
   }
 
+  Future<Map<String, dynamic>?> getActiveGameMeta(int squadId) async {
+    final id = await getActiveGameId(squadId);
+    if (id == null) return null;
+    try {
+      final row = await _sb
+          .from('squad_games')
+          .select('id, started_at, ended_at, squad_id, host_user_id')
+          .eq('id', id)
+          .single();
+      return row;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Stream<Map<String, dynamic>?> streamActiveGameMetaBySquad(int squadId) {
+    return _sb
+        .from('squad_games')
+        .stream(primaryKey: ['id'])
+        .eq('squad_id', squadId)
+        .map((rows) {
+          final active = rows.where((r) => r['ended_at'] == null).toList();
+          if (active.isEmpty) return null;
+          active.sort((a, b) {
+            final sa = DateTime.tryParse(a['started_at']?.toString() ?? '');
+            final sb = DateTime.tryParse(b['started_at']?.toString() ?? '');
+            if (sa == null && sb == null) return 0;
+            if (sa == null) return 1;
+            if (sb == null) return -1;
+            return sb.compareTo(sa);
+          });
+          return active.first;
+        });
+  }
+
   // Stream scoreboard for a specific active game
   Stream<List<Map<String, dynamic>>> streamScoreboardByGame(int gameId) {
     return _sb.from('user_game_stats').stream(primaryKey: ['id']).map(

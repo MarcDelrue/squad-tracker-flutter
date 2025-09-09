@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:squad_tracker_flutter/providers/game_service.dart';
+import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/widgets/battle_logs.dart';
 import 'package:squad_tracker_flutter/widgets/draggable_bottom_sheet_for_map.dart';
 import 'package:squad_tracker_flutter/widgets/fly_to_user_fab.dart';
@@ -21,6 +24,11 @@ class MapWithLocationState extends State<MapWithLocation> {
   bool _isGeolocationEnabled = true;
   bool _showBattleLogs = false;
   bool _showBottomSheet = false; // Track if bottom sheet should be shown
+  final _gameService = GameService();
+  final _squadService = SquadService();
+  DateTime? _startedAt;
+  Timer? _ticker;
+  Duration _elapsed = Duration.zero;
   void _handleGeolocationToggle(bool isEnabled) {
     setState(() {
       _isGeolocationEnabled = isEnabled;
@@ -44,6 +52,7 @@ class MapWithLocationState extends State<MapWithLocation> {
       MapSettings(onGeolocationToggled: _handleGeolocationToggle),
       // Add more widgets as needed
     ];
+    _startGameMetaStream();
   }
 
   @override
@@ -52,6 +61,7 @@ class MapWithLocationState extends State<MapWithLocation> {
       body: Stack(
         children: [
           const GameMapWidget(),
+          _buildGameTimerChip(),
           MapControlButtons(
             isGeolocationDisabled: !_isGeolocationEnabled,
             onBattleLogsPressed: () {
@@ -67,6 +77,68 @@ class MapWithLocationState extends State<MapWithLocation> {
         ],
       ),
     );
+  }
+
+  Widget _buildGameTimerChip() {
+    if (_startedAt == null) return const SizedBox.shrink();
+    return Positioned(
+      top: 16 + MediaQuery.of(context).padding.top,
+      right:
+          88, // to the left of the right-aligned FAB column (approx 56 + padding)
+      child: Chip(
+        label: Text(_formatElapsed(_elapsed)),
+        backgroundColor: Colors.black,
+      ),
+    );
+  }
+
+  void _startGameMetaStream() {
+    final sid = _squadService.currentSquad?.id;
+    if (sid == null) return;
+    _gameService.streamActiveGameMetaBySquad(int.parse(sid)).listen((meta) {
+      if (!mounted) return;
+      if (meta == null) {
+        setState(() {
+          _startedAt = null;
+          _elapsed = Duration.zero;
+          _ticker?.cancel();
+          _ticker = null;
+        });
+        return;
+      }
+      final s = meta['started_at']?.toString();
+      final start = s != null ? DateTime.tryParse(s) : null;
+      setState(() {
+        _startedAt = start;
+      });
+      _ensureTicker();
+    });
+  }
+
+  void _ensureTicker() {
+    if (_startedAt == null) return;
+    _ticker ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {
+        _elapsed = DateTime.now().difference(_startedAt!);
+      });
+    });
+  }
+
+  String _formatElapsed(Duration d) {
+    final hours = d.inHours;
+    final minutes = d.inMinutes % 60;
+    final seconds = d.inSeconds % 60;
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
   }
 
   Widget _buildDraggableBottomSheet() {

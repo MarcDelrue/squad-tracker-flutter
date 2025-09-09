@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
-import 'package:squad_tracker_flutter/models/users_model.dart';
 import 'package:squad_tracker_flutter/providers/squad_members_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';

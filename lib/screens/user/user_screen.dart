@@ -222,7 +222,7 @@ class _UserScreenState extends State<UserScreen> {
                   labelText: 'Select a Role',
                   border: OutlineInputBorder(),
                 ),
-                value: _userMainRoleController,
+                initialValue: _userMainRoleController,
                 items: _rolesController.map((role) {
                   return DropdownMenuItem<String>(
                     value: role,
