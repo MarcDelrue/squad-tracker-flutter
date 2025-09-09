@@ -38,6 +38,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   int _lastProcessedMsgCount = 0;
   String? _lastConnectedRemoteId;
   int? _activeGameId;
+  int _seqCounter = 0; // BLE snapshot sequence number
 
   void _maybeStartDataSync(BleService ble) async {
     final squad = SquadService().currentSquad;
@@ -159,6 +160,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   void _sendSnapshotIfConnected(BleService ble) {
     if (ble.connectedDevice != null) {
+      _seqCounter++;
       ble.sendLines(_buildSnapshotLines());
     }
   }
@@ -191,20 +193,31 @@ class _TrackerScreenState extends State<TrackerScreen> {
       final deaths = (m['deaths'] ?? 0).toString();
       lines.add('MEM $name $kills $deaths');
     }
+    lines.add('SEQ $_seqCounter');
     lines.add('EOT');
     return lines;
   }
 
   void _handleInbound(String msg) {
     if (msg.contains('BTN_A_PRESS')) {
+      // Optimistic toggle
       final squad = SquadService().currentSquad;
       if (squad != null) {
-        final next = _myStatus == 'alive' ? 'DEAD' : 'ALIVE';
-        GameService().setStatus(squadId: squad.id, status: next);
+        _myStatus = _myStatus == 'alive' ? 'dead' : 'alive';
+        _sendSnapshotIfConnected(
+            Provider.of<BleService>(context, listen: false));
+        final nextServer = _myStatus == 'alive' ? 'ALIVE' : 'DEAD';
+        GameService().setStatus(squadId: squad.id, status: nextServer);
       }
     } else if (msg.contains('BTN_B_PRESS')) {
+      // Optimistic kill bump (only if alive to mirror device behavior)
       final squad = SquadService().currentSquad;
       if (squad != null) {
+        if (_myStatus == 'alive') {
+          _myKills = _myKills + 1;
+          _sendSnapshotIfConnected(
+              Provider.of<BleService>(context, listen: false));
+        }
         GameService().bumpKill(int.parse(squad.id));
       }
     }
@@ -246,6 +259,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
         if (currentId != _lastConnectedRemoteId) {
           _lastConnectedRemoteId = currentId;
           _lastProcessedMsgCount = ble.receivedMessages.length;
+          _seqCounter = 0; // reset sequence for new connection
           _sendSnapshotIfConnected(ble);
         }
         _processNewMessages(ble);
@@ -364,7 +378,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
                             const Spacer(),
                             ElevatedButton(
                               onPressed: () async {
-                                await ble.sendLines(_buildSnapshotLines());
+                                _sendSnapshotIfConnected(ble);
                               },
                               child: const Text('Sync to Device'),
                             ),

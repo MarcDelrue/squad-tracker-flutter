@@ -279,7 +279,9 @@ class BleService with ChangeNotifier {
     if (_rxCharacteristic == null) {
       throw Exception("Not connected");
     }
-    final List<int> bytes = utf8.encode(message);
+    final String withNewline =
+        message.endsWith('\n') ? message : (message + '\n');
+    final List<int> bytes = utf8.encode(withNewline);
     await _rxCharacteristic!.write(bytes, withoutResponse: false);
   }
 
