@@ -6,6 +6,8 @@ import 'package:squad_tracker_flutter/screens/map_with_location.dart';
 import 'package:squad_tracker_flutter/screens/tracker/tracker_screen.dart';
 import 'package:squad_tracker_flutter/screens/squads/squads_entrypoint.dart';
 import 'package:squad_tracker_flutter/screens/user/user_screen.dart';
+import 'package:squad_tracker_flutter/providers/ble_service.dart';
+import 'package:provider/provider.dart';
 
 class NavigationWidget extends StatefulWidget {
   const NavigationWidget({super.key});
@@ -104,9 +106,17 @@ class _NavigationWidgetState extends State<NavigationWidget> {
                         enabled: hasBasicInfo,
                       ),
                       NavigationDestination(
-                        icon: const Badge(
-                            backgroundColor: Colors.green,
-                            child: Icon(Icons.track_changes_rounded)),
+                        icon: Consumer<BleService>(
+                            builder: (context, bleService, _) {
+                          final bool isBleConnected =
+                              bleService.connectedDevice != null;
+                          return isBleConnected
+                              ? const Badge(
+                                  backgroundColor: Colors.green,
+                                  child: Icon(Icons.track_changes_rounded),
+                                )
+                              : const Icon(Icons.track_changes_rounded);
+                        }),
                         label: 'Tracker',
                         tooltip: hasBasicInfo
                             ? null

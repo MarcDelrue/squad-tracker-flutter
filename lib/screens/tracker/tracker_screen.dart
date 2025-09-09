@@ -23,7 +23,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _filterController =
       TextEditingController(text: "TTGO");
-  final BleService _ble = BleService();
   String _myStatus = 'alive';
   int _myKills = 0;
   int _myDeaths = 0;
@@ -204,7 +203,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
     _myStatsSub?.cancel();
     _messageController.dispose();
     _filterController.dispose();
-    _ble.dispose();
     super.dispose();
   }
 
@@ -227,214 +225,209 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<BleService>.value(
-      value: _ble,
-      child: Consumer<BleService>(
-        builder: (context, ble, _) {
-          _maybeStartDataSync(ble);
-          // Detect connection change to trigger immediate sync and reset message cursor
-          final currentId = ble.connectedDevice?.remoteId.str;
-          if (currentId != _lastConnectedRemoteId) {
-            _lastConnectedRemoteId = currentId;
-            // Avoid replaying old messages from a previous session/device
-            _lastProcessedMsgCount = ble.receivedMessages.length;
-            _sendSnapshotIfConnected(ble);
-          }
-          _processNewMessages(ble);
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Tracker (BLE)'),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: ble.isScanning
-                      ? null
-                      : () async {
-                          await _ensurePermissions();
-                          await ble.ensureAdapterOn();
-                          await ble.startScan(
-                              nameFilter: _filterController.text.trim().isEmpty
-                                  ? null
-                                  : _filterController.text.trim());
-                        },
-                  tooltip: 'Scan',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.stop),
-                  onPressed: ble.isScanning ? () => ble.stopScan() : null,
-                  tooltip: 'Stop scan',
-                ),
-              ],
-            ),
-            body: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _filterController,
-                          decoration: const InputDecoration(
-                            labelText: 'Name filter (e.g. TTGO)',
-                            border: OutlineInputBorder(),
-                          ),
+    return Consumer<BleService>(
+      builder: (context, ble, _) {
+        _maybeStartDataSync(ble);
+        // Detect connection change to trigger immediate sync and reset message cursor
+        final currentId = ble.connectedDevice?.remoteId.str;
+        if (currentId != _lastConnectedRemoteId) {
+          _lastConnectedRemoteId = currentId;
+          // Avoid replaying old messages from a previous session/device
+          _lastProcessedMsgCount = ble.receivedMessages.length;
+          _sendSnapshotIfConnected(ble);
+        }
+        _processNewMessages(ble);
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Tracker (BLE)'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: ble.isScanning
+                    ? null
+                    : () async {
+                        await _ensurePermissions();
+                        await ble.ensureAdapterOn();
+                        await ble.startScan(
+                            nameFilter: _filterController.text.trim().isEmpty
+                                ? null
+                                : _filterController.text.trim());
+                      },
+                tooltip: 'Scan',
+              ),
+              IconButton(
+                icon: const Icon(Icons.stop),
+                onPressed: ble.isScanning ? () => ble.stopScan() : null,
+                tooltip: 'Stop scan',
+              ),
+            ],
+          ),
+          body: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _filterController,
+                        decoration: const InputDecoration(
+                          labelText: 'Name filter (e.g. TTGO)',
+                          border: OutlineInputBorder(),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: ble.isScanning
-                            ? null
-                            : () async {
-                                await _ensurePermissions();
-                                await ble.ensureAdapterOn();
-                                await ble.startScan(
-                                    nameFilter:
-                                        _filterController.text.trim().isEmpty
-                                            ? null
-                                            : _filterController.text.trim());
-                              },
-                        child: const Text('Scan'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: ble.isScanning
+                          ? null
+                          : () async {
+                              await _ensurePermissions();
+                              await ble.ensureAdapterOn();
+                              await ble.startScan(
+                                  nameFilter:
+                                      _filterController.text.trim().isEmpty
+                                          ? null
+                                          : _filterController.text.trim());
+                            },
+                      child: const Text('Scan'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: ble.isScanning ? () => ble.stopScan() : null,
+                      child: const Text('Stop'),
+                    ),
+                  ],
+                ),
+              ),
+              if (ble.connectedDevice == null)
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: ble.devices.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final d = ble.devices[index];
+                      return ListTile(
+                        leading: const Icon(Icons.bluetooth),
+                        title: Text(
+                            d.name.isNotEmpty ? d.name : d.device.remoteId.str),
+                        subtitle: Text('RSSI ${d.rssi}'),
+                        trailing: ble.isConnecting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : ElevatedButton(
+                                onPressed: () async {
+                                  await ble.connect(d.device);
+                                },
+                                child: const Text('Connect'),
+                              ),
+                      );
+                    },
+                  ),
+                )
+              else
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.bluetooth_connected),
+                        title: Text(ble.connectedDevice!.platformName.isNotEmpty
+                            ? ble.connectedDevice!.platformName
+                            : ble.connectedDevice!.remoteId.str),
+                        trailing: ElevatedButton(
+                          onPressed: () => ble.disconnect(),
+                          child: const Text('Disconnect'),
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: ble.isScanning ? () => ble.stopScan() : null,
-                        child: const Text('Stop'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _myStatus == 'alive'
+                                    ? Colors.green.shade200
+                                    : Colors.red.shade200,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                'Status: ${_myStatus.toUpperCase()}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Chip(
+                              label: Text('K: $_myKills  D: $_myDeaths'),
+                            ),
+                            const Spacer(),
+                            ElevatedButton(
+                              onPressed: () async {
+                                await ble.sendLines(_buildSnapshotLines());
+                              },
+                              child: const Text('Sync to Device'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _messageController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Message to TTGO',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () async {
+                                final text = _messageController.text.trim();
+                                if (text.isNotEmpty) {
+                                  await ble.sendString(text);
+                                  _messageController.clear();
+                                }
+                              },
+                              child: const Text('Send'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12.0),
+                        child: Text('Received messages'),
+                      ),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: ble.receivedMessages.length,
+                          itemBuilder: (context, index) {
+                            final msg = ble.receivedMessages[index];
+                            return ListTile(
+                              dense: true,
+                              title: Text(msg),
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
                 ),
-                if (ble.connectedDevice == null)
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: ble.devices.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final d = ble.devices[index];
-                        return ListTile(
-                          leading: const Icon(Icons.bluetooth),
-                          title: Text(d.name.isNotEmpty
-                              ? d.name
-                              : d.device.remoteId.str),
-                          subtitle: Text('RSSI ${d.rssi}'),
-                          trailing: ble.isConnecting
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : ElevatedButton(
-                                  onPressed: () async {
-                                    await ble.connect(d.device);
-                                  },
-                                  child: const Text('Connect'),
-                                ),
-                        );
-                      },
-                    ),
-                  )
-                else
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.bluetooth_connected),
-                          title: Text(
-                              ble.connectedDevice!.platformName.isNotEmpty
-                                  ? ble.connectedDevice!.platformName
-                                  : ble.connectedDevice!.remoteId.str),
-                          trailing: ElevatedButton(
-                            onPressed: () => ble.disconnect(),
-                            child: const Text('Disconnect'),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: _myStatus == 'alive'
-                                      ? Colors.green.shade200
-                                      : Colors.red.shade200,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Text(
-                                  'Status: ${_myStatus.toUpperCase()}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Chip(
-                                label: Text('K: $_myKills  D: $_myDeaths'),
-                              ),
-                              const Spacer(),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  await ble.sendLines(_buildSnapshotLines());
-                                },
-                                child: const Text('Sync to Device'),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Divider(height: 1),
-                        Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _messageController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Message to TTGO',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  final text = _messageController.text.trim();
-                                  if (text.isNotEmpty) {
-                                    await ble.sendString(text);
-                                    _messageController.clear();
-                                  }
-                                },
-                                child: const Text('Send'),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12.0),
-                          child: Text('Received messages'),
-                        ),
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: ble.receivedMessages.length,
-                            itemBuilder: (context, index) {
-                              final msg = ble.receivedMessages[index];
-                              return ListTile(
-                                dense: true,
-                                title: Text(msg),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          );
-        },
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

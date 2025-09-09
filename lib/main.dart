@@ -5,6 +5,8 @@ import 'package:squad_tracker_flutter/screens/login/login_form.dart';
 import 'package:squad_tracker_flutter/widgets/navigation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:provider/provider.dart';
+import 'package:squad_tracker_flutter/providers/ble_service.dart';
 
 /// Flutter code sample for [NavigationBar].
 
@@ -57,35 +59,38 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Supabase Flutter',
-      theme: ThemeData.dark().copyWith(
-        primaryColor: Colors.green,
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.green,
+    return ChangeNotifierProvider<BleService>(
+      create: (_) => BleService(),
+      child: MaterialApp(
+        title: 'Supabase Flutter',
+        theme: ThemeData.dark().copyWith(
+          primaryColor: Colors.green,
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.green,
+            ),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.green,
+            ),
           ),
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
-            backgroundColor: Colors.green,
-          ),
+        home: FutureBuilder<bool>(
+          future: _checkSession(),
+          builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError ||
+                !snapshot.hasData ||
+                !snapshot.data!) {
+              return const LoginForm();
+            } else {
+              return const NavigationWidget();
+            }
+          },
         ),
-      ),
-      home: FutureBuilder<bool>(
-        future: _checkSession(),
-        builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError ||
-              !snapshot.hasData ||
-              !snapshot.data!) {
-            return const LoginForm();
-          } else {
-            return const NavigationWidget();
-          }
-        },
       ),
     );
   }
