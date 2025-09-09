@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:squad_tracker_flutter/providers/user_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// BLE UART (Nordic UART Service) UUIDs
 class BleUartUuids {
@@ -31,6 +34,8 @@ class BleService with ChangeNotifier {
   StreamSubscription<List<ScanResult>>? _scanSub;
   StreamSubscription<List<int>>? _txNotifySub;
   StreamSubscription<BluetoothConnectionState>? _deviceStateSub;
+  SharedPreferences? _prefs;
+  bool _autoReconnectAttempted = false;
 
   BluetoothDevice? _connectedDevice;
   BluetoothCharacteristic? _rxCharacteristic; // write
@@ -46,6 +51,87 @@ class BleService with ChangeNotifier {
   bool get isScanning => _isScanning;
   bool get isConnecting => _isConnecting;
   List<String> get receivedMessages => List.unmodifiable(_receivedMessages);
+
+  Future<SharedPreferences> _getPrefs() async {
+    return _prefs ??= await SharedPreferences.getInstance();
+  }
+
+  String _keyForUser(String userId) => 'ble_last_device_' + userId;
+
+  Future<void> _saveLastDeviceIdForUser(String userId, String deviceId) async {
+    final prefs = await _getPrefs();
+    await prefs.setString(_keyForUser(userId), deviceId);
+  }
+
+  Future<String?> _getLastDeviceIdForUser(String userId) async {
+    final prefs = await _getPrefs();
+    return prefs.getString(_keyForUser(userId));
+  }
+
+  /// Try to reconnect to the last device used by this user.
+  ///
+  /// Best-effort: scans briefly for the UART service and connects if the
+  /// saved remoteId is discovered. No UI feedback; safe to call during startup.
+  Future<void> tryAutoReconnect(String userId,
+      {Duration timeout = const Duration(seconds: 12)}) async {
+    if (_isDisposed) return;
+    if (_connectedDevice != null || _isConnecting) return;
+    if (_autoReconnectAttempted) return;
+    _autoReconnectAttempted = true;
+
+    final String? lastId = await _getLastDeviceIdForUser(userId);
+    if (lastId == null || lastId.isEmpty) return;
+
+    // Request permissions quietly; skip if not granted
+    final Map<Permission, PermissionStatus> statuses = await [
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.locationWhenInUse,
+    ].request();
+    final bool hasBlePerms =
+        (statuses[Permission.bluetoothScan]?.isGranted ?? false) &&
+            (statuses[Permission.bluetoothConnect]?.isGranted ?? false);
+    if (!hasBlePerms) {
+      return;
+    }
+
+    await ensureAdapterOn();
+
+    final Completer<void> done = Completer<void>();
+    StreamSubscription<List<ScanResult>>? sub;
+    sub = FlutterBluePlus.scanResults.listen((List<ScanResult> results) async {
+      for (final ScanResult r in results) {
+        if (r.device.remoteId.str == lastId) {
+          try {
+            await FlutterBluePlus.stopScan();
+          } catch (_) {}
+          await sub?.cancel();
+          try {
+            await connect(r.device);
+          } catch (_) {
+            // ignore failures silently in auto path
+          } finally {
+            if (!done.isCompleted) done.complete();
+          }
+          return;
+        }
+      }
+    });
+
+    try {
+      await FlutterBluePlus.startScan();
+    } catch (_) {
+      await sub.cancel();
+      return;
+    }
+
+    await Future.any(
+        <Future<void>>[done.future, Future<void>.delayed(timeout)]);
+    try {
+      await FlutterBluePlus.stopScan();
+    } catch (_) {}
+    await sub.cancel();
+  }
 
   Future<void> ensureAdapterOn() async {
     // Best-effort: some platforms support toggling, others not; caller should handle failures.
@@ -142,6 +228,14 @@ class BleService with ChangeNotifier {
         _receivedMessages.add(msg);
         _notifyIfNotDisposed();
       });
+
+      // Persist last connected device for this user
+      final String? uid = UserService().currentUser?.id;
+      if (uid != null && uid.isNotEmpty) {
+        try {
+          await _saveLastDeviceIdForUser(uid, device.remoteId.str);
+        } catch (_) {}
+      }
 
       // Listen for unexpected disconnections (e.g., device powered off)
       await _deviceStateSub?.cancel();
