@@ -39,6 +39,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   String? _lastConnectedRemoteId;
   int? _activeGameId;
   int _seqCounter = 0; // BLE snapshot sequence number
+  int _ackOpId = 0; // last OP id received from device
 
   void _maybeStartDataSync(BleService ble) async {
     final squad = SquadService().currentSquad;
@@ -193,17 +194,58 @@ class _TrackerScreenState extends State<TrackerScreen> {
       final deaths = (m['deaths'] ?? 0).toString();
       lines.add('MEM $name $kills $deaths');
     }
+    lines.add('ACK $_ackOpId');
     lines.add('SEQ $_seqCounter');
     lines.add('EOT');
     return lines;
   }
 
   void _handleInbound(String msg) {
-    if (msg.contains('BTN_A_PRESS')) {
+    if (msg.startsWith('OP ')) {
+      // OP <id> BTN_A | OP <id> BTN_B
+      final parts = msg.split(' ');
+      if (parts.length >= 3) {
+        final id = int.tryParse(parts[1]);
+        final kind = parts[2];
+        if (id != null && id > _ackOpId) {
+          _ackOpId = id;
+        }
+        if (kind == 'BTN_A') {
+          final squad = SquadService().currentSquad;
+          if (squad != null) {
+            final wasAlive = _myStatus == 'alive';
+            _myStatus = wasAlive ? 'dead' : 'alive';
+            if (wasAlive) {
+              _myDeaths = _myDeaths + 1;
+            }
+            _sendSnapshotIfConnected(
+                Provider.of<BleService>(context, listen: false));
+            final nextServer = _myStatus == 'alive' ? 'ALIVE' : 'DEAD';
+            GameService().setStatus(squadId: squad.id, status: nextServer);
+          }
+          return;
+        } else if (kind == 'BTN_B') {
+          final squad = SquadService().currentSquad;
+          if (squad != null) {
+            if (_myStatus == 'alive') {
+              _myKills = _myKills + 1;
+            }
+            _sendSnapshotIfConnected(
+                Provider.of<BleService>(context, listen: false));
+            GameService().bumpKill(int.parse(squad.id));
+          }
+          return;
+        }
+      }
+    } else if (msg.contains('BTN_A_PRESS')) {
       // Optimistic toggle
       final squad = SquadService().currentSquad;
       if (squad != null) {
-        _myStatus = _myStatus == 'alive' ? 'dead' : 'alive';
+        final wasAlive = _myStatus == 'alive';
+        _myStatus = wasAlive ? 'dead' : 'alive';
+        if (wasAlive) {
+          _myDeaths = _myDeaths + 1;
+        }
         _sendSnapshotIfConnected(
             Provider.of<BleService>(context, listen: false));
         final nextServer = _myStatus == 'alive' ? 'ALIVE' : 'DEAD';
@@ -260,6 +302,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
           _lastConnectedRemoteId = currentId;
           _lastProcessedMsgCount = ble.receivedMessages.length;
           _seqCounter = 0; // reset sequence for new connection
+          _ackOpId = 0; // reset ack id on new connection
           _sendSnapshotIfConnected(ble);
         }
         _processNewMessages(ble);

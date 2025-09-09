@@ -42,6 +42,7 @@ class BleService with ChangeNotifier {
   BluetoothCharacteristic? _txCharacteristic; // notify
 
   final List<String> _receivedMessages = <String>[];
+  String _rxLineBuffer = '';
   bool _isScanning = false;
   bool _isConnecting = false;
   bool _isDisposed = false;
@@ -224,8 +225,17 @@ class BleService with ChangeNotifier {
       await _txNotifySub?.cancel();
       _txNotifySub = _txCharacteristic!.lastValueStream.listen((data) {
         if (_isDisposed || data.isEmpty) return;
-        final String msg = utf8.decode(data, allowMalformed: true);
-        _receivedMessages.add(msg);
+        final String chunk = utf8.decode(data, allowMalformed: true);
+        _rxLineBuffer += chunk;
+        int idx;
+        // Emit complete newline-delimited lines
+        while ((idx = _rxLineBuffer.indexOf('\n')) >= 0) {
+          final String line = _rxLineBuffer.substring(0, idx).trim();
+          _rxLineBuffer = _rxLineBuffer.substring(idx + 1);
+          if (line.isNotEmpty) {
+            _receivedMessages.add(line);
+          }
+        }
         _notifyIfNotDisposed();
       });
 
