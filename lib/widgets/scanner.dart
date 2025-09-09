@@ -16,10 +16,10 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
     detectionSpeed: DetectionSpeed.noDuplicates,
     detectionTimeoutMs: 250,
     returnImage: false, // set to false unless you truly need images
+    formats: const [BarcodeFormat.qrCode],
   );
 
   Barcode? _barcode;
-  StreamSubscription<Object?>? _subscription;
   bool _isClosing = false;
 
   Widget _buildBarcode(Barcode? value) {
@@ -38,7 +38,7 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
     );
   }
 
-  void _handleBarcode(BarcodeCapture barcodes) {
+  void _onDetect(BarcodeCapture barcodes) {
     if (mounted) {
       setState(() {
         _barcode = barcodes.barcodes.firstOrNull;
@@ -48,9 +48,7 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
       if (_barcode != null && _barcode!.displayValue != null) {
         if (_isClosing) return;
         _isClosing = true;
-        // Stop camera and cancel subscription before leaving to release buffers cleanly
-        unawaited(_subscription?.cancel());
-        _subscription = null;
+        // Stop camera before leaving to release buffers cleanly
         controller.stop().whenComplete(() {
           if (mounted) {
             Navigator.pop(context, _barcode!.displayValue);
@@ -64,10 +62,7 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
-    _subscription = controller.barcodes.listen(_handleBarcode);
-
-    unawaited(controller.start());
+    // The MobileScanner widget will start the camera automatically.
   }
 
   @override
@@ -80,17 +75,12 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
-        unawaited(_subscription?.cancel());
-        _subscription = null;
         unawaited(controller.stop());
         return;
       case AppLifecycleState.resumed:
-        _subscription = controller.barcodes.listen(_handleBarcode);
         unawaited(controller.start());
         break;
       case AppLifecycleState.inactive:
-        unawaited(_subscription?.cancel());
-        _subscription = null;
         unawaited(controller.stop());
         break;
     }
@@ -105,6 +95,7 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
         children: [
           MobileScanner(
             controller: controller,
+            onDetect: _onDetect,
             errorBuilder: (context, error) {
               return const Center(
                 child: Text('Something went wrong!'),
@@ -127,13 +118,11 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
   }
 
   @override
-  Future<void> dispose() async {
+  void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    unawaited(_subscription?.cancel());
-    _subscription = null;
     // Explicitly stop before dispose to avoid buffer leaks
     unawaited(controller.stop());
+    controller.dispose();
     super.dispose();
-    await controller.dispose();
   }
 }
