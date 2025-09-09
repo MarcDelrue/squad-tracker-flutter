@@ -31,6 +31,7 @@ class _SquadMembersListState extends State<SquadMembersList> {
   final gameService = GameService();
 
   StreamSubscription<List<Map<String, dynamic>>>? _scoreboardSub;
+  StreamSubscription<Map<String, dynamic>?>? _gameMetaSub;
   int? _activeGameId;
   // user_id -> {kills, deaths}
   Map<String, Map<String, int>> _statsByUserId = {};
@@ -45,11 +46,13 @@ class _SquadMembersListState extends State<SquadMembersList> {
     // Ensure squad members are loaded when widget initializes
     _loadSquadMembers();
     _subscribeScoreboard();
+    _subscribeGameChanges();
   }
 
   @override
   void dispose() {
     _scoreboardSub?.cancel();
+    _gameMetaSub?.cancel();
     super.dispose();
   }
 
@@ -89,6 +92,62 @@ class _SquadMembersListState extends State<SquadMembersList> {
         }
       });
     }
+  }
+
+  void _subscribeGameChanges() {
+    final currentSquad = squadService.currentSquad;
+    if (currentSquad == null) return;
+    _gameMetaSub?.cancel();
+    _gameMetaSub = gameService
+        .streamActiveGameMetaBySquad(int.parse(currentSquad.id))
+        .listen((meta) async {
+      final newId = (meta == null) ? null : (meta['id'] as num?)?.toInt();
+      if (newId == _activeGameId) return;
+      // Only reset when a new game starts. If game ended (newId == null), keep last scoreboard visible.
+      if (newId == null) {
+        _activeGameId = null;
+        return;
+      }
+      // Clear local stats and resubscribe to scoreboard for the new game
+      if (mounted) {
+        setState(() {
+          _statsByUserId = {};
+          _statusByUserId = {};
+          _activeGameId = newId;
+        });
+      }
+      await _scoreboardSub?.cancel();
+      _scoreboardSub = null;
+      {
+        _scoreboardSub =
+            gameService.streamScoreboardByGame(newId).listen((rows) {
+          final map = <String, Map<String, int>>{};
+          final statusMap = <String, UserSquadSessionStatus?>{};
+          for (final r in rows) {
+            final userId = r['user_id'] as String?;
+            if (userId == null) continue;
+            final kills = (r['kills'] as num? ?? 0).toInt();
+            final deaths = (r['deaths'] as num? ?? 0).toInt();
+            map[userId] = {'kills': kills, 'deaths': deaths};
+            final s = r['user_status'];
+            if (s is String) {
+              try {
+                statusMap[userId] =
+                    UserSquadSessionStatusExtension.fromValue(s);
+              } catch (_) {
+                statusMap[userId] = null;
+              }
+            }
+          }
+          if (mounted) {
+            setState(() {
+              _statsByUserId = map;
+              _statusByUserId = statusMap;
+            });
+          }
+        });
+      }
+    });
   }
 
   Future<void> _loadSquadMembers() async {
@@ -241,7 +300,7 @@ class _SquadMembersListState extends State<SquadMembersList> {
                     ),
                   ),
                   const Spacer(),
-                  if (_activeGameId != null)
+                  if (_activeGameId != null || _statsByUserId.isNotEmpty)
                     TextButton.icon(
                       onPressed: () {
                         setState(() {
@@ -353,7 +412,7 @@ class _SquadMembersListState extends State<SquadMembersList> {
                 'Direction: ${_getDirectionText(direction)}',
                 style: const TextStyle(color: Colors.grey),
               ),
-            if (_activeGameId != null)
+            if (_activeGameId != null || _statsByUserId.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 4.0),
                 child: Row(

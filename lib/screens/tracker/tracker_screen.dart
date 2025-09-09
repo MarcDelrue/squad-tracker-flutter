@@ -31,12 +31,14 @@ class _TrackerScreenState extends State<TrackerScreen> {
   StreamSubscription<List<UserWithLocationSession>?>? _combinedSub;
   StreamSubscription<List<Map<String, dynamic>>>? _scoreboardSub;
   StreamSubscription<Map<String, dynamic>>? _myStatsSub;
+  StreamSubscription<Map<String, dynamic>?>? _gameMetaSub;
   Map<String, Map<String, dynamic>> _scoreByUserId =
       <String, Map<String, dynamic>>{};
   int _lastProcessedMsgCount = 0;
   // Flags no longer used for gating snapshot sending, kept for potential UI hooks
   // but removed to satisfy lints
   String? _lastConnectedRemoteId;
+  int? _activeGameId;
 
   void _maybeStartDataSync(BleService ble) async {
     final squad = SquadService().currentSquad;
@@ -83,58 +85,95 @@ class _TrackerScreenState extends State<TrackerScreen> {
     });
 
     // Scoreboard stream (K/D)
-    if (_scoreboardSub == null) {
-      final gameId = await GameService().getActiveGameId(int.parse(squad.id));
-      if (gameId != null) {
-        _scoreboardSub =
-            GameService().streamScoreboardByGame(gameId).listen((rows) {
-          final Map<String, Map<String, dynamic>> byId = {};
-          for (final r in rows) {
-            final uid = r['user_id'] as String?;
-            if (uid == null) continue;
-            byId[uid] = {
-              'kills': (r['kills'] ?? 0) as int,
-              'deaths': (r['deaths'] ?? 0) as int,
-              'status': r['user_status'] as String?,
-            };
-          }
-          // Update my status immediately from scoreboard to avoid stale session default
-          final me = UserService().currentUser;
-          String? myStatusFromScore;
-          if (me != null) {
-            final mine = byId[me.id];
-            final s = mine != null ? mine['status'] as String? : null;
-            if (s != null && s.isNotEmpty) {
-              myStatusFromScore = s.toLowerCase();
-            }
-          }
-          setState(() {
-            _scoreByUserId = byId;
-            if (myStatusFromScore != null) {
-              _myStatus = myStatusFromScore;
-            }
-          });
-          _sendSnapshotIfConnected(ble);
-        });
+    // Start/refresh streams based on active game changes
+    if (_gameMetaSub == null) {
+      _gameMetaSub = GameService()
+          .streamActiveGameMetaBySquad(int.parse(squad.id))
+          .listen((meta) async {
+        final newGameId = (meta == null) ? null : (meta['id'] as num?)?.toInt();
+        final changed = newGameId != _activeGameId;
+        if (!changed) return;
 
-        // Faster initial K/D for me only
-        final myStatsStream =
-            await GameService().streamMyStats(int.parse(squad.id));
-        if (myStatsStream != null && _myStatsSub == null) {
-          _myStatsSub = myStatsStream.listen((row) {
-            if (row.isEmpty) return;
-            final kills = (row['kills'] ?? 0) as int;
-            final deaths = (row['deaths'] ?? 0) as int;
-            setState(() {
-              _myKills = kills;
-              _myDeaths = deaths;
-            });
-            if (ble.connectedDevice != null) {
-              ble.sendLines(_buildSnapshotLines());
-            }
-          });
+        // Only reset/resubscribe when a NEW game starts. If the game ended
+        // (newGameId == null), keep showing the previous game's final scoreboard.
+        if (newGameId == null) {
+          return;
         }
-      }
+
+        // Cancel previous subscriptions
+        await _scoreboardSub?.cancel();
+        _scoreboardSub = null;
+        await _myStatsSub?.cancel();
+        _myStatsSub = null;
+
+        // Set new active game id and reset local stats
+        _activeGameId = newGameId;
+        setState(() {
+          _myKills = 0;
+          _myDeaths = 0;
+          _scoreByUserId = <String, Map<String, dynamic>>{};
+          // Reset members' K/D to 0 immediately so BLE snapshot reflects the reset
+          _members = _members
+              .map((m) => {
+                    'id': m['id'],
+                    'username': (m['username'] ?? m['name'] ?? 'member'),
+                    'kills': 0,
+                    'deaths': 0,
+                  })
+              .toList();
+        });
+        _sendSnapshotIfConnected(ble);
+
+        {
+          // Subscribe to new game's scoreboard
+          _scoreboardSub =
+              GameService().streamScoreboardByGame(newGameId).listen((rows) {
+            final Map<String, Map<String, dynamic>> byId = {};
+            for (final r in rows) {
+              final uid = r['user_id'] as String?;
+              if (uid == null) continue;
+              byId[uid] = {
+                'kills': (r['kills'] ?? 0) as int,
+                'deaths': (r['deaths'] ?? 0) as int,
+                'status': r['user_status'] as String?,
+              };
+            }
+            // Update my status immediately from scoreboard to avoid stale session default
+            final me = UserService().currentUser;
+            String? myStatusFromScore;
+            if (me != null) {
+              final mine = byId[me.id];
+              final s = mine != null ? mine['status'] as String? : null;
+              if (s != null && s.isNotEmpty) {
+                myStatusFromScore = s.toLowerCase();
+              }
+            }
+            setState(() {
+              _scoreByUserId = byId;
+              if (myStatusFromScore != null) {
+                _myStatus = myStatusFromScore;
+              }
+            });
+            _sendSnapshotIfConnected(ble);
+          });
+
+          // Faster initial K/D for me only
+          final myStatsStream =
+              await GameService().streamMyStats(int.parse(squad.id));
+          if (myStatsStream != null) {
+            _myStatsSub = myStatsStream.listen((row) {
+              if (row.isEmpty) return;
+              final kills = (row['kills'] ?? 0) as int;
+              final deaths = (row['deaths'] ?? 0) as int;
+              setState(() {
+                _myKills = kills;
+                _myDeaths = deaths;
+              });
+              _sendSnapshotIfConnected(ble);
+            });
+          }
+        }
+      });
     }
   }
 
@@ -201,6 +240,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     _combinedSub?.cancel();
     _scoreboardSub?.cancel();
     _myStatsSub?.cancel();
+    _gameMetaSub?.cancel();
     _messageController.dispose();
     _filterController.dispose();
     super.dispose();

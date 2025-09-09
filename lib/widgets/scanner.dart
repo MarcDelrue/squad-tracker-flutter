@@ -105,7 +105,7 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
         children: [
           MobileScanner(
             controller: controller,
-            errorBuilder: (context, error, child) {
+            errorBuilder: (context, error) {
               return const Center(
                 child: Text('Something went wrong!'),
               );

@@ -2,6 +2,16 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // Mapbox Maven repository for Mapbox Maps SDK dependencies
+        maven {
+            url "https://api.mapbox.com/downloads/v2/releases/maven"
+            authentication { basic(BasicAuthentication) }
+            credentials {
+                username = "mapbox"
+                // Prefer Gradle property; fallback to env var if provided
+                password = project.findProperty("SDK_REGISTRY_TOKEN") ?: System.getenv("SDK_REGISTRY_TOKEN") ?: ""
+            }
+        }
     }
 }
 
