@@ -13,14 +13,17 @@ class BarcodeScannerSimple extends StatefulWidget {
 class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
     with WidgetsBindingObserver {
   final controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-    detectionTimeoutMs: 250,
+    detectionSpeed: DetectionSpeed.normal,
+    detectionTimeoutMs: 500,
     returnImage: false, // set to false unless you truly need images
     formats: const [BarcodeFormat.qrCode],
+    autoStart: false,
+    facing: CameraFacing.back,
   );
 
   Barcode? _barcode;
   bool _isClosing = false;
+  bool _isStarted = false;
 
   Widget _buildBarcode(Barcode? value) {
     if (value == null) {
@@ -38,7 +41,7 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
     );
   }
 
-  void _onDetect(BarcodeCapture barcodes) {
+  Future<void> _onDetect(BarcodeCapture barcodes) async {
     if (mounted) {
       setState(() {
         _barcode = barcodes.barcodes.firstOrNull;
@@ -49,11 +52,13 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
         if (_isClosing) return;
         _isClosing = true;
         // Stop camera before leaving to release buffers cleanly
-        controller.stop().whenComplete(() {
-          if (mounted) {
-            Navigator.pop(context, _barcode!.displayValue);
-          }
-        });
+        try {
+          await controller.stop();
+        } catch (_) {}
+        _isStarted = false;
+        if (mounted) {
+          Navigator.pop(context, _barcode!.displayValue);
+        }
       }
     }
   }
@@ -62,7 +67,17 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // The MobileScanner widget will start the camera automatically.
+    // Start camera after first frame to avoid init-time buffer pressure
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _safeStart();
+    });
+  }
+
+  void _safeStart() {
+    if (_isStarted) return;
+    _isStarted = true;
+    unawaited(controller.start());
   }
 
   @override
@@ -75,13 +90,19 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
-        unawaited(controller.stop());
+        if (_isStarted) {
+          unawaited(controller.stop());
+          _isStarted = false;
+        }
         return;
       case AppLifecycleState.resumed:
-        unawaited(controller.start());
+        _safeStart();
         break;
       case AppLifecycleState.inactive:
-        unawaited(controller.stop());
+        if (_isStarted) {
+          unawaited(controller.stop());
+          _isStarted = false;
+        }
         break;
     }
   }
@@ -121,7 +142,10 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     // Explicitly stop before dispose to avoid buffer leaks
-    unawaited(controller.stop());
+    if (_isStarted) {
+      unawaited(controller.stop());
+      _isStarted = false;
+    }
     controller.dispose();
     super.dispose();
   }
