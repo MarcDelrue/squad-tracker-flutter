@@ -231,11 +231,9 @@ Additional policies to enforce:
   - Show member list with distance, status, kills/deaths.
   - Compass-style view indicating direction to each member.
 - App gameplay/config:
-  - Make the scan to join squad work again
+  - Add i18n in the whole app
   - Define flexible game modes for multiple scenarios.
   - Map editing for objectives and markers (spawn points, objectives, misc markers).
-  - Show per-member "last updated" timestamps to detect stale connections.
-  - Encrypt user locations to not display longitude / latitude
 - Connectivity (later):
   - Explore switching/bridging between cellular data and LoRa for communications.
 
