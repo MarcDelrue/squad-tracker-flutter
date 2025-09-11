@@ -7,7 +7,9 @@ class DistanceCalculatorService {
       UserSquadLocation? currentUserLocation, double? userDirection) {
     if (location.latitude == null ||
         location.longitude == null ||
-        currentUserLocation == null) {
+        currentUserLocation == null ||
+        currentUserLocation.latitude == null ||
+        currentUserLocation.longitude == null) {
       return 0.0;
     }
     double memberDirection = calculateBearing(
@@ -25,7 +27,9 @@ class DistanceCalculatorService {
       UserSquadLocation location, UserSquadLocation? currentUserLocation) {
     if (location.latitude == null ||
         location.longitude == null ||
-        currentUserLocation == null) {
+        currentUserLocation == null ||
+        currentUserLocation.latitude == null ||
+        currentUserLocation.longitude == null) {
       return 0.0;
     }
     // Calculate bearing FROM user TO member
@@ -61,7 +65,9 @@ class DistanceCalculatorService {
     if (location == null ||
         location.latitude == null ||
         location.longitude == null ||
-        currentUserLocation == null) {
+        currentUserLocation == null ||
+        currentUserLocation.latitude == null ||
+        currentUserLocation.longitude == null) {
       return 0.0;
     }
     final double distance = _calculateDistanceBetweenTwoLocations(

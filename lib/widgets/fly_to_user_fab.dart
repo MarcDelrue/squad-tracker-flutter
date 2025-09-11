@@ -26,6 +26,7 @@ class MapControlButtons extends StatelessWidget {
               builder: (context, isFollowing, _) {
                 final bool disabled = isGeolocationDisabled;
                 return FloatingActionButton.small(
+                  heroTag: 'fly_to_user_fab',
                   onPressed: disabled
                       ? null
                       : () => mapUserLocationService.toggleFollow(),
@@ -55,6 +56,7 @@ class MapControlButtons extends StatelessWidget {
           top: 16.0 + MediaQuery.of(context).padding.top,
           left: 80.0, // Positioned to the right of the fly to user button
           child: FloatingActionButton.small(
+            heroTag: 'battle_logs_fab',
             onPressed: onBattleLogsPressed,
             backgroundColor: Colors.white,
             shape: CircleBorder(
