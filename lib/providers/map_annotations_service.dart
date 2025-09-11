@@ -25,6 +25,8 @@ class MapAnnotationsService extends ChangeNotifier {
   late mapbox.PointAnnotationManager pointAnnotationManager;
   List<mapbox.PointAnnotation>? membersPointAnnotations;
 
+  static const Duration _staleThreshold = Duration(seconds: 45);
+
   // Status-based soldier images
   late Uint8List soldierAliveImage = Uint8List(0);
   late Uint8List soldierDeadImage = Uint8List(0);
@@ -131,6 +133,12 @@ class MapAnnotationsService extends ChangeNotifier {
     }
   }
 
+  bool _isStale(DateTime? updatedAt) {
+    if (updatedAt == null) return true;
+    return DateTime.now().toUtc().difference(updatedAt.toUtc()) >
+        _staleThreshold;
+  }
+
   Color _getStatusColor(UserSquadSessionStatus? status, String? userColor) {
     // Always use the user's main color for text, regardless of status
     return hexToColor(userColor ?? '#000000');
@@ -218,6 +226,7 @@ class MapAnnotationsService extends ChangeNotifier {
       final iconSize = _getStatusIconSize(effectiveStatus);
       final iconRotation =
           _getStatusIconRotation(effectiveStatus, location.direction);
+      final isStale = _isStale(location.updated_at);
 
       mapbox.PointAnnotationOptions pointAnnotationOptions =
           mapbox.PointAnnotationOptions(
@@ -227,7 +236,8 @@ class MapAnnotationsService extends ChangeNotifier {
         image: statusIcon,
         iconRotate: iconRotation,
         textField: foundMember.user.username,
-        textColor: statusColor.value,
+        // Fade text color to gray when the location is stale
+        textColor: (isStale ? Colors.grey : statusColor).value,
         textOffset: [0, 2.0],
         textHaloBlur: 1.0,
         textHaloWidth: 1.0,

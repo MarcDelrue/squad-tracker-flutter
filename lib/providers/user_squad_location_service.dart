@@ -71,12 +71,8 @@ class UserSquadLocationService {
         debugPrint('No user squad location found for user ID: $userId');
         currentUserLocation = null;
       } else {
-        currentUserLocation = UserSquadLocation(
-            id: hasUserSquadLocation['id'],
-            user_id: hasUserSquadLocation['user_id'],
-            squad_id: hasUserSquadLocation['squad_id'],
-            longitude: hasUserSquadLocation['longitude'],
-            latitude: hasUserSquadLocation['latitude']);
+        // Use fromJson to also capture updated_at and direction fields
+        currentUserLocation = UserSquadLocation.fromJson(hasUserSquadLocation);
       }
     } catch (e) {
       debugPrint('Error in getLastUserLocation: $e');
@@ -178,6 +174,10 @@ class UserSquadLocationService {
               try {
                 final updatedLocation =
                     UserSquadLocation.fromJson(payload.newRecord);
+                if (updatedLocation.updated_at != null) {
+                  updatedLocation.updated_at =
+                      updatedLocation.updated_at!.toUtc();
+                }
 
                 // Only calculate distances if current user location exists
                 if (currentUserLocation != null) {
