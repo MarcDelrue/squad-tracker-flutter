@@ -101,11 +101,10 @@ class UserSquadSessionService extends ChangeNotifier {
         squad_id: response['squad_id'],
         is_host: response['is_host'],
         is_active: response['is_active'],
-        user_status: response['user_status'] != null
-            ? UserSquadSessionStatusExtension.fromValue(response['user_status'])
-            : UserSquadSessionStatus.alive,
+        // Session table does not hold status; default ALIVE as visual fallback
+        user_status: UserSquadSessionStatus.alive,
       );
-      debugPrint('Current squad session: ${response['user_status']}');
+      debugPrint('Current squad session loaded');
       // Ensure heartbeat is running when we have an active session
       _startHeartbeat(response['squad_id'] as int);
       return response.isNotEmpty ? response['squad_id'].toString() : null;

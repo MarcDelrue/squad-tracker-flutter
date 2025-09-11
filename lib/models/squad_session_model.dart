@@ -54,6 +54,7 @@ class UserSquadSession {
   int squad_id;
   bool is_host;
   bool is_active;
+  // Transient visual fallback only. Real status is per-game in user_game_stats.
   UserSquadSessionStatus? user_status = UserSquadSessionStatus.alive;
   DateTime? last_seen_at;
 
@@ -73,7 +74,6 @@ class UserSquadSession {
       'squad_id': squad_id,
       'is_host': is_host,
       'is_active': is_active,
-      'user_status': user_status?.value,
       'last_seen_at': last_seen_at?.toIso8601String(),
     };
   }
@@ -85,9 +85,8 @@ class UserSquadSession {
       squad_id: json['squad_id'],
       is_host: json['is_host'],
       is_active: json['is_active'],
-      user_status: json['user_status'] != null
-          ? UserSquadSessionStatusExtension.fromValue(json['user_status'])
-          : UserSquadSessionStatus.alive,
+      // Session table does not carry status; default to ALIVE as UI fallback
+      user_status: UserSquadSessionStatus.alive,
       last_seen_at: json['last_seen_at'] != null
           ? DateTime.tryParse(json['last_seen_at'].toString())
           : null,
