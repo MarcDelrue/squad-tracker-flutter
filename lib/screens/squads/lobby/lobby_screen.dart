@@ -198,10 +198,14 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
       try {
         await squadMembersService.setUserAsHost(userService.currentUser!.id,
             user.id, squadService.currentSquad!.id);
-        // await _fetchCurrentSquadMembers();
+        // Refresh my session role flag
+        await userSquadSessionService
+            .getUserSquadSessionId(userService.currentUser!.id);
+        if (mounted) {
+          context.showSnackBar('Host transferred to ${user.username}');
+        }
       } catch (e) {
         debugPrint("Failed to set user as host: $e");
-        // Optionally show an error message to the user
         if (mounted) {
           context.showSnackBar('Failed to set user as host: $e', isError: true);
         }

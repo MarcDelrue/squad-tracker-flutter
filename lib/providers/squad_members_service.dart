@@ -266,17 +266,11 @@ class SquadMembersService {
 
   setUserAsHost(String userId, String newHostId, String squadId) async {
     try {
-      await _supabase
-          .from('user_squad_sessions')
-          .update({'is_host': true})
-          .eq('user_id', newHostId)
-          .eq('squad_id', squadId);
-
-      await _supabase
-          .from('user_squad_sessions')
-          .update({'is_host': false})
-          .eq('user_id', userId)
-          .eq('squad_id', squadId);
+      await _supabase.rpc('transfer_host', params: {
+        'p_squad_id': int.parse(squadId),
+        'p_new_host_user_id': newHostId,
+      });
+      await getCurrentSquadMembers(userId, squadId);
     } catch (e) {
       debugPrint("Failed to set user as host: $e");
     }
