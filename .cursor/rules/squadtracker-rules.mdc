@@ -84,12 +84,14 @@ alwaysApply: true
     - `user_squad_sessions_trigger` AFTER INSERT/DELETE/UPDATE executes `manage_user_squad_locations()`.
     - `user_squad_sessions_biu_host` BEFORE INSERT or UPDATE OF `is_active` executes `auto_assign_host_on_insert_update()`.
     - `user_squad_sessions_aud_host` AFTER UPDATE OF `is_active`, `is_host` OR DELETE executes `reassign_host_if_needed()`.
-  - Host auto-assignment rules:
+  - Host rules:
+    - Hosts must be active. On deactivation, session is automatically demoted from host.
     - When the host leaves (deactivates or session deleted), transfer host to another active member if any (oldest by `created_at`).
     - When no members remain active, no host exists (none assigned).
     - When the next user joins/reactivates and there is no host, they become host automatically.
   - Indexes/constraints:
-    - Unique partial index `uq_user_squad_sessions_one_active_host_per_squad` on `(squad_id)` WHERE `is_active = true AND is_host = true` to enforce a single active host per squad.
+    - Unique partial index `uq_user_squad_sessions_one_active_host_per_squad` on `(squad_id)` WHERE `is_active = true AND is_host = true`.
+    - CHECK constraint `host_must_be_active`: `is_host` implies `is_active`.
 
 - `users`
   - Columns: `id` (uuid PK), `updated_at`, `username` (CHECK length ≥ 3), `full_name`, `avatar_url`, `main_role`, `main_color`.
