@@ -30,6 +30,7 @@ class MembersInGameList extends StatelessWidget {
                   status: member.userWithSession.session.user_status,
                   latitude: member.location?.latitude?.toDouble(),
                   longitude: member.location?.longitude?.toDouble(),
+                  lastSeenAt: member.userWithSession.session.last_seen_at,
                 );
               },
             ),

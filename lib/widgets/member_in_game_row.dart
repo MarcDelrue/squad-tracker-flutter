@@ -7,6 +7,7 @@ class MemberInGameRow extends StatelessWidget {
   final UserSquadSessionStatus? status;
   final double? latitude;
   final double? longitude;
+  final DateTime? lastSeenAt;
   final MapUserLocationService mapUserLocationService =
       MapUserLocationService();
 
@@ -16,14 +17,20 @@ class MemberInGameRow extends StatelessWidget {
     this.status,
     this.latitude,
     this.longitude,
+    this.lastSeenAt,
   });
 
   @override
   Widget build(BuildContext context) {
+    final health = _healthColor(lastSeenAt);
+    final lastSeenText = _formatLastSeen(lastSeenAt);
     return Card(
       child: ListTile(
+        leading: CircleAvatar(backgroundColor: health, radius: 6),
         title: Text(name ?? 'No Name'),
-        subtitle: Text(status?.value ?? 'No Status'),
+        subtitle: Text(
+          '${status?.value ?? 'No Status'}${lastSeenText != null ? ' • $lastSeenText' : ''}',
+        ),
         onTap: () {
           if (latitude != null && longitude != null) {
             mapUserLocationService.flyToLocation(latitude!, longitude!);
@@ -31,5 +38,21 @@ class MemberInGameRow extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Color _healthColor(DateTime? lastSeen) {
+    if (lastSeen == null) return Colors.grey;
+    final age = DateTime.now().difference(lastSeen);
+    if (age.inSeconds <= 20) return Colors.green;
+    if (age.inSeconds <= 60) return Colors.orange;
+    return Colors.red;
+  }
+
+  String? _formatLastSeen(DateTime? lastSeen) {
+    if (lastSeen == null) return null;
+    final age = DateTime.now().difference(lastSeen);
+    if (age.inSeconds < 60) return '${age.inSeconds}s ago';
+    if (age.inMinutes < 60) return '${age.inMinutes}m ago';
+    return '${age.inHours}h ago';
   }
 }

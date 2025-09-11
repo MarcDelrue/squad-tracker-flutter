@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:squad_tracker_flutter/providers/map_annotations_service.dart';
@@ -12,6 +13,7 @@ class UserSquadSessionService extends ChangeNotifier {
 
   final SupabaseClient _supabase = Supabase.instance.client;
   MapAnnotationsService get mapAnnotationsService => MapAnnotationsService();
+  Timer? _heartbeatTimer;
 
   UserSquadSession? _currentSquadSession;
   UserSquadSession? get currentSquadSession => _currentSquadSession;
@@ -59,6 +61,7 @@ class UserSquadSessionService extends ChangeNotifier {
             userId: userId, squadId: squadId, isHost: false);
       }
 
+      _startHeartbeat(int.parse(squadId));
       return true;
     } catch (e) {
       debugPrint("Failed to join squad: $e");
@@ -76,6 +79,7 @@ class UserSquadSessionService extends ChangeNotifier {
           .eq('squad_id', squadId)
           .select();
       mapAnnotationsService.removeEveryAnnotations();
+      _stopHeartbeat();
       debugPrint('User left squad: $response');
     } catch (e) {
       debugPrint("Failed to leave squad: $e");
@@ -102,6 +106,8 @@ class UserSquadSessionService extends ChangeNotifier {
             : UserSquadSessionStatus.alive,
       );
       debugPrint('Current squad session: ${response['user_status']}');
+      // Ensure heartbeat is running when we have an active session
+      _startHeartbeat(response['squad_id'] as int);
       return response.isNotEmpty ? response['squad_id'].toString() : null;
     } catch (e) {
       debugPrint("Failed to get squad session squad ID: $e");
@@ -121,5 +127,23 @@ class UserSquadSessionService extends ChangeNotifier {
     } catch (e) {
       debugPrint("Failed to update user squad session user status: $e");
     }
+  }
+
+  void _startHeartbeat(int squadId) {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 20), (_) async {
+      try {
+        await _supabase.rpc('heartbeat', params: {'p_squad_id': squadId});
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('Heartbeat failed: $e');
+        }
+      }
+    });
+  }
+
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
   }
 }

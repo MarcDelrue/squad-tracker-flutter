@@ -55,6 +55,7 @@ class UserSquadSession {
   bool is_host;
   bool is_active;
   UserSquadSessionStatus? user_status = UserSquadSessionStatus.alive;
+  DateTime? last_seen_at;
 
   UserSquadSession(
       {required this.id,
@@ -62,7 +63,8 @@ class UserSquadSession {
       required this.squad_id,
       required this.is_host,
       required this.is_active,
-      this.user_status});
+      this.user_status,
+      this.last_seen_at});
 
   Map<String, dynamic> toJson() {
     return {
@@ -72,6 +74,7 @@ class UserSquadSession {
       'is_host': is_host,
       'is_active': is_active,
       'user_status': user_status?.value,
+      'last_seen_at': last_seen_at?.toIso8601String(),
     };
   }
 
@@ -85,6 +88,9 @@ class UserSquadSession {
       user_status: json['user_status'] != null
           ? UserSquadSessionStatusExtension.fromValue(json['user_status'])
           : UserSquadSessionStatus.alive,
+      last_seen_at: json['last_seen_at'] != null
+          ? DateTime.tryParse(json['last_seen_at'].toString())
+          : null,
     );
   }
 }
