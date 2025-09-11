@@ -60,19 +60,33 @@ class UserSquadLocationService {
 
   Future<void> getLastUserLocation(String userId, String squadId) async {
     try {
-      final hasUserSquadLocation = await _supabase
-          .from('user_squad_locations')
-          .select()
-          .eq('user_id', userId)
-          .eq('squad_id', squadId)
-          .maybeSingle();
+      final int? squad = int.tryParse(squadId);
+      if (squad == null) {
+        debugPrint('Invalid squadId: $squadId');
+        currentUserLocation = null;
+        return;
+      }
 
-      if (hasUserSquadLocation == null) {
+      final response = await _supabase.rpc('get_user_location', params: {
+        'p_user': userId,
+        'p_squad': squad,
+      });
+
+      dynamic row;
+      if (response is List && response.isNotEmpty) {
+        row = response.first;
+      } else if (response is Map<String, dynamic>) {
+        row = response;
+      } else {
+        row = null;
+      }
+
+      if (row == null) {
         debugPrint('No user squad location found for user ID: $userId');
         currentUserLocation = null;
       } else {
-        // Use fromJson to also capture updated_at and direction fields
-        currentUserLocation = UserSquadLocation.fromJson(hasUserSquadLocation);
+        // Decrypted via RPC
+        currentUserLocation = UserSquadLocation.fromJson(row);
       }
     } catch (e) {
       debugPrint('Error in getLastUserLocation: $e');
@@ -83,11 +97,14 @@ class UserSquadLocationService {
   saveCurrentLocation(
       double longitude, double latitude, double? direction) async {
     try {
-      await _supabase.from('user_squad_locations').update({
-        'longitude': longitude,
-        'latitude': latitude,
-        'direction': direction
-      }).eq('id', _currentUserLocation!.id);
+      if (_currentUserLocation == null) return;
+      await _supabase.rpc('update_user_location', params: {
+        'p_user': _currentUserLocation!.user_id,
+        'p_squad': _currentUserLocation!.squad_id,
+        'p_long': longitude,
+        'p_lat': latitude,
+        'p_dir': direction,
+      });
       _updateMembersDistanceFromUser();
     } catch (e) {
       debugPrint('Error in saveCurrentLocation: $e');
@@ -97,48 +114,52 @@ class UserSquadLocationService {
   fetchMembersLocation(List<String> membersId, String squadId) async {
     try {
       final List<UserSquadLocation> locations = [];
-      for (String memberId in membersId) {
-        final response = await _supabase
-            .from('user_squad_locations')
-            .select()
-            .eq('user_id', memberId)
-            .eq('squad_id', squadId)
-            .maybeSingle();
+      final int? squad = int.tryParse(squadId);
+      if (squad == null) {
+        debugPrint('Invalid squadId: $squadId');
+        currentMembersLocation = [];
+        return [];
+      }
 
-        if (response != null) {
+      if (membersId.isEmpty) {
+        currentMembersLocation = [];
+        return [];
+      }
+
+      final response = await _supabase.rpc('get_members_locations', params: {
+        'p_users': membersId,
+        'p_squad': squad,
+      });
+
+      final List<dynamic> rows =
+          (response is List) ? response : (response == null ? [] : [response]);
+
+      for (final row in rows) {
+        try {
+          final memberLocation =
+              UserSquadLocation.fromJson(row as Map<String, dynamic>);
+          final memberId = memberLocation.user_id;
           _listenMemberLocations(memberId, squadId);
-
-          try {
-            UserSquadLocation memberLocation =
-                UserSquadLocation.fromJson(response);
-
-            // Only add location if it has valid coordinates
-            if (memberLocation.longitude != null &&
-                memberLocation.latitude != null) {
-              // Only calculate distances if current user location exists and has valid coordinates
-              if (currentUserLocation != null &&
-                  currentUserLocation!.longitude != null &&
-                  currentUserLocation!.latitude != null) {
-                try {
-                  _currentMembersDistanceFromUser[memberId] =
-                      distanceCalculatorService.calculateDistanceFromUser(
-                          memberLocation, currentUserLocation);
-                  _currentMembersDirectionFromUser[memberId] =
-                      distanceCalculatorService.calculateDirectionFromUser(
-                          memberLocation, currentUserLocation, 0);
-                  _currentMembersDirectionToMember[memberId] =
-                      distanceCalculatorService.calculateDirectionToMember(
-                          memberLocation, currentUserLocation);
-                } catch (e) {
-                  // Handle distance calculation errors silently
-                }
-              }
-              locations.add(memberLocation);
+          if (memberLocation.longitude != null &&
+              memberLocation.latitude != null) {
+            if (currentUserLocation != null &&
+                currentUserLocation!.longitude != null &&
+                currentUserLocation!.latitude != null) {
+              try {
+                _currentMembersDistanceFromUser[memberId] =
+                    distanceCalculatorService.calculateDistanceFromUser(
+                        memberLocation, currentUserLocation);
+                _currentMembersDirectionFromUser[memberId] =
+                    distanceCalculatorService.calculateDirectionFromUser(
+                        memberLocation, currentUserLocation, 0);
+                _currentMembersDirectionToMember[memberId] =
+                    distanceCalculatorService.calculateDirectionToMember(
+                        memberLocation, currentUserLocation);
+              } catch (_) {}
             }
-          } catch (e) {
-            // Handle parsing errors silently
+            locations.add(memberLocation);
           }
-        }
+        } catch (_) {}
       }
       if (locations.isNotEmpty) {
         currentMembersLocation = locations;
@@ -172,37 +193,47 @@ class UserSquadLocationService {
             ),
             callback: (PostgresChangePayload payload) {
               try {
-                final updatedLocation =
-                    UserSquadLocation.fromJson(payload.newRecord);
-                if (updatedLocation.updated_at != null) {
-                  updatedLocation.updated_at =
-                      updatedLocation.updated_at!.toUtc();
-                }
-
-                // Only calculate distances if current user location exists
-                if (currentUserLocation != null) {
-                  _currentMembersDistanceFromUser[memberId] =
-                      distanceCalculatorService.calculateDistanceFromUser(
-                          updatedLocation, currentUserLocation);
-                  _currentMembersDirectionFromUser[memberId] =
-                      distanceCalculatorService.calculateDirectionFromUser(
-                          updatedLocation, currentUserLocation, 0);
-                  _currentMembersDirectionToMember[memberId] =
-                      distanceCalculatorService.calculateDirectionToMember(
-                          updatedLocation, currentUserLocation);
-                }
-
-                // Update currentMembersLocation
-                final updatedMembersLocation =
-                    currentMembersLocation?.map((location) {
-                  return location.user_id == memberId
-                      ? updatedLocation
-                      : location;
-                }).toList();
-
-                currentMembersLocation = updatedMembersLocation;
+                final int? squad = int.tryParse(squadId);
+                if (squad == null) return;
+                // Refetch decrypted row via RPC on any change
+                _supabase.rpc('get_user_location',
+                    params: {'p_user': memberId, 'p_squad': squad}).then((res) {
+                  dynamic row;
+                  if (res is List && res.isNotEmpty) {
+                    row = res.first;
+                  } else if (res is Map<String, dynamic>) {
+                    row = res;
+                  } else {
+                    row = null;
+                  }
+                  if (row == null) return;
+                  final updatedLocation =
+                      UserSquadLocation.fromJson(row as Map<String, dynamic>);
+                  if (updatedLocation.updated_at != null) {
+                    updatedLocation.updated_at =
+                        updatedLocation.updated_at!.toUtc();
+                  }
+                  if (currentUserLocation != null) {
+                    _currentMembersDistanceFromUser[memberId] =
+                        distanceCalculatorService.calculateDistanceFromUser(
+                            updatedLocation, currentUserLocation);
+                    _currentMembersDirectionFromUser[memberId] =
+                        distanceCalculatorService.calculateDirectionFromUser(
+                            updatedLocation, currentUserLocation, 0);
+                    _currentMembersDirectionToMember[memberId] =
+                        distanceCalculatorService.calculateDirectionToMember(
+                            updatedLocation, currentUserLocation);
+                  }
+                  final updatedMembersLocation =
+                      currentMembersLocation?.map((location) {
+                    return location.user_id == memberId
+                        ? updatedLocation
+                        : location;
+                  }).toList();
+                  currentMembersLocation = updatedMembersLocation;
+                });
               } catch (e) {
-                // Handle errors silently
+                // ignore
               }
             })
         .subscribe();

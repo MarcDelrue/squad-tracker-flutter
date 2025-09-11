@@ -106,3 +106,29 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+## Data privacy: Encrypted user locations
+
+User locations in `public.user_squad_locations` are encrypted at rest using PostgreSQL `pgsodium` with a key stored in Supabase Vault. The app reads/writes via RPCs returning decrypted values per-request.
+
+Steps to set up in your Supabase project:
+
+1) Create a 32-byte key and store as Base64 in a secret, then add to Vault as `user_locations_key`.
+
+```bash
+openssl rand -base64 32 | tr -d '\n'  # copy output
+# in Supabase Dashboard → Vault: add secret with key "user_locations_key" and the Base64 value
+```
+
+2) Run migrations (includes encryption columns, triggers, and RPCs):
+
+```bash
+supabase db push
+```
+
+3) App behavior:
+- Flutter `UserSquadLocationService` calls `get_user_location`, `get_members_locations`, and `update_user_location`.
+- Realtime change callbacks refetch via RPC to avoid exposing ciphertext.
+
+Backward compatibility:
+- A trigger auto-encrypts any legacy plaintext writes and nulls the plaintext columns.

@@ -23,13 +23,14 @@ class MemberInGameRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final health = _healthColor(lastSeenAt);
-    final lastSeenText = _formatLastSeen(lastSeenAt);
     return Card(
       child: ListTile(
         leading: CircleAvatar(backgroundColor: health, radius: 6),
         title: Text(name ?? 'No Name'),
-        subtitle: Text(
-          '${status?.value ?? 'No Status'}${lastSeenText != null ? ' • $lastSeenText' : ''}',
+        subtitle: Text(status?.value ?? 'No Status'),
+        trailing: Tooltip(
+          message: _formatLastSeen(lastSeenAt) ?? 'no location',
+          child: Icon(Icons.circle, size: 10, color: health),
         ),
         onTap: () {
           if (latitude != null && longitude != null) {
@@ -42,7 +43,7 @@ class MemberInGameRow extends StatelessWidget {
 
   Color _healthColor(DateTime? lastSeen) {
     if (lastSeen == null) return Colors.grey;
-    final age = DateTime.now().difference(lastSeen);
+    final age = DateTime.now().toUtc().difference(lastSeen.toUtc());
     if (age.inSeconds <= 20) return Colors.green;
     if (age.inSeconds <= 60) return Colors.orange;
     return Colors.red;

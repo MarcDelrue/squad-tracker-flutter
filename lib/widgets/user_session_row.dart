@@ -28,13 +28,23 @@ class UserSessionRow extends StatelessWidget {
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
-        leading: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: hexToColor(user.main_color ?? ''),
-          ),
+        leading: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: hexToColor(user.main_color ?? ''),
+              ),
+            ),
+            Positioned(
+              right: -1,
+              bottom: -1,
+              child: _ConnectivityDot(userId: user.id, isYou: options.is_you),
+            ),
+          ],
         ),
         title: Text(
           options.is_you
@@ -44,8 +54,7 @@ class UserSessionRow extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        subtitle: _LastUpdatedSubtitle(
-            userId: user.id, role: user.main_role, isYou: options.is_you),
+        subtitle: Text(user.main_role ?? ''),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -89,30 +98,28 @@ class UserSessionRow extends StatelessWidget {
   }
 }
 
-class _LastUpdatedSubtitle extends StatefulWidget {
+class _ConnectivityDot extends StatefulWidget {
   final String userId;
-  final String? role;
   final bool isYou;
-  const _LastUpdatedSubtitle(
-      {required this.userId, required this.role, required this.isYou});
+  const _ConnectivityDot({required this.userId, required this.isYou});
 
   @override
-  State<_LastUpdatedSubtitle> createState() => _LastUpdatedSubtitleState();
+  State<_ConnectivityDot> createState() => _ConnectivityDotState();
 }
 
-class _LastUpdatedSubtitleState extends State<_LastUpdatedSubtitle> {
+class _ConnectivityDotState extends State<_ConnectivityDot> {
   final userSquadLocationService = UserSquadLocationService();
   StreamSubscription<List<UserSquadLocation>>? _sub;
   Timer? _tick;
   DateTime? _updatedAt;
   supa.RealtimeChannel? _ownChannel;
 
-  static const Duration _staleThreshold = Duration(seconds: 45);
+  static const Duration _fresh = Duration(seconds: 20);
+  static const Duration _warn = Duration(seconds: 60);
 
   @override
   void initState() {
     super.initState();
-    // Seed from members list if present
     final seed = userSquadLocationService.currentMembersLocation?.firstWhere(
       (e) => e.user_id == widget.userId,
       orElse: () =>
@@ -121,7 +128,6 @@ class _LastUpdatedSubtitleState extends State<_LastUpdatedSubtitle> {
     if (seed != null && seed.id != -1) {
       _updatedAt = seed.updated_at;
     }
-    // If own row and still null, seed from own location
     if (_updatedAt == null && widget.isYou) {
       _updatedAt = userSquadLocationService.currentUserLocation?.updated_at;
     }
@@ -136,9 +142,8 @@ class _LastUpdatedSubtitleState extends State<_LastUpdatedSubtitle> {
         setState(() => _updatedAt = l.updated_at);
       }
     });
-    // Direct subscription to this user's location row for immediate updates
     _ownChannel = supa.Supabase.instance.client
-        .channel('user-${widget.userId}-own-location')
+        .channel('user-${widget.userId}-own-location-dot')
         .onPostgresChanges(
             event: supa.PostgresChangeEvent.update,
             schema: 'public',
@@ -151,7 +156,6 @@ class _LastUpdatedSubtitleState extends State<_LastUpdatedSubtitle> {
             callback: (payload) {
               final ts = payload.newRecord['updated_at']?.toString();
               if (ts != null) {
-                // Normalize to UTC
                 var s = ts.trim();
                 if (s.contains(' ') && !s.contains('T')) {
                   s = s.replaceFirst(' ', 'T');
@@ -168,8 +172,7 @@ class _LastUpdatedSubtitleState extends State<_LastUpdatedSubtitle> {
               }
             })
         .subscribe();
-    // Periodic tick so the label refreshes (e.g., "12s ago")
-    _tick = Timer.periodic(const Duration(seconds: 5), (_) {
+    _tick = Timer.periodic(const Duration(seconds: 10), (_) {
       if (mounted) setState(() {});
     });
   }
@@ -185,48 +188,25 @@ class _LastUpdatedSubtitleState extends State<_LastUpdatedSubtitle> {
     super.dispose();
   }
 
-  bool get _isStale {
-    if (_updatedAt == null) return true;
-    return DateTime.now().toUtc().difference(_updatedAt!.toUtc()) >
-        _staleThreshold;
-  }
-
-  String _relativeTime() {
+  Color get _color {
     final t = _updatedAt;
-    if (t == null) return 'no location';
-    final d = DateTime.now().toUtc().difference(t.toUtc());
-    if (d.inSeconds < 60) return '${d.inSeconds}s ago';
-    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
-    return '${d.inHours}h ago';
+    if (t == null) return Colors.grey;
+    final age = DateTime.now().toUtc().difference(t.toUtc());
+    if (age <= _fresh) return Colors.green;
+    if (age <= _warn) return Colors.orange;
+    return Colors.red;
   }
 
   @override
   Widget build(BuildContext context) {
-    final text = widget.role ?? '';
-    final time = _relativeTime();
-    final color = _isStale ? Colors.orange : Colors.grey;
-    final List<Widget> children = [];
-    if (text.isNotEmpty) {
-      children.add(Flexible(
-        child: Text(
-          text,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ));
-    }
-    if (text.isNotEmpty) children.add(const SizedBox(width: 6));
-    children.add(Icon(
-      _isStale ? Icons.warning_amber_rounded : Icons.schedule,
-      size: 14,
-      color: color,
-    ));
-    children.add(const SizedBox(width: 4));
-    children.add(Text(time, style: TextStyle(color: color)));
-
-    return Wrap(
-      spacing: 6,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: children,
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        color: _color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.black, width: 1),
+      ),
     );
   }
 }
