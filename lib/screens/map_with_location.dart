@@ -130,8 +130,8 @@ class MapWithLocationState extends State<MapWithLocation> {
 
   Widget _buildBattleLogsPositioned() {
     return Positioned(
-      top: 80 + MediaQuery.of(context).padding.top,
-      left: 16,
+      top: 16 + MediaQuery.of(context).padding.top,
+      left: 72, // Leave space for the vertical control buttons on the left
       right: 80, // Leave space for the FAB buttons on the right
       child: Container(
         height: 200,
