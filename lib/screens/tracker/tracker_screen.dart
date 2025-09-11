@@ -27,6 +27,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
   String _myStatus = 'alive';
   int _myKills = 0;
   int _myDeaths = 0;
+  String _myName = 'me';
+  String _myColorHex = '000000'; // RRGGBB (no '#')
   List<Map<String, dynamic>> _members = <Map<String, dynamic>>[];
   CombinedStreamService? _combinedService;
   StreamSubscription<List<UserWithLocationSession>?>? _combinedSub;
@@ -54,9 +56,15 @@ class _TrackerScreenState extends State<TrackerScreen> {
     _combinedSub ??= _combinedService!.combinedStream.listen((rows) {
       if (rows == null) return;
       final List<Map<String, dynamic>> list = <Map<String, dynamic>>[];
+      final distances = _combinedService!
+          .userSquadLocationService.currentMembersDistanceFromUser;
+      const fresh = Duration(seconds: 20);
+      const warn = Duration(seconds: 60);
       for (final r in rows) {
         final uid = r.userWithSession.user.id;
         final name = r.userWithSession.user.username ?? 'member';
+        final color =
+            (r.userWithSession.user.main_color ?? '#000000').toString();
         final s = r.userWithSession.session.user_status;
         final score = _scoreByUserId[uid];
         final status = (score?['status'] as String?)?.toLowerCase() ??
@@ -65,16 +73,39 @@ class _TrackerScreenState extends State<TrackerScreen> {
                 : 'alive');
         final kills = score?['kills'] ?? 0;
         final deaths = score?['deaths'] ?? 0;
+        final updatedAt = r.location?.updated_at;
+        int staleBucket = 2; // default stale if unknown
+        if (updatedAt != null) {
+          final age = DateTime.now().toUtc().difference(updatedAt.toUtc());
+          if (age <= fresh) {
+            staleBucket = 0;
+          } else if (age <= warn) {
+            staleBucket = 1;
+          } else {
+            staleBucket = 2;
+          }
+        }
+        final distanceMeters = distances?[uid];
         if (uid == user.id) {
           _myStatus = status;
           _myKills = kills;
           _myDeaths = deaths;
+          _myName = name;
+          _myColorHex = color.replaceAll('#', '').toUpperCase();
         } else {
           list.add({
             'id': uid,
             'username': name,
             'kills': kills,
             'deaths': deaths,
+            'status': status,
+            'distance': distanceMeters == null
+                ? null
+                : distanceMeters.isFinite
+                    ? distanceMeters
+                    : null,
+            'stale': staleBucket,
+            'color': color,
           });
         }
       }
@@ -186,13 +217,52 @@ class _TrackerScreenState extends State<TrackerScreen> {
   List<String> _buildSnapshotLines() {
     final List<String> lines = <String>[];
     lines.add('RESET_MEMBERS');
+    // Current user
+    final safeMyName = _myName.replaceAll(' ', '_');
+    lines.add('MY_NAME ' + safeMyName);
     lines.add('MY_STATUS $_myStatus');
     lines.add('MY_KD $_myKills $_myDeaths');
+    lines.add('MY_COLOR ' + _myColorHex);
+    // Legacy MEM lines for backward compatibility (name kills deaths)
     for (final m in _members) {
       final name = (m['username'] ?? m['name'] ?? 'member').toString();
       final kills = (m['kills'] ?? 0).toString();
       final deaths = (m['deaths'] ?? 0).toString();
-      lines.add('MEM $name $kills $deaths');
+      final legacyName = name.replaceAll(' ', '_');
+      lines.add('MEM ' + legacyName + ' ' + kills + ' ' + deaths);
+    }
+    // Extended MEMX lines with status, distance(m), staleness bucket, and color
+    for (final m in _members) {
+      final name = (m['username'] ?? m['name'] ?? 'member').toString();
+      final safeName = name.replaceAll(' ', '_');
+      final kills = (m['kills'] ?? 0).toString();
+      final deaths = (m['deaths'] ?? 0).toString();
+      final status = (m['status'] ?? 'alive').toString().toLowerCase();
+      final distance = m['distance'];
+      final intDistance = distance == null
+          ? -1
+          : (distance is num
+              ? distance.round()
+              : int.tryParse(distance.toString()) ?? -1);
+      final stale = (m['stale'] ?? 2).toString();
+      final color = (m['color'] ?? '#000000')
+          .toString()
+          .replaceAll('#', '')
+          .toUpperCase();
+      lines.add('MEMX ' +
+          safeName +
+          ' ' +
+          kills +
+          ' ' +
+          deaths +
+          ' ' +
+          status +
+          ' ' +
+          intDistance.toString() +
+          ' ' +
+          stale +
+          ' ' +
+          color);
     }
     lines.add('ACK $_ackOpId');
     lines.add('SEQ $_seqCounter');
