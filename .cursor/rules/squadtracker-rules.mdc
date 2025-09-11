@@ -9,6 +9,58 @@ alwaysApply: true
 - Flutter mobile app (Android, iOS) in `PROJECTS/squad-tracker-flutter`.
 - PlatformIO C++ firmware for ESP32 TTGO T-Display in `Documents/PlatformIO/Projects/Bluetooth communication`.
 
+### Flutter Project Structure
+#### Repository layout (pruned)
+```
+/(repo root)
+├─ pubspec.yaml
+├─ analysis_options.yaml
+├─ README.md
+├─ assets/
+│  └─ images/
+│     ├─ markers/
+│     └─ soldiers/
+├─ lib/
+│  ├─ main.dart
+│  ├─ models/
+│  ├─ providers/
+│  ├─ screens/
+│  ├─ utils/
+│  └─ widgets/
+├─ android/
+│  ├─ app/
+│  ├─ gradle.properties
+│  └─ ...
+├─ ios/
+│  ├─ Runner/
+│  ├─ Flutter/
+│  └─ ...
+├─ macos/  linux/  windows/
+├─ web/
+├─ supabase/
+│  └─ migrations/
+└─ .cursor/
+   └─ rules/
+```
+
+#### Directory purposes
+- **lib**: Dart source
+  - `main.dart`: application entrypoint and app-wide initialization
+  - `models/`: domain models and data types
+  - `providers/`: app state and services (e.g., `user_squad_location_service.dart`)
+  - `screens/`: top-level UI screens/views
+  - `widgets/`: reusable UI components (e.g., `squad_members_list.dart`, `user_session_row.dart`, `navigation.dart`)
+  - `utils/`: shared helpers and utilities
+- **assets/images**: static images (markers, soldiers, etc.) declared in `pubspec.yaml`
+- **android**: native Android project; includes Mapbox token in `gradle.properties`
+- **ios**: native iOS project; configuration via `Runner.xcconfig`
+- **macos/linux/windows**: desktop platform shells
+- **web**: Flutter web entry (`index.html`) and PWA manifest
+- **supabase/migrations**: SQL migrations and database DDL
+
+Notes:
+- Generated/build artifacts (e.g., `build/`) and development dependencies (e.g., `node_modules/`) are excluded from the structure above.
+
 ### BLE Device (TTGO T-Display, ESP32)
 - Connection: One user ↔ one device (optional). When a user connects to a device, the app stores the device ID to auto-connect on app start.
 - Buttons (confirmed mapping):
