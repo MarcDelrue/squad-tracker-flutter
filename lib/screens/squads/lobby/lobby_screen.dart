@@ -30,6 +30,7 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
   DateTime? _startedAt;
   Timer? _ticker;
   Duration _elapsed = Duration.zero;
+  bool? _prevIsHost;
 
   String _formatElapsed(Duration d) {
     final hours = d.inHours;
@@ -47,6 +48,9 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
     _fetchCurrentSquadMembers();
     _loadActiveGame();
     _startGameMetaStream();
+    // Track host status changes to update UI and show snackbars
+    _prevIsHost = userSquadSessionService.currentSquadSession?.is_host == true;
+    userSquadSessionService.addListener(_onSessionChanged);
   }
 
   Future<void> _fetchCurrentSquadMembers() async {
@@ -137,7 +141,27 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
   @override
   void dispose() {
     _ticker?.cancel();
+    userSquadSessionService.removeListener(_onSessionChanged);
     super.dispose();
+  }
+
+  void _onSessionChanged() {
+    final bool isHostNow =
+        userSquadSessionService.currentSquadSession?.is_host == true;
+    if (_prevIsHost == null) {
+      _prevIsHost = isHostNow;
+      return;
+    }
+    if (_prevIsHost != isHostNow) {
+      if (mounted) {
+        setState(() {});
+        context.showSnackBar(
+          isHostNow ? 'You are now the host' : 'You are no longer the host',
+          isError: !isHostNow,
+        );
+      }
+      _prevIsHost = isHostNow;
+    }
   }
 
   Future<void> _kickUser(User user) async {
