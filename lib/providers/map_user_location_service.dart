@@ -42,6 +42,8 @@ class MapUserLocationService {
 
   // Follow mode is a manual toggle: when true, keep camera centered on user.
   final ValueNotifier<bool> isFollowingUser = ValueNotifier<bool>(false);
+  // Current map camera bearing in degrees [0, 360).
+  final ValueNotifier<double> cameraBearingDegrees = ValueNotifier<double>(0.0);
   static const double _centerThresholdPixels = 60.0;
 
   // Throttling/power settings for saving location to backend
@@ -313,5 +315,30 @@ class MapUserLocationService {
       await mapboxMap?.setCamera(cameraOptions);
     }
     isProgrammaticCameraChange = false;
+  }
+
+  // Update the current camera bearing (degrees). Normalizes to [0, 360).
+  void updateBearingDegrees(double degrees) {
+    final normalized = ((degrees % 360) + 360) % 360;
+    cameraBearingDegrees.value = normalized;
+  }
+
+  // Smoothly reset the map bearing to face north (0 degrees).
+  Future<void> resetNorth({
+    Duration duration = const Duration(milliseconds: 300),
+  }) async {
+    isProgrammaticCameraChange = true;
+    isCameraAnimationInProgress = true;
+    await mapboxMap?.easeTo(
+      mapbox.CameraOptions(
+        bearing: 0.0,
+      ),
+      mapbox.MapAnimationOptions(
+        duration: duration.inMilliseconds,
+        startDelay: 0,
+      ),
+    );
+    isProgrammaticCameraChange = false;
+    isCameraAnimationInProgress = false;
   }
 }

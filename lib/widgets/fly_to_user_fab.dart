@@ -15,17 +15,20 @@ class MapControlButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     final mapUserLocationService = MapUserLocationService();
 
-    return Stack(
-      children: [
-        // Fly to user button
-        Positioned(
-          top: 16.0 + MediaQuery.of(context).padding.top,
-          left: 16.0,
-          child: ValueListenableBuilder<bool>(
-              valueListenable: mapUserLocationService.isFollowingUser,
-              builder: (context, isFollowing, _) {
-                final bool disabled = isGeolocationDisabled;
-                return FloatingActionButton.small(
+    return Positioned(
+      top: 16.0 + MediaQuery.of(context).padding.top,
+      left: 16.0,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Fly to user button (top)
+          ValueListenableBuilder<bool>(
+            valueListenable: mapUserLocationService.isFollowingUser,
+            builder: (context, isFollowing, _) {
+              final bool disabled = isGeolocationDisabled;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: FloatingActionButton.small(
                   heroTag: 'fly_to_user_fab',
                   onPressed: disabled
                       ? null
@@ -47,31 +50,60 @@ class MapControlButtons extends StatelessWidget {
                         ? Colors.white
                         : (isFollowing ? Colors.white : Colors.green),
                   ),
-                );
-              }),
-        ),
+                ),
+              );
+            },
+          ),
 
-        // Show battle logs button
-        Positioned(
-          top: 16.0 + MediaQuery.of(context).padding.top,
-          left: 80.0, // Positioned to the right of the fly to user button
-          child: FloatingActionButton.small(
-            heroTag: 'battle_logs_fab',
-            onPressed: onBattleLogsPressed,
-            backgroundColor: Colors.white,
-            shape: CircleBorder(
-              side: BorderSide(
+          // Battle logs button (middle)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: FloatingActionButton.small(
+              heroTag: 'battle_logs_fab',
+              onPressed: onBattleLogsPressed,
+              backgroundColor: Colors.white,
+              shape: CircleBorder(
+                side: BorderSide(
+                  color: Colors.blue,
+                  width: 2.0,
+                ),
+              ),
+              child: const Icon(
+                Icons.list_alt,
                 color: Colors.blue,
-                width: 2.0,
               ),
             ),
-            child: const Icon(
-              Icons.list_alt,
-              color: Colors.blue,
-            ),
           ),
-        ),
-      ],
+
+          // Compass button (bottom)
+          ValueListenableBuilder<double>(
+            valueListenable: mapUserLocationService.cameraBearingDegrees,
+            builder: (context, bearing, _) {
+              final double radians = bearing * 3.141592653589793 / 180.0;
+              return FloatingActionButton.small(
+                heroTag: 'compass_fab',
+                onPressed: () async {
+                  await mapUserLocationService.resetNorth();
+                },
+                backgroundColor: Colors.white,
+                shape: const CircleBorder(
+                  side: BorderSide(
+                    color: Colors.red,
+                    width: 2.0,
+                  ),
+                ),
+                child: Transform.rotate(
+                  angle: radians,
+                  child: const Icon(
+                    Icons.navigation,
+                    color: Colors.red,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

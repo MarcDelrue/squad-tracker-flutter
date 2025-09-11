@@ -97,6 +97,11 @@ class GameMapWidgetState extends State<GameMapWidget> {
           if (mapUserLocationService.isProgrammaticCameraChange) return;
           if (mapUserLocationService.isCameraAnimationInProgress) return;
           if (mapboxMap == null) return;
+          // Always publish bearing updates for compass UI
+          try {
+            final cameraState = await mapboxMap!.getCameraState();
+            mapUserLocationService.updateBearingDegrees(cameraState.bearing);
+          } catch (_) {}
           if (!mapUserLocationService.isFollowingUser.value) return;
           // Add a short grace period after follow activation to ignore initial frames
           final activatedAt = mapUserLocationService.followModeActivatedAt;
