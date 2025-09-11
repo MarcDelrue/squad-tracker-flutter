@@ -10,6 +10,7 @@ import 'package:squad_tracker_flutter/widgets/map.dart';
 import 'package:squad_tracker_flutter/widgets/map_settings.dart';
 import 'package:squad_tracker_flutter/widgets/squad_members_list.dart';
 import 'package:squad_tracker_flutter/widgets/user_status_buttons.dart';
+import 'package:squad_tracker_flutter/widgets/game/game_timer_chip.dart';
 
 class MapWithLocation extends StatefulWidget {
   const MapWithLocation({super.key});
@@ -61,7 +62,7 @@ class MapWithLocationState extends State<MapWithLocation> {
       body: Stack(
         children: [
           const GameMapWidget(),
-          _buildGameTimerChip(),
+          GameTimerChip(startedAt: _startedAt, elapsed: _elapsed),
           MapControlButtons(
             isGeolocationDisabled: !_isGeolocationEnabled,
             onBattleLogsPressed: () {
@@ -75,19 +76,6 @@ class MapWithLocationState extends State<MapWithLocation> {
           if (_showBottomSheet) _buildDraggableBottomSheet(),
           _buildFabPositioned(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildGameTimerChip() {
-    if (_startedAt == null) return const SizedBox.shrink();
-    return Positioned(
-      top: 16 + MediaQuery.of(context).padding.top,
-      right:
-          88, // to the left of the right-aligned FAB column (approx 56 + padding)
-      child: Chip(
-        label: Text(_formatElapsed(_elapsed)),
-        backgroundColor: Colors.black,
       ),
     );
   }
@@ -123,16 +111,6 @@ class MapWithLocationState extends State<MapWithLocation> {
         _elapsed = DateTime.now().difference(_startedAt!);
       });
     });
-  }
-
-  String _formatElapsed(Duration d) {
-    final hours = d.inHours;
-    final minutes = d.inMinutes % 60;
-    final seconds = d.inSeconds % 60;
-    if (hours > 0) {
-      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    }
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override

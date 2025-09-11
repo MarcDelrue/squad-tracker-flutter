@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
 import 'package:squad_tracker_flutter/models/user_with_session_model.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
@@ -10,8 +9,10 @@ import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'package:squad_tracker_flutter/providers/game_service.dart';
-import 'package:squad_tracker_flutter/utils/colors_option.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' as supa;
+// colors_option not used here anymore after extracting MemberTile
+import 'package:squad_tracker_flutter/utils/member_sort.dart';
+import 'package:squad_tracker_flutter/widgets/members/member_tile.dart';
+// supabase import not used here anymore; removed
 
 class SquadMembersList extends StatefulWidget {
   final VoidCallback?
@@ -226,47 +227,12 @@ class _SquadMembersListState extends State<SquadMembersList> {
 
         // Sort
         if (_sortMode == 'distance') {
-          otherMembers.sort((a, b) {
-            final distances =
-                userSquadLocationService.currentMembersDistanceFromUser;
-            final distanceA = distances != null
-                ? (distances[a.user.id] ?? double.infinity)
-                : double.infinity;
-            final distanceB = distances != null
-                ? (distances[b.user.id] ?? double.infinity)
-                : double.infinity;
-            return distanceA.compareTo(distanceB);
-          });
+          sortByDistance(otherMembers,
+              userSquadLocationService.currentMembersDistanceFromUser);
         } else if (_sortMode == 'kills') {
-          // Sort by kills descending, then K/D descending, then deaths ascending
-          otherMembers.sort((a, b) {
-            final sa = _statsByUserId[a.user.id];
-            final sb = _statsByUserId[b.user.id];
-            final ka = (sa?['kills'] ?? 0);
-            final kb = (sb?['kills'] ?? 0);
-            final da = (sa?['deaths'] ?? 0);
-            final db = (sb?['deaths'] ?? 0);
-            final kda = da == 0 ? ka.toDouble() : ka / da;
-            final kdb = db == 0 ? kb.toDouble() : kb / db;
-            if (kb != ka) return kb.compareTo(ka);
-            if (kdb != kda) return kdb.compareTo(kda);
-            return da.compareTo(db);
-          });
+          sortByKills(otherMembers, _statsByUserId);
         } else {
-          // 'kd' or legacy 'score' -> sort by K/D descending, then kills descending, then deaths ascending
-          otherMembers.sort((a, b) {
-            final sa = _statsByUserId[a.user.id];
-            final sb = _statsByUserId[b.user.id];
-            final ka = (sa?['kills'] ?? 0);
-            final kb = (sb?['kills'] ?? 0);
-            final da = (sa?['deaths'] ?? 0);
-            final db = (sb?['deaths'] ?? 0);
-            final kda = da == 0 ? ka.toDouble() : ka / da;
-            final kdb = db == 0 ? kb.toDouble() : kb / db;
-            if (kdb != kda) return kdb.compareTo(kda);
-            if (kb != ka) return kb.compareTo(ka);
-            return da.compareTo(db);
-          });
+          sortByKd(otherMembers, _statsByUserId);
         }
 
         if (otherMembers.isEmpty) {
@@ -349,316 +315,32 @@ class _SquadMembersListState extends State<SquadMembersList> {
     final directions = userSquadLocationService.currentMembersDirectionToMember;
     final distance = distances != null ? distances[member.user.id] : null;
     final direction = directions != null ? directions[member.user.id] : null;
-
-    final memberColor = hexToColor(member.user.main_color ?? '#000000');
     final effectiveStatus =
         _statusByUserId[member.user.id] ?? member.session.user_status;
-    final statusColor = _getStatusColor(effectiveStatus);
-
     final stats = _statsByUserId[member.user.id];
     final kills = (stats?['kills'] ?? 0);
     final deaths = (stats?['deaths'] ?? 0);
-    final kd = deaths == 0 ? kills.toDouble() : kills / deaths;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: memberColor, width: 1),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: _buildMemberAvatar(member, memberColor, isSelf),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                (member.user.id == userService.currentUser?.id)
-                    ? '${member.user.username ?? 'Unknown'} (you)'
-                    : (member.user.username ?? 'Unknown'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusColor,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                _getStatusText(effectiveStatus),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!isSelf && distance != null)
-              Text(
-                'Distance: ${distance.toStringAsFixed(0)}m',
-                style: const TextStyle(color: Colors.grey),
-              ),
-            if (!isSelf && direction != null)
-              Text(
-                'Direction: ${_getDirectionText(direction)}',
-                style: const TextStyle(color: Colors.grey),
-              ),
-            if (_activeGameId != null || _statsByUserId.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Row(
-                  children: [
-                    const Icon(Icons.sports_martial_arts,
-                        size: 14, color: Colors.white70),
-                    const SizedBox(width: 4),
-                    Text('$kills',
-                        style: const TextStyle(color: Colors.white70)),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.heart_broken,
-                        size: 14, color: Colors.white70),
-                    const SizedBox(width: 4),
-                    Text('$deaths',
-                        style: const TextStyle(color: Colors.white70)),
-                    const SizedBox(width: 8),
-                    Text('K/D ${kd.toStringAsFixed(2)}',
-                        style: const TextStyle(color: Colors.white70)),
-                  ],
-                ),
-              ),
-          ],
-        ),
-        trailing: IconButton(
-          icon: Icon(
-            Icons.location_on,
-            color: memberColor,
-          ),
-          onPressed: () => _onGeolocatePressed(isSelf, memberLocation),
-        ),
-      ),
+    final props = MemberTileProps(
+      kills: kills,
+      deaths: deaths,
+      distanceMeters: distance,
+      directionDegrees: direction,
+      effectiveStatus: effectiveStatus,
+    );
+
+    return MemberTile(
+      member: member,
+      props: props,
+      memberLocation: memberLocation,
+      isSelf: isSelf,
+      mapUserLocationService: mapUserLocationService,
+      userService: userService,
+      onFlyToMember: widget.onFlyToMember,
     );
   }
 
-  Widget _buildMemberAvatar(
-      UserWithSession member, Color memberColor, bool isSelf) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: memberColor,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-          ),
-          child: Center(
-            child: Text(
-              (member.user.username ?? '?')[0].toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          right: -1,
-          bottom: -1,
-          child: _ConnectivityDot(userId: member.user.id, isYou: isSelf),
-        ),
-      ],
-    );
-  }
-
-  Color _getStatusColor(UserSquadSessionStatus? status) {
-    switch (status) {
-      case UserSquadSessionStatus.alive:
-        return Colors.green;
-      case UserSquadSessionStatus.dead:
-        return Colors.red;
-      case UserSquadSessionStatus.help:
-        return Colors.orange;
-      case UserSquadSessionStatus.medic:
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getStatusText(UserSquadSessionStatus? status) {
-    switch (status) {
-      case UserSquadSessionStatus.alive:
-        return 'ALIVE';
-      case UserSquadSessionStatus.dead:
-        return 'DEAD';
-      case UserSquadSessionStatus.help:
-        return 'HELP';
-      case UserSquadSessionStatus.medic:
-        return 'MEDIC';
-      default:
-        return 'UNKNOWN';
-    }
-  }
-
-  void _flyToMember(UserSquadLocation? memberLocation) {
-    if (memberLocation != null &&
-        memberLocation.latitude != null &&
-        memberLocation.longitude != null) {
-      mapUserLocationService.flyToLocation(
-        memberLocation.longitude!,
-        memberLocation.latitude!,
-      );
-      // Hide bottom sheet when flying to member
-      widget.onFlyToMember?.call();
-    }
-  }
-
-  void _onGeolocatePressed(
-      bool isSelf, UserSquadLocation? memberLocation) async {
-    if (isSelf) {
-      await mapUserLocationService.toggleFollow();
-      // Hide bottom sheet when focusing on self
-      widget.onFlyToMember?.call();
-      return;
-    }
-    _flyToMember(memberLocation);
-  }
-
-  String _getDirectionText(double direction) {
-    if (direction >= 337.5 || direction < 22.5) return 'N';
-    if (direction >= 22.5 && direction < 67.5) return 'NE';
-    if (direction >= 67.5 && direction < 112.5) return 'E';
-    if (direction >= 112.5 && direction < 157.5) return 'SE';
-    if (direction >= 157.5 && direction < 202.5) return 'S';
-    if (direction >= 202.5 && direction < 247.5) return 'SW';
-    if (direction >= 247.5 && direction < 292.5) return 'W';
-    if (direction >= 292.5 && direction < 337.5) return 'NW';
-    return 'N';
-  }
+  // Avatar moved inside MemberTile and all UI helpers extracted.
 }
 
-class _ConnectivityDot extends StatefulWidget {
-  final String userId;
-  final bool isYou;
-  const _ConnectivityDot({required this.userId, required this.isYou});
-
-  @override
-  State<_ConnectivityDot> createState() => _ConnectivityDotState();
-}
-
-class _ConnectivityDotState extends State<_ConnectivityDot> {
-  final userSquadLocationService = UserSquadLocationService();
-  StreamSubscription<List<UserSquadLocation>>? _sub;
-  Timer? _tick;
-  DateTime? _updatedAt;
-  supa.RealtimeChannel? _ownChannel;
-
-  static const Duration _fresh = Duration(seconds: 20);
-  static const Duration _warn = Duration(seconds: 60);
-
-  @override
-  void initState() {
-    super.initState();
-    final seed = userSquadLocationService.currentMembersLocation?.firstWhere(
-      (e) => e.user_id == widget.userId,
-      orElse: () =>
-          UserSquadLocation(id: -1, user_id: widget.userId, squad_id: -1),
-    );
-    if (seed != null && seed.id != -1) {
-      _updatedAt = seed.updated_at;
-    }
-    if (_updatedAt == null && widget.isYou) {
-      _updatedAt = userSquadLocationService.currentUserLocation?.updated_at;
-    }
-    _sub = userSquadLocationService.currentMembersLocationStream
-        .listen((locations) {
-      final l = locations.firstWhere(
-        (e) => e.user_id == widget.userId,
-        orElse: () =>
-            UserSquadLocation(id: -1, user_id: widget.userId, squad_id: -1),
-      );
-      if (l.id != -1) {
-        if (mounted) setState(() => _updatedAt = l.updated_at);
-      }
-    });
-    _ownChannel = supa.Supabase.instance.client
-        .channel('user-${widget.userId}-own-location-dot')
-        .onPostgresChanges(
-            event: supa.PostgresChangeEvent.update,
-            schema: 'public',
-            table: 'user_squad_locations',
-            filter: supa.PostgresChangeFilter(
-              type: supa.PostgresChangeFilterType.eq,
-              column: 'user_id',
-              value: widget.userId,
-            ),
-            callback: (payload) {
-              final ts = payload.newRecord['updated_at']?.toString();
-              if (ts != null) {
-                var s = ts.trim();
-                if (s.contains(' ') && !s.contains('T')) {
-                  s = s.replaceFirst(' ', 'T');
-                }
-                if (!s.endsWith('Z') && !s.contains('+', 10)) {
-                  s = s + 'Z';
-                }
-                final parsed = DateTime.tryParse(s);
-                if (parsed != null) {
-                  if (mounted) {
-                    setState(() {
-                      _updatedAt = parsed.toUtc();
-                    });
-                  }
-                }
-              }
-            })
-        .subscribe();
-    _tick = Timer.periodic(const Duration(seconds: 10), (_) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _sub?.cancel();
-    _tick?.cancel();
-    if (_ownChannel != null) {
-      supa.Supabase.instance.client.removeChannel(_ownChannel!);
-      _ownChannel = null;
-    }
-    super.dispose();
-  }
-
-  Color get _color {
-    final t = _updatedAt;
-    if (t == null) return Colors.grey;
-    final age = DateTime.now().toUtc().difference(t.toUtc());
-    if (age <= _fresh) return Colors.green;
-    if (age <= _warn) return Colors.orange;
-    return Colors.red;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(
-        color: _color,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.black, width: 1),
-      ),
-    );
-  }
-}
+// Connectivity dot has been extracted to widgets/common/connectivity_dot.dart
