@@ -91,6 +91,16 @@ Notes:
 - Status taxonomy used across UI: `Alive`, `Dead`, `Needs help`, `Needs medic`.
 - Enum: `public.user_status` values: `ALIVE`, `DEAD`, `HELP`, `MEDIC` (default `ALIVE`).
 
+#### Status Mapping (App ↔ DB ↔ Device)
+- App UI strings → DB enum → Device protocol token
+  - `Alive` → `ALIVE` → `alive`
+  - `Dead` → `DEAD` → `dead`
+  - `Needs help` → `HELP` → `help`
+  - `Needs medic` → `MEDIC` → `medic`
+- Casing: App uses Title Case for display, DB uses uppercase enum values, device protocol uses lowercase ASCII tokens.
+- Device inputs: The device only emits button ops (`OP <id> BTN_A` to toggle alive/dead, `OP <id> BTN_B` to increment kills). It does not directly emit `help`/`medic`. Those statuses originate from the app.
+- App → Device: `MY_STATUS <alive|dead|help|medic>` is always sent in lowercase within the snapshot block so the device can render status consistently.
+
 #### Schema Details (provided DDL)
 - `game_rules`
   - Columns: `id` (identity PK), `created_at`, `time_before_death` default 30, `time_before_respawn` default 10, `squad_id`.
@@ -180,6 +190,16 @@ Notes:
   - INSERT: role `public`; with_check: `auth.uid() = id` (two identical policies present).
   - UPDATE: role `public`; qual: `auth.uid() = id` (two identical policies present).
 
+Additional policies to enforce:
+- `game_rules`
+  - SELECT: role `public`; qual: requester is active in the same squad:
+    `(EXISTS (SELECT 1 FROM user_squad_sessions uss WHERE uss.squad_id = game_rules.squad_id AND uss.user_id = auth.uid() AND uss.is_active = true))`
+  - INSERT/UPDATE/DELETE: role `authenticated`; qual + with_check: requester is active host in the same squad:
+    `((SELECT auth.uid()) IN (SELECT uss1.user_id FROM user_squad_sessions uss1 WHERE uss1.squad_id = game_rules.squad_id AND uss1.is_active = true AND uss1.is_host = true))`
+- `scoreboard_current` (VIEW)
+  - View executes with security invoker to respect underlying table RLS:
+    `ALTER VIEW scoreboard_current SET (security_invoker = on);`
+
 ### Mobile App Screens (Flutter)
 - Login (via magic link): Supabase + Resend.
 - User: change name, color, role; disconnect.
@@ -220,8 +240,7 @@ Notes:
   - Explore switching/bridging between cellular data and LoRa for communications.
 
 ### Assumptions / To Clarify
-- Mapping between enum values and device/app status strings (casing).
-- RLS policies for all public tables and view access.
+- None currently.
 
 ### Maintenance
 - **Keep this file updated** when project elements change:
