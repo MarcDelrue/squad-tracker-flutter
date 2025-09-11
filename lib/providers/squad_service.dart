@@ -84,6 +84,15 @@ class SquadService extends ChangeNotifier {
       await _supabase
           .from('squads')
           .update({'name': newName}).eq('id', squadId);
+      // Optimistically update local state so UI reflects the change immediately
+      if (_currentSquad != null && _currentSquad!.id == squadId) {
+        _currentSquad = Squad(
+          id: _currentSquad!.id,
+          name: newName,
+          uuid: _currentSquad!.uuid,
+        );
+        notifyListeners();
+      }
       return true;
     } catch (e) {
       debugPrint("Failed to update squad name: $e");

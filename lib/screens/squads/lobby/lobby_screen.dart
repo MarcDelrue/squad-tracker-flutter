@@ -31,6 +31,12 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
   Timer? _ticker;
   Duration _elapsed = Duration.zero;
   bool? _prevIsHost;
+  // Inline squad name editing state
+  final TextEditingController _nameController = TextEditingController();
+  final FocusNode _nameFocus = FocusNode();
+  Timer? _nameSaveDebounce;
+  bool _isEditingName = false;
+  bool _isSavingName = false;
 
   String _formatElapsed(Duration d) {
     final hours = d.inHours;
@@ -142,6 +148,9 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
   void dispose() {
     _ticker?.cancel();
     userSquadSessionService.removeListener(_onSessionChanged);
+    _nameSaveDebounce?.cancel();
+    _nameController.dispose();
+    _nameFocus.dispose();
     super.dispose();
   }
 
@@ -159,6 +168,10 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
           isHostNow ? 'You are now the host' : 'You are no longer the host',
           isError: !isHostNow,
         );
+        // If we lost host while editing, exit edit mode
+        if (!isHostNow && _isEditingName) {
+          _isEditingName = false;
+        }
       }
       _prevIsHost = isHostNow;
     }
@@ -270,41 +283,62 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
     }
   }
 
-  void _showEditNameDialog(BuildContext context) {
-    final TextEditingController controller = TextEditingController(
-      text: squadService.currentSquad?.name,
-    );
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Edit Squad Name'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(
-              hintText: 'Enter new squad name',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                squadService.updateSquadName(
-                    squadService.currentSquad!.id, controller.text);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Save'),
-            ),
-          ],
+  // --- Inline squad name editing helpers ---
+  void _startEditingName() {
+    final currentName = squadService.currentSquad?.name ?? '';
+    setState(() {
+      _isEditingName = true;
+      _nameController.text = currentName;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_nameFocus.hasFocus) {
+        _nameFocus.requestFocus();
+        _nameController.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _nameController.text.length,
         );
-      },
-    );
+      }
+    });
+  }
+
+  void _cancelEditingName() {
+    setState(() {
+      _isEditingName = false;
+    });
+  }
+
+  void _scheduleDelayedSave() {
+    _nameSaveDebounce?.cancel();
+    _nameSaveDebounce = Timer(const Duration(milliseconds: 600), () {
+      _saveName();
+    });
+  }
+
+  Future<void> _saveName({bool showFeedback = false}) async {
+    if (_isSavingName) return;
+    final newName = _nameController.text.trim();
+    final currentName = (squadService.currentSquad?.name ?? '').trim();
+    if (newName.isEmpty || newName == currentName) return;
+    setState(() {
+      _isSavingName = true;
+    });
+    try {
+      await squadService.updateSquadName(
+          squadService.currentSquad!.id, newName);
+      if (mounted && showFeedback) {
+        context.showSnackBar('Squad renamed');
+      }
+    } catch (e) {
+      if (mounted) {
+        context.showSnackBar('Failed to rename squad: $e', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingName = false;
+        });
+      }
+    }
   }
 
   @override
@@ -316,17 +350,67 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
           title: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ListenableBuilder(
-            listenable: squadService,
-            builder: (context, child) {
-              return Text(squadService.currentSquad?.name ?? 'Squad Lobby');
-            },
+          Expanded(
+            child: ListenableBuilder(
+              listenable: squadService,
+              builder: (context, child) {
+                if (_isEditingName && isHost) {
+                  return TextField(
+                    controller: _nameController,
+                    focusNode: _nameFocus,
+                    onChanged: (_) => _scheduleDelayedSave(),
+                    onSubmitted: (_) async {
+                      await _saveName(showFeedback: true);
+                      if (mounted) {
+                        setState(() => _isEditingName = false);
+                      }
+                    },
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      hintText: 'Squad name',
+                    ),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  );
+                }
+                return Text(squadService.currentSquad?.name ?? 'Squad Lobby');
+              },
+            ),
           ),
           if (isHost)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () => _showEditNameDialog(context),
-            ),
+            if (_isEditingName)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_isSavingName)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4.0),
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.check),
+                    onPressed: () async {
+                      await _saveName(showFeedback: true);
+                      if (mounted) {
+                        setState(() => _isEditingName = false);
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: _cancelEditingName,
+                  ),
+                ],
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: _startEditingName,
+              ),
         ],
       )),
       body: Padding(

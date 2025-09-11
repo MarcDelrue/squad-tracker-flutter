@@ -12,6 +12,14 @@ import 'package:provider/provider.dart';
 class NavigationWidget extends StatefulWidget {
   const NavigationWidget({super.key});
 
+  // Global access to switch tabs from anywhere in the widget tree
+  static final GlobalKey<_NavigationWidgetState> globalKey =
+      GlobalKey<_NavigationWidgetState>();
+
+  static void goToTab(int index) {
+    globalKey.currentState?.onDestinationSelected(index);
+  }
+
   @override
   State<NavigationWidget> createState() => _NavigationWidgetState();
 }

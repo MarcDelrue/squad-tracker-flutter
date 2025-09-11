@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/models/users_model.dart';
 import 'package:squad_tracker_flutter/utils/colors_option.dart';
+import 'package:squad_tracker_flutter/widgets/navigation.dart';
 
 class UserSessionRow extends StatelessWidget {
   final User user;
@@ -51,7 +52,10 @@ class UserSessionRow extends StatelessWidget {
             if (options.is_you)
               IconButton(
                 icon: const Icon(Icons.edit),
-                onPressed: () {},
+                onPressed: () {
+                  // Switch to the User tab within the existing NavigationWidget
+                  NavigationWidget.goToTab(0);
+                },
               ),
             if (options.can_interact)
               PopupMenuButton<String>(

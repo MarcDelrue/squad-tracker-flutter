@@ -87,7 +87,7 @@ class MyApp extends StatelessWidget {
                 !snapshot.data!) {
               return const LoginForm();
             } else {
-              return const NavigationWidget();
+              return NavigationWidget(key: NavigationWidget.globalKey);
             }
           },
         ),
