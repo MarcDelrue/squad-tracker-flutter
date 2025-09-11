@@ -215,36 +215,52 @@ class UserSquadLocationService {
   }
 
   _updateMembersDistanceFromUser() {
-    if (_currentMembersDistanceFromUser.isEmpty ||
-        currentMembersLocation == null) {
+    if (currentMembersLocation == null ||
+        currentMembersLocation!.isEmpty ||
+        currentUserLocation == null) {
+      _currentMembersDistanceFromUser.clear();
       return;
     }
-    for (String memberId in _currentMembersDistanceFromUser.keys) {
-      _currentMembersDistanceFromUser[memberId] =
-          distanceCalculatorService.calculateDistanceFromUser(
-              currentMembersLocation!
-                  .firstWhere((location) => location.user_id == memberId),
-              currentUserLocation);
+
+    final Set<String> presentMemberIds =
+        currentMembersLocation!.map((e) => e.user_id).toSet();
+    _currentMembersDistanceFromUser
+        .removeWhere((memberId, _) => !presentMemberIds.contains(memberId));
+
+    for (final location in currentMembersLocation!) {
+      if (location.latitude != null && location.longitude != null) {
+        _currentMembersDistanceFromUser[location.user_id] =
+            distanceCalculatorService.calculateDistanceFromUser(
+                location, currentUserLocation);
+      }
     }
   }
 
   updateMemberDirectionFromUser(double? userDirection) {
-    if (_currentMembersDirectionFromUser.isEmpty ||
-        currentMembersLocation == null) {
+    if (currentMembersLocation == null ||
+        currentMembersLocation!.isEmpty ||
+        currentUserLocation == null) {
+      _currentMembersDirectionFromUser.clear();
+      _currentMembersDirectionToMember.clear();
       return;
     }
-    for (String memberId in _currentMembersDirectionFromUser.keys) {
-      _currentMembersDirectionFromUser[memberId] =
-          distanceCalculatorService.calculateDirectionFromUser(
-              currentMembersLocation!
-                  .firstWhere((location) => location.user_id == memberId),
-              currentUserLocation,
-              userDirection);
-      _currentMembersDirectionToMember[memberId] =
-          distanceCalculatorService.calculateDirectionToMember(
-              currentMembersLocation!
-                  .firstWhere((location) => location.user_id == memberId),
-              currentUserLocation);
+
+    final Set<String> presentMemberIds =
+        currentMembersLocation!.map((e) => e.user_id).toSet();
+    _currentMembersDirectionFromUser
+        .removeWhere((memberId, _) => !presentMemberIds.contains(memberId));
+    _currentMembersDirectionToMember
+        .removeWhere((memberId, _) => !presentMemberIds.contains(memberId));
+
+    for (final location in currentMembersLocation!) {
+      if (location.latitude != null && location.longitude != null) {
+        _currentMembersDirectionFromUser[location.user_id] =
+            distanceCalculatorService.calculateDirectionFromUser(
+                location, currentUserLocation, userDirection);
+        _currentMembersDirectionToMember[location.user_id] =
+            distanceCalculatorService.calculateDirectionToMember(
+                location, currentUserLocation);
+      }
     }
   }
 
