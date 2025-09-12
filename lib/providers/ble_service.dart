@@ -195,6 +195,11 @@ class BleService with ChangeNotifier {
       await device.connect(timeout: const Duration(seconds: 15));
       _connectedDevice = device;
 
+      // Best-effort: request a higher MTU to reduce chunk count (Android only)
+      try {
+        await device.requestMtu(185);
+      } catch (_) {}
+
       final List<BluetoothService> services = await device.discoverServices();
       BluetoothService? uart;
       for (final s in services) {
@@ -292,15 +297,59 @@ class BleService with ChangeNotifier {
     final String withNewline =
         message.endsWith('\n') ? message : (message + '\n');
     final List<int> bytes = utf8.encode(withNewline);
-    await _rxCharacteristic!.write(bytes, withoutResponse: false);
+    // Prefer write without response for throughput; fall back if not supported
+    try {
+      await _rxCharacteristic!.write(bytes, withoutResponse: true);
+    } catch (_) {
+      await _rxCharacteristic!.write(bytes, withoutResponse: false);
+    }
   }
 
   Future<void> sendLines(List<String> lines) async {
-    for (final line in lines) {
-      await sendString(line);
-      // Small delay helps some stacks process sequential writes
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+    if (_rxCharacteristic == null) {
+      throw Exception("Not connected");
     }
+    _markSeqSentIfPresent(lines);
+    // Join lines into larger chunks separated by \n, then split by an MTU-safe size
+    // Assume payload around 180 bytes per write after ATT overhead when MTU=185.
+    const int maxChunkBytes = 180;
+    String buffer = '';
+    for (final line in lines) {
+      final String withNl = line.endsWith('\n') ? line : (line + '\n');
+      final int prospective =
+          utf8.encode(buffer).length + utf8.encode(withNl).length;
+      if (prospective > maxChunkBytes && buffer.isNotEmpty) {
+        await _writeChunk(buffer);
+        buffer = withNl;
+      } else {
+        buffer += withNl;
+      }
+    }
+    if (buffer.isNotEmpty) {
+      await _writeChunk(buffer);
+    }
+  }
+
+  Future<void> _writeChunk(String data) async {
+    final List<int> bytes = utf8.encode(data);
+    try {
+      await _rxCharacteristic!.write(bytes, withoutResponse: true);
+    } catch (_) {
+      await _rxCharacteristic!.write(bytes, withoutResponse: false);
+    }
+  }
+
+  // --- Simple RTT tracking by SEQ ---
+  final Map<int, DateTime> _seqSendTimes = <int, DateTime>{};
+  void _markSeqSentIfPresent(List<String> lines) {
+    try {
+      final seqLine =
+          lines.lastWhere((l) => l.startsWith('SEQ '), orElse: () => '');
+      if (seqLine.isEmpty) return;
+      final v = int.tryParse(seqLine.substring(4));
+      if (v == null) return;
+      _seqSendTimes[v] = DateTime.now();
+    } catch (_) {}
   }
 
   void _notifyIfNotDisposed() {

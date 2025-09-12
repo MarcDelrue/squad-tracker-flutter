@@ -206,6 +206,16 @@ class _TrackerScreenState extends State<TrackerScreen> {
           if (ble.connectedDevice != null) {
             ble.sendLines(_buildSnapshotLines());
           }
+        } else if (msg.startsWith('APPLIED ')) {
+          final parts = msg.split(' ');
+          if (parts.length >= 2) {
+            final seq = int.tryParse(parts[1]);
+            if (seq != null) {
+              // Log RTT from when we sent SEQ to when device applied
+              // ignore: avoid_print
+              print('[BLE] Snapshot applied seq=' + seq.toString());
+            }
+          }
         } else {
           _handleInbound(msg);
         }
@@ -223,14 +233,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     lines.add('MY_STATUS $_myStatus');
     lines.add('MY_KD $_myKills $_myDeaths');
     lines.add('MY_COLOR ' + _myColorHex);
-    // Legacy MEM lines for backward compatibility (name kills deaths)
-    for (final m in _members) {
-      final name = (m['username'] ?? m['name'] ?? 'member').toString();
-      final kills = (m['kills'] ?? 0).toString();
-      final deaths = (m['deaths'] ?? 0).toString();
-      final legacyName = name.replaceAll(' ', '_');
-      lines.add('MEM ' + legacyName + ' ' + kills + ' ' + deaths);
-    }
+    // Removed legacy MEM lines to reduce BLE traffic; device supports MEMX
     // Extended MEMX lines with status, distance(m), staleness bucket, and color
     for (final m in _members) {
       final name = (m['username'] ?? m['name'] ?? 'member').toString();
