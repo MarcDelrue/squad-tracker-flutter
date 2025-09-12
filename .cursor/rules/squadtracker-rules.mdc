@@ -228,7 +228,6 @@ Additional policies to enforce:
 
 ### Roadmap / Future
 - TTGO UI:
-  - Show member list with distance, status, kills/deaths.
   - Compass-style view indicating direction to each member.
 - App gameplay/config:
   - Add i18n in the whole app
