@@ -18,7 +18,7 @@ class UserSquadLocation {
   });
 
   factory UserSquadLocation.fromJson(Map<String, dynamic> json) {
-    DateTime? _parseSupabaseTimestamp(String? raw) {
+    DateTime? parseSupabaseTimestamp(String? raw) {
       if (raw == null) return null;
       String s = raw.trim();
       // Normalize space separator to 'T'
@@ -27,7 +27,7 @@ class UserSquadLocation {
       }
       // If no timezone designator present, assume UTC
       final hasTz = s.endsWith('Z') || s.contains('+', 10) || s.contains('Z');
-      final candidate = hasTz ? s : (s + 'Z');
+      final candidate = hasTz ? s : ('${s}Z');
       return DateTime.tryParse(candidate);
     }
 
@@ -38,7 +38,7 @@ class UserSquadLocation {
       longitude: json['longitude'],
       latitude: json['latitude'],
       direction: json['direction'],
-      updated_at: _parseSupabaseTimestamp(json['updated_at']?.toString()),
+      updated_at: parseSupabaseTimestamp(json['updated_at']?.toString()),
     );
   }
 }

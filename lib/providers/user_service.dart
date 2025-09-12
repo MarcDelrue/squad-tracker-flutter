@@ -56,7 +56,7 @@ class UserService extends ChangeNotifier {
     }
   }
 
-  hasBasicInfo() {
+  bool hasBasicInfo() {
     return _currentUser?.username != null &&
         _currentUser?.main_role != null &&
         _currentUser?.main_color != null;

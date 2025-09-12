@@ -132,8 +132,8 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
         actions: [
           IconButton(
             tooltip: _isTorchOn
-                ? AppLocalizations.of(context)!.stop
-                : AppLocalizations.of(context)!.scan,
+                ? AppLocalizations.of(context)!.turnTorchOff
+                : AppLocalizations.of(context)!.turnTorchOn,
             onPressed: () async {
               try {
                 await controller.toggleTorch();

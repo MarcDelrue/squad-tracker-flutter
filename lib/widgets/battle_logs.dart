@@ -6,6 +6,7 @@ import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class BattleLogsWidget extends StatefulWidget {
   final VoidCallback? onClose;
@@ -35,10 +36,10 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
         final battleLogs = battleLogsService.battleLogs;
 
         if (battleLogs.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
-              "No battle logs yet",
-              style: TextStyle(color: Colors.white),
+              AppLocalizations.of(context)!.noBattleLogs,
+              style: const TextStyle(color: Colors.white),
             ),
           );
         }

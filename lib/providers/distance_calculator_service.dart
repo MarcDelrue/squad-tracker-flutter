@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:squad_tracker_flutter/models/user_squad_location_model.dart';
 
 class DistanceCalculatorService {
-  calculateDirectionFromUser(UserSquadLocation location,
+  double calculateDirectionFromUser(UserSquadLocation location,
       UserSquadLocation? currentUserLocation, double? userDirection) {
     if (location.latitude == null ||
         location.longitude == null ||
@@ -23,7 +23,7 @@ class DistanceCalculatorService {
   }
 
   // New method specifically for edge indicators - direction FROM user TO member
-  calculateDirectionToMember(
+  double calculateDirectionToMember(
       UserSquadLocation location, UserSquadLocation? currentUserLocation) {
     if (location.latitude == null ||
         location.longitude == null ||
@@ -60,7 +60,7 @@ class DistanceCalculatorService {
     return compassBearing;
   }
 
-  calculateDistanceFromUser(
+  double calculateDistanceFromUser(
       UserSquadLocation? location, UserSquadLocation? currentUserLocation) {
     if (location == null ||
         location.latitude == null ||

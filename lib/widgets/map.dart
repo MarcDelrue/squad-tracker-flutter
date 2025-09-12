@@ -32,7 +32,7 @@ class GameMapWidgetState extends State<GameMapWidget> {
 
   mapbox.MapboxMap? mapboxMap;
 
-  _onMapCreated(mapbox.MapboxMap mapboxMap) async {
+  Future<void> _onMapCreated(mapbox.MapboxMap mapboxMap) async {
     this.mapboxMap = mapboxMap;
     mapboxMap.loadStyleURI(mapbox.MapboxStyles.SATELLITE);
     mapUserLocationService.init(mapboxMap);

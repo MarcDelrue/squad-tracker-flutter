@@ -67,7 +67,7 @@ class _ConnectivityDotState extends State<ConnectivityDot> {
                   s = s.replaceFirst(' ', 'T');
                 }
                 if (!s.endsWith('Z') && !s.contains('+', 10)) {
-                  s = s + 'Z';
+                  s = '${s}Z';
                 }
                 final parsed = DateTime.tryParse(s);
                 if (parsed != null) {

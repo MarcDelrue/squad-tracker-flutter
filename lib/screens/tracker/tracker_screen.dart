@@ -11,6 +11,7 @@ import 'package:squad_tracker_flutter/providers/game_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'package:squad_tracker_flutter/models/user_with_location_session_model.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class TrackerScreen extends StatefulWidget {
   const TrackerScreen({super.key});
@@ -385,8 +386,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
     if (statuses.values.any((s) => s.isPermanentlyDenied)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Bluetooth permissions permanently denied')),
+          SnackBar(
+              content: Text(
+                  AppLocalizations.of(context)!.bluetoothPermanentlyDenied)),
         );
       }
     }
@@ -408,7 +410,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
         _processNewMessages(ble);
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Tracker (BLE)'),
+            title: Text(AppLocalizations.of(context)!.trackerBleTitle),
             actions: [
               IconButton(
                 icon: const Icon(Icons.refresh),
@@ -422,12 +424,12 @@ class _TrackerScreenState extends State<TrackerScreen> {
                                 ? null
                                 : _filterController.text.trim());
                       },
-                tooltip: 'Scan',
+                tooltip: AppLocalizations.of(context)!.scan,
               ),
               IconButton(
                 icon: const Icon(Icons.stop),
                 onPressed: ble.isScanning ? () => ble.stopScan() : null,
-                tooltip: 'Stop scan',
+                tooltip: AppLocalizations.of(context)!.stopScanTooltip,
               ),
             ],
           ),
@@ -440,9 +442,10 @@ class _TrackerScreenState extends State<TrackerScreen> {
                     Expanded(
                       child: TextField(
                         controller: _filterController,
-                        decoration: const InputDecoration(
-                          labelText: 'Name filter (e.g. TTGO)',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText:
+                              AppLocalizations.of(context)!.nameFilterHint,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -459,12 +462,12 @@ class _TrackerScreenState extends State<TrackerScreen> {
                                           ? null
                                           : _filterController.text.trim());
                             },
-                      child: const Text('Scan'),
+                      child: Text(AppLocalizations.of(context)!.scan),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: ble.isScanning ? () => ble.stopScan() : null,
-                      child: const Text('Stop'),
+                      child: Text(AppLocalizations.of(context)!.stop),
                     ),
                   ],
                 ),
@@ -492,7 +495,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
                                 onPressed: () async {
                                   await ble.connect(d.device);
                                 },
-                                child: const Text('Connect'),
+                                child:
+                                    Text(AppLocalizations.of(context)!.connect),
                               ),
                       );
                     },
@@ -510,7 +514,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
                             : ble.connectedDevice!.remoteId.str),
                         trailing: ElevatedButton(
                           onPressed: () => ble.disconnect(),
-                          child: const Text('Disconnect'),
+                          child: Text(AppLocalizations.of(context)!.disconnect),
                         ),
                       ),
                       const Divider(height: 1),
@@ -523,7 +527,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
                               onPressed: () async {
                                 _sendSnapshotIfConnected(ble);
                               },
-                              child: const Text('Sync to Device'),
+                              child: Text(
+                                  AppLocalizations.of(context)!.syncToDevice),
                             ),
                           ],
                         ),

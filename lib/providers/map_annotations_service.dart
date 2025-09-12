@@ -40,7 +40,7 @@ class MapAnnotationsService extends ChangeNotifier {
 
   // Pulsating logic removed for performance
 
-  initMembersAnnotation(mapbox.MapboxMap mapboxMap) async {
+  Future<void> initMembersAnnotation(mapbox.MapboxMap mapboxMap) async {
     pointAnnotationManager =
         await mapboxMap.annotations.createPointAnnotationManager();
     pointAnnotationManager
@@ -114,7 +114,7 @@ class MapAnnotationsService extends ChangeNotifier {
     });
   }
 
-  removeEveryAnnotations() {
+  void removeEveryAnnotations() {
     try {
       pointAnnotationManager.deleteAll();
     } catch (e) {
@@ -186,7 +186,7 @@ class MapAnnotationsService extends ChangeNotifier {
     membersPointAnnotations!.remove(foundMemberAnnotation);
   }
 
-  updateMembersAnnotation() {
+  void updateMembersAnnotation() {
     if (membersPointAnnotations == null) {
       setInitialMembersAnnotation();
     } else {
@@ -210,7 +210,7 @@ class MapAnnotationsService extends ChangeNotifier {
     }
   }
 
-  setInitialMembersAnnotation() async {
+  Future<void> setInitialMembersAnnotation() async {
     // Avoid creating annotations until images are loaded to prevent
     // native decodeByteArray(...) null crashes inside Mapbox.
     if (!_imagesLoaded) {

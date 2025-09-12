@@ -241,7 +241,7 @@ class SquadService extends ChangeNotifier {
     return null;
   }
 
-  unsubscribeSquad() {
+  void unsubscribeSquad() {
     debugPrint('Unsubscribing from squad changes...');
     if (currentSquadChannel != null) {
       currentSquadChannel!.unsubscribe();

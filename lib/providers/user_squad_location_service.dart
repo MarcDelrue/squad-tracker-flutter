@@ -41,7 +41,7 @@ class UserSquadLocationService {
     }
   }
 
-  saveCurrentLocation(
+  Future<void> saveCurrentLocation(
       double longitude, double latitude, double? direction) async {
     try {
       await _controller.updateCurrentUserLocation(
@@ -54,7 +54,8 @@ class UserSquadLocationService {
     }
   }
 
-  fetchMembersLocation(List<String> membersId, String squadId) async {
+  Future<List> fetchMembersLocation(
+      List<String> membersId, String squadId) async {
     try {
       final prev =
           List<UserSquadLocation>.from(_controller.currentMembersLocation);
@@ -72,11 +73,11 @@ class UserSquadLocationService {
 
   // Distances and directions handled by controller
 
-  updateMemberDirectionFromUser(double? userDirection) {
+  void updateMemberDirectionFromUser(double? userDirection) {
     _controller.updateMemberDirectionFromUser(userDirection);
   }
 
-  unsubscribeMemberLocations(String memberId) {
+  void unsubscribeMemberLocations(String memberId) {
     final channel = _controller.membersLocationsChannels[memberId];
     channel?.unsubscribe();
     _controller.membersLocationsChannels.remove(memberId);

@@ -22,7 +22,6 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
 
   UserSquadSessionStatus? _currentStatus;
   StreamSubscription<List<Map<String, dynamic>>>? _scoreboardSub;
-  int? _activeGameId;
 
   // Respawn countdown can be sourced from GameService in future
 
@@ -46,8 +45,6 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
     final gameId =
         await gameService.getActiveGameId(int.parse(currentSquad.id));
     if (!mounted) return;
-
-    setState(() => _activeGameId = gameId);
     _scoreboardSub?.cancel();
 
     if (gameId != null) {

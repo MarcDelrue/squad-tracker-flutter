@@ -52,7 +52,7 @@ class MapUserLocationService {
   final Duration _minSaveInterval = const Duration(seconds: 15);
   final double _minSaveDistanceMeters = 10.0;
 
-  init(mapbox.MapboxMap mapboxMapReference) async {
+  Future<void> init(mapbox.MapboxMap mapboxMapReference) async {
     mapboxMap = mapboxMapReference;
 
     final hasPermission = await getLocationPermission();
@@ -78,7 +78,7 @@ class MapUserLocationService {
     return true;
   }
 
-  trackUserLocation() async {
+  Future<void> trackUserLocation() async {
     positionStream =
         locator.Geolocator.getPositionStream(locationSettings: locationSettings)
             .listen((locator.Position? position) async {
@@ -135,20 +135,20 @@ class MapUserLocationService {
     _isStreamInitialized = true;
   }
 
-  pauseTrackingUserLocation() {
+  void pauseTrackingUserLocation() {
     positionStream?.pause();
     compassStream?.pause();
     mapboxMap?.location
         .updateSettings(mapbox.LocationComponentSettings(enabled: false));
   }
 
-  unpauseTrackingUserLocation() {
+  void unpauseTrackingUserLocation() {
     positionStream?.resume();
     compassStream?.resume();
     loadUserPuck();
   }
 
-  getUserDirection() {
+  void getUserDirection() {
     compassStream = FlutterCompass.events!.listen((CompassEvent event) {
       final heading = event.heading;
       if (heading == null) {
@@ -171,7 +171,7 @@ class MapUserLocationService {
     });
   }
 
-  setLocationSettingsPerPlatform() {
+  void setLocationSettingsPerPlatform() {
     if (defaultTargetPlatform == TargetPlatform.android) {
       locationSettings = locator.AndroidSettings(
           accuracy: locator.LocationAccuracy.low,
@@ -211,7 +211,7 @@ class MapUserLocationService {
     }
   }
 
-  loadUserPuck() async {
+  Future<void> loadUserPuck() async {
     final ByteData bytes =
         await rootBundle.load('assets/images/soldiers/default_soldier.png');
     final list = bytes.buffer.asUint8List();
@@ -270,7 +270,7 @@ class MapUserLocationService {
     return distanceMeters <= thresholdMeters;
   }
 
-  flyToLocation(num longitude, num latitude,
+  Future<void> flyToLocation(num longitude, num latitude,
       {double? zoom,
       Duration duration = const Duration(milliseconds: 800)}) async {
     isProgrammaticCameraChange = true;

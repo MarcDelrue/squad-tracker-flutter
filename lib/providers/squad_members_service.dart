@@ -204,7 +204,7 @@ class SquadMembersService {
     }
   }
 
-  _updateMemberData(users_model.User user) {
+  void _updateMemberData(users_model.User user) {
     currentSquadMembers?.forEach((member) {
       if (member.user.id == user.id) {
         member.user = user;
@@ -213,7 +213,7 @@ class SquadMembersService {
     _currentSquadMembersController.add(currentSquadMembers);
   }
 
-  _updateMemberSession(UserSquadSession session) {
+  void _updateMemberSession(UserSquadSession session) {
     currentSquadMembers?.forEach((member) {
       if (member.session.id == session.id) {
         member.session = session;
@@ -222,7 +222,7 @@ class SquadMembersService {
     _currentSquadMembersController.add(currentSquadMembers);
   }
 
-  _removeSquadMember(String memberId) {
+  void _removeSquadMember(String memberId) {
     currentSquadMembers?.removeWhere((member) => member.user.id == memberId);
     _currentSquadMembersController.add(currentSquadMembers);
   }
@@ -232,12 +232,12 @@ class SquadMembersService {
         .firstWhere((member) => member.user.id == memberId);
   }
 
-  unsubscribeFromMembersData(String memberId) {
+  void unsubscribeFromMembersData(String memberId) {
     currentMembersChannels?[memberId]?.unsubscribe();
     currentMembersChannels?.remove(memberId);
   }
 
-  unsubscribeFromSquadMembers() {
+  void unsubscribeFromSquadMembers() {
     if (currentSquadChannel == null) {
       return;
     }
@@ -252,7 +252,7 @@ class SquadMembersService {
     currentSquadMembers = null;
   }
 
-  kickFromSquad(String userId, String squadId) async {
+  Future<void> kickFromSquad(String userId, String squadId) async {
     try {
       await _supabase
           .from('user_squad_sessions')
@@ -264,7 +264,8 @@ class SquadMembersService {
     }
   }
 
-  setUserAsHost(String userId, String newHostId, String squadId) async {
+  Future<void> setUserAsHost(
+      String userId, String newHostId, String squadId) async {
     try {
       await _supabase.rpc('transfer_host', params: {
         'p_squad_id': int.parse(squadId),

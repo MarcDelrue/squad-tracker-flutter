@@ -57,7 +57,7 @@ class BleService with ChangeNotifier {
     return _prefs ??= await SharedPreferences.getInstance();
   }
 
-  String _keyForUser(String userId) => 'ble_last_device_' + userId;
+  String _keyForUser(String userId) => 'ble_last_device_$userId';
 
   Future<void> _saveLastDeviceIdForUser(String userId, String deviceId) async {
     final prefs = await _getPrefs();
@@ -295,7 +295,7 @@ class BleService with ChangeNotifier {
       throw Exception("Not connected");
     }
     final String withNewline =
-        message.endsWith('\n') ? message : (message + '\n');
+        message.endsWith('\n') ? message : ('$message\n');
     final List<int> bytes = utf8.encode(withNewline);
     // Prefer write without response for throughput; fall back if not supported
     try {
@@ -315,7 +315,7 @@ class BleService with ChangeNotifier {
     const int maxChunkBytes = 180;
     String buffer = '';
     for (final line in lines) {
-      final String withNl = line.endsWith('\n') ? line : (line + '\n');
+      final String withNl = line.endsWith('\n') ? line : ('$line\n');
       final int prospective =
           utf8.encode(buffer).length + utf8.encode(withNl).length;
       if (prospective > maxChunkBytes && buffer.isNotEmpty) {
