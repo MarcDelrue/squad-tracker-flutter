@@ -32,6 +32,7 @@ class MapAnnotationsService extends ChangeNotifier {
   late Uint8List soldierDeadImage = Uint8List(0);
   late Uint8List soldierHelpImage = Uint8List(0);
   late Uint8List soldierMedicImage = Uint8List(0);
+  bool _imagesLoaded = false;
 
   // Per-game status map
   StreamSubscription<List<Map<String, dynamic>>>? _statusSub;
@@ -74,8 +75,13 @@ class MapAnnotationsService extends ChangeNotifier {
       if (kDebugMode) {
         debugPrint('Loaded medic image, size: ${soldierMedicImage.length}');
       }
+      _imagesLoaded = soldierAliveImage.isNotEmpty &&
+          soldierDeadImage.isNotEmpty &&
+          soldierHelpImage.isNotEmpty &&
+          soldierMedicImage.isNotEmpty;
     } catch (e) {
       debugPrint('Error loading soldier images: $e');
+      _imagesLoaded = false;
     }
 
     // Subscribe to per-game status
@@ -205,6 +211,14 @@ class MapAnnotationsService extends ChangeNotifier {
   }
 
   setInitialMembersAnnotation() async {
+    // Avoid creating annotations until images are loaded to prevent
+    // native decodeByteArray(...) null crashes inside Mapbox.
+    if (!_imagesLoaded) {
+      if (kDebugMode) {
+        debugPrint('Soldier images not loaded yet; skipping annotations.');
+      }
+      return;
+    }
     if (userSquadLocationService.currentMembersLocation == null ||
         userSquadLocationService.currentMembersLocation!.isEmpty) {
       return;
@@ -221,6 +235,10 @@ class MapAnnotationsService extends ChangeNotifier {
       final effectiveStatus = _statusByUserId[foundMember.user.id] ??
           foundMember.session.user_status;
       final statusIcon = _getStatusIcon(effectiveStatus);
+      if (statusIcon.isEmpty) {
+        // Skip if the icon bytes are empty as Mapbox will crash decoding it
+        continue;
+      }
       final statusColor =
           _getStatusColor(effectiveStatus, foundMember.user.main_color);
       final iconSize = _getStatusIconSize(effectiveStatus);
