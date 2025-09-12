@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:provider/provider.dart';
 import 'package:squad_tracker_flutter/providers/ble_service.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 /// Flutter code sample for [NavigationBar].
 
@@ -21,6 +22,9 @@ void main() async {
   MapboxOptions.setAccessToken(
       "sk.eyJ1IjoibWFyY2RlbHJ1ZSIsImEiOiJjbTNodW5sNmswZ3N0Mm1zNjk0aDVjYzM5In0.Mbv7uMcYheJ4bXHmzK707g");
   timeago.setLocaleMessages('en_short', timeago.EnShortMessages());
+  timeago.setLocaleMessages('en', timeago.EnMessages());
+  timeago.setLocaleMessages('fr', timeago.FrMessages());
+  timeago.setLocaleMessages('fr_short', timeago.FrShortMessages());
 
   // Start battle logs service to listen continuously
   BattleLogsService().startListening();
@@ -63,6 +67,27 @@ class MyApp extends StatelessWidget {
       create: (_) => BleService(),
       child: MaterialApp(
         title: 'Supabase Flutter',
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en'),
+          Locale('fr'),
+        ],
+        localeResolutionCallback: (locale, supportedLocales) {
+          if (locale == null) {
+            return const Locale('en');
+          }
+          final languageCode = locale.languageCode.toLowerCase();
+          for (final supported in supportedLocales) {
+            if (supported.languageCode.toLowerCase() == languageCode) {
+              return supported;
+            }
+          }
+          return const Locale('en');
+        },
         theme: ThemeData.dark().copyWith(
           primaryColor: Colors.green,
           textButtonTheme: TextButtonThemeData(

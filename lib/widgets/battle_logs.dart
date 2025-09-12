@@ -56,6 +56,9 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
   }
 
   Widget battleLogToWidget(BattleLogModel battleLog) {
+    final localeCode =
+        Localizations.localeOf(context).languageCode.toLowerCase();
+    final timeagoLocale = (localeCode == 'fr') ? 'fr_short' : 'en_short';
     return Container(
       color: Colors.black, // Fully opaque background
       child: ListTile(
@@ -66,7 +69,7 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
           style: const TextStyle(color: Colors.white),
         ),
         subtitle: Text(
-          timeago.format(battleLog.date, locale: 'en_short'),
+          timeago.format(battleLog.date, locale: timeagoLocale),
           style: const TextStyle(color: Colors.grey),
         ),
         onTap: () {
