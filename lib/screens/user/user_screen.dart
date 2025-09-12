@@ -8,6 +8,9 @@ import 'package:squad_tracker_flutter/widgets/color_picker.dart';
 import 'package:squad_tracker_flutter/widgets/snack_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:squad_tracker_flutter/models/users_model.dart' as users_model;
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/providers/locale_provider.dart';
+import 'package:provider/provider.dart';
 
 class UserScreen extends StatefulWidget {
   const UserScreen({super.key});
@@ -54,7 +57,7 @@ class _UserScreenState extends State<UserScreen> {
     } catch (error) {
       if (mounted) {
         context.showSnackBar(
-            'Unexpected error occurred while retrieving profile',
+            AppLocalizations.of(context)!.unexpectedRetrieveProfile,
             isError: true);
       }
     } finally {
@@ -108,7 +111,7 @@ class _UserScreenState extends State<UserScreen> {
         _loading = false;
       });
       if (mounted) {
-        context.showSnackBar('Successfully updated profile!');
+        context.showSnackBar(AppLocalizations.of(context)!.profileUpdated);
       }
     } on PostgrestException catch (error) {
       if (mounted) {
@@ -120,7 +123,7 @@ class _UserScreenState extends State<UserScreen> {
     } catch (error) {
       if (mounted) {
         context.showSnackBar(
-          'Unexpected error occurred while updating profile',
+          AppLocalizations.of(context)!.unexpectedUpdateProfile,
           isError: true,
         );
       }
@@ -131,19 +134,20 @@ class _UserScreenState extends State<UserScreen> {
   }
 
   Future<void> _signOut() async {
+    final l10n = AppLocalizations.of(context)!;
     final shouldSignOut = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
+        title: Text(l10n.confirmSignOutTitle),
+        content: Text(l10n.confirmSignOutBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Sign Out'),
+            child: Text(l10n.signOut),
           ),
         ],
       ),
@@ -156,8 +160,7 @@ class _UserScreenState extends State<UserScreen> {
         if (mounted) context.showSnackBar(error.message, isError: true);
       } catch (error) {
         if (mounted) {
-          context.showSnackBar('Unexpected error occurred while signing out',
-              isError: true);
+          context.showSnackBar(l10n.unexpectedSignOut, isError: true);
         }
       } finally {
         if (mounted) {
@@ -203,8 +206,35 @@ class _UserScreenState extends State<UserScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-        appBar: AppBar(title: const Text('User')),
+        appBar: AppBar(
+          title: Text(l10n.userScreenTitle),
+          actions: [
+            PopupMenuButton<String>(
+              tooltip: l10n.language,
+              onSelected: (value) {
+                final provider = context.read<LocaleProvider>();
+                if (value == 'en') {
+                  provider.setLocale(const Locale('en'));
+                } else if (value == 'fr') {
+                  provider.setLocale(const Locale('fr'));
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(
+                  value: 'en',
+                  child: Text(l10n.english),
+                ),
+                PopupMenuItem<String>(
+                  value: 'fr',
+                  child: Text(l10n.french),
+                ),
+              ],
+              icon: const Icon(Icons.language),
+            )
+          ],
+        ),
         body: Form(
           key: _formKey,
           child: ListView(
@@ -212,16 +242,17 @@ class _UserScreenState extends State<UserScreen> {
             children: [
               TextFormField(
                 controller: _usernameController,
-                decoration: const InputDecoration(labelText: 'User Name'),
+                decoration: InputDecoration(labelText: l10n.userNameLabel),
                 validator: (value) =>
-                    value!.isEmpty ? 'Please enter a username' : null,
+                    value!.isEmpty ? l10n.userNameValidation : null,
               ),
               const SizedBox(height: 18),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(
-                  labelText: 'Select a Role',
+                  labelText: '',
                   border: OutlineInputBorder(),
                 ),
+                hint: Text(l10n.selectRoleLabel),
                 initialValue: _userMainRoleController,
                 items: _rolesController.map((role) {
                   return DropdownMenuItem<String>(
@@ -235,12 +266,12 @@ class _UserScreenState extends State<UserScreen> {
                   });
                 },
                 validator: (value) =>
-                    value == null ? 'Please select a role' : null,
+                    value == null ? l10n.selectRoleValidation : null,
               ),
               const SizedBox(height: 18),
               Row(
                 children: [
-                  const Text('Your color:'),
+                  Text(l10n.yourColor),
                   const SizedBox(width: 8),
                   Container(
                     width: 24,
@@ -265,10 +296,10 @@ class _UserScreenState extends State<UserScreen> {
               const SizedBox(height: 18),
               ElevatedButton(
                 onPressed: _loading ? null : _updateProfile,
-                child: Text(_loading ? 'Saving...' : 'Update'),
+                child: Text(_loading ? l10n.saving : l10n.update),
               ),
               const SizedBox(height: 18),
-              TextButton(onPressed: _signOut, child: const Text('Sign Out')),
+              TextButton(onPressed: _signOut, child: Text(l10n.signOut)),
             ],
           ),
         ));

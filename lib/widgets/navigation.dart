@@ -8,6 +8,7 @@ import 'package:squad_tracker_flutter/screens/squads/squads_entrypoint.dart';
 import 'package:squad_tracker_flutter/screens/user/user_screen.dart';
 import 'package:squad_tracker_flutter/providers/ble_service.dart';
 import 'package:provider/provider.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class NavigationWidget extends StatefulWidget {
   const NavigationWidget({super.key});
@@ -86,15 +87,16 @@ class _NavigationWidgetState extends State<NavigationWidget> {
               listenable: userService,
               builder: (BuildContext context, Widget? child) {
                 bool hasBasicInfo = userService.hasBasicInfo();
+                final l10n = AppLocalizations.of(context)!;
                 return Scaffold(
                   bottomNavigationBar: NavigationBar(
                     onDestinationSelected: onDestinationSelected,
                     indicatorColor: Colors.green,
                     selectedIndex: currentPageIndex,
                     destinations: <Widget>[
-                      const NavigationDestination(
-                        icon: Icon(Icons.person),
-                        label: 'User',
+                      NavigationDestination(
+                        icon: const Icon(Icons.person),
+                        label: l10n.tabUser,
                       ),
                       NavigationDestination(
                         icon: ListenableBuilder(
@@ -107,18 +109,18 @@ class _NavigationWidgetState extends State<NavigationWidget> {
                                 : const Icon(Icons.group);
                           },
                         ),
-                        label: 'Squads',
+                        label: l10n.tabSquads,
                         tooltip: hasBasicInfo
                             ? null
-                            : 'Complete your profile to access Squads',
+                            : l10n.tooltipCompleteProfileSquads,
                         enabled: hasBasicInfo,
                       ),
                       NavigationDestination(
                         icon: const Icon(Icons.map),
-                        label: 'Map',
+                        label: l10n.tabMap,
                         tooltip: hasBasicInfo
                             ? null
-                            : 'Complete your profile to access Map',
+                            : l10n.tooltipCompleteProfileMap,
                         enabled: hasBasicInfo,
                       ),
                       NavigationDestination(
@@ -133,10 +135,10 @@ class _NavigationWidgetState extends State<NavigationWidget> {
                                 )
                               : const Icon(Icons.track_changes_rounded);
                         }),
-                        label: 'Tracker',
+                        label: l10n.tabTracker,
                         tooltip: hasBasicInfo
                             ? null
-                            : 'Complete your profile to access Tracker',
+                            : l10n.tooltipCompleteProfileTracker,
                         enabled: hasBasicInfo,
                       )
                     ],

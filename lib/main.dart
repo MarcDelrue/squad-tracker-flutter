@@ -8,6 +8,8 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:provider/provider.dart';
 import 'package:squad_tracker_flutter/providers/ble_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/providers/locale_provider.dart';
 
 /// Flutter code sample for [NavigationBar].
 
@@ -63,60 +65,61 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<BleService>(
-      create: (_) => BleService(),
-      child: MaterialApp(
-        title: 'Supabase Flutter',
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('en'),
-          Locale('fr'),
-        ],
-        localeResolutionCallback: (locale, supportedLocales) {
-          if (locale == null) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider<BleService>(create: (_) => BleService()),
+      ],
+      child: Builder(builder: (context) {
+        final locale = context.watch<LocaleProvider>().locale;
+        return MaterialApp(
+          onGenerateTitle: (context) =>
+              AppLocalizations.of(context)?.appTitle ?? 'Squad Tracker',
+          locale: locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localeResolutionCallback: (locale, supportedLocales) {
+            if (locale == null) {
+              return const Locale('en');
+            }
+            final languageCode = locale.languageCode.toLowerCase();
+            for (final supported in supportedLocales) {
+              if (supported.languageCode.toLowerCase() == languageCode) {
+                return supported;
+              }
+            }
             return const Locale('en');
-          }
-          final languageCode = locale.languageCode.toLowerCase();
-          for (final supported in supportedLocales) {
-            if (supported.languageCode.toLowerCase() == languageCode) {
-              return supported;
-            }
-          }
-          return const Locale('en');
-        },
-        theme: ThemeData.dark().copyWith(
-          primaryColor: Colors.green,
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.green,
-            ),
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: Colors.green,
-            ),
-          ),
-        ),
-        home: FutureBuilder<bool>(
-          future: _checkSession(),
-          builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError ||
-                !snapshot.hasData ||
-                !snapshot.data!) {
-              return const LoginForm();
-            } else {
-              return NavigationWidget(key: NavigationWidget.globalKey);
-            }
           },
-        ),
-      ),
+          theme: ThemeData.dark().copyWith(
+            primaryColor: Colors.green,
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.green,
+              ),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: Colors.green,
+              ),
+            ),
+          ),
+          home: FutureBuilder<bool>(
+            future: _checkSession(),
+            builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError ||
+                  !snapshot.hasData ||
+                  !snapshot.data!) {
+                return const LoginForm();
+              } else {
+                return NavigationWidget(key: NavigationWidget.globalKey);
+              }
+            },
+          ),
+        );
+      }),
     );
   }
 }
