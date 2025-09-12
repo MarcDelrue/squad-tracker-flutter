@@ -5,6 +5,7 @@ import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_session_service.dart';
 import 'package:squad_tracker_flutter/widgets/snack_bar.dart';
 import 'package:intl/intl.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class SquadsRecentList extends StatefulWidget {
   const SquadsRecentList({super.key});
@@ -47,16 +48,17 @@ class _SquadsRecentListState extends State<SquadsRecentList> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.all(16.0),
           child: Text(
-            'Recent Squads',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            AppLocalizations.of(context)!.recentSquadsTitle,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ),
         Expanded(
           child: recentSquads == null || recentSquads!.isEmpty
-              ? const Center(child: Text('No recent squads available'))
+              ? Center(
+                  child: Text(AppLocalizations.of(context)!.noRecentSquads))
               : ListView.builder(
                   itemCount: recentSquads!.length,
                   itemBuilder: (context, index) {
@@ -68,13 +70,14 @@ class _SquadsRecentListState extends State<SquadsRecentList> {
 
                     return ListTile(
                       title: Text(squad.name),
-                      subtitle: Text('Last joined: $formattedDate'),
+                      subtitle: Text(
+                          '${AppLocalizations.of(context)!.lastJoinedPrefix}$formattedDate'),
                       trailing: ElevatedButton(
                         onPressed: () {
                           // Add your join logic here
                           _joinSquad(squad);
                         },
-                        child: const Text('Join'),
+                        child: Text(AppLocalizations.of(context)!.join),
                       ),
                     );
                   },

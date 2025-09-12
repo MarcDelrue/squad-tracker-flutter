@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/utils/colors_option.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class ColorPickerModal extends StatefulWidget {
   final Color initialColor;
@@ -29,7 +30,7 @@ class ColorPickerModalState extends State<ColorPickerModal> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Select a Color'),
+      title: Text(AppLocalizations.of(context)!.selectColorTitle),
       content: SizedBox(
         width: double.maxFinite,
         child: ListView.builder(
@@ -56,14 +57,14 @@ class ColorPickerModalState extends State<ColorPickerModal> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(AppLocalizations.of(context)!.cancel),
         ),
         ElevatedButton(
           onPressed: () {
             widget.onColorSelected(selectedColor);
             Navigator.of(context).pop();
           },
-          child: const Text('Select'),
+          child: Text(AppLocalizations.of(context)!.select),
         ),
       ],
     );

@@ -5,6 +5,7 @@ import 'package:squad_tracker_flutter/providers/game_service.dart';
 import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_session_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class UserStatusButtons extends StatefulWidget {
   const UserStatusButtons({super.key});
@@ -107,8 +108,7 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                    'Successfully updated status to ${newStatus.value.toLowerCase()}'),
+                content: Text(AppLocalizations.of(context)!.profileUpdated),
                 backgroundColor: Colors.green,
               ),
             );
@@ -117,7 +117,8 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Failed to update status. Please try again.'),
+                content:
+                    Text(AppLocalizations.of(context)!.failedToUpdateStatus),
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
@@ -142,9 +143,9 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
           messenger.hideCurrentSnackBar();
           messenger.showSnackBar(
             SnackBar(
-              content: const Text('+1 Kill recorded'),
+              content: Text(AppLocalizations.of(context)!.plusOneKillRecorded),
               action: SnackBarAction(
-                label: 'Undo',
+                label: AppLocalizations.of(context)!.undo,
                 onPressed: () {
                   // Optional: requires adjust_stats RPC; noop for now
                 },
@@ -155,7 +156,7 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('Failed to add kill'),
+                content: Text(AppLocalizations.of(context)!.failedToAddKill),
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
@@ -163,7 +164,7 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
         }
       },
       icon: const Icon(Icons.add_task),
-      label: const Text('+1 Kill'),
+      label: Text(AppLocalizations.of(context)!.plusOneKill),
     );
   }
 

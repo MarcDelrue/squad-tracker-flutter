@@ -239,4 +239,89 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get noBattleLogs => 'Aucun journal de bataille pour l\'instant';
+
+  @override
+  String get youAreNowHost => 'Vous êtes maintenant l\'hôte';
+
+  @override
+  String get youAreNoLongerHost => 'Vous n\'êtes plus l\'hôte';
+
+  @override
+  String get squadNameHint => 'Nom de l\'escouade';
+
+  @override
+  String get squadLobby => 'Salon de l\'escouade';
+
+  @override
+  String get noActiveGame => 'Aucune partie en cours';
+
+  @override
+  String get leaveSquad => 'Quitter l\'escouade';
+
+  @override
+  String get gameStarted => 'Partie démarrée';
+
+  @override
+  String get gameEnded => 'Partie terminée';
+
+  @override
+  String failedToStartGame(String error) {
+    return 'Échec du démarrage de la partie : $error';
+  }
+
+  @override
+  String failedToEndGame(String error) {
+    return 'Échec de la fin de la partie : $error';
+  }
+
+  @override
+  String failedToKickUser(String error) {
+    return 'Échec de l\'exclusion : $error';
+  }
+
+  @override
+  String failedToSetHost(String error) {
+    return 'Échec de la définition de l\'hôte : $error';
+  }
+
+  @override
+  String hostTransferredTo(String username) {
+    return 'Hôte transféré à $username';
+  }
+
+  @override
+  String failedToLeaveSquad(String error) {
+    return 'Échec du départ de l\'escouade : $error';
+  }
+
+  @override
+  String get inviteToSquadTitle => 'Inviter dans l\'escouade';
+
+  @override
+  String get inviteToSquadBody =>
+      'Partagez ce code pour rejoindre l\'escouade :';
+
+  @override
+  String get addNewMember => 'Ajouter un membre';
+
+  @override
+  String get recentSquadsTitle => 'Escouades récentes';
+
+  @override
+  String get joinedSquadSuccess => 'Escouade rejointe avec succès !';
+
+  @override
+  String get failedToJoinSquad => 'Échec de la connexion à l\'escouade';
+
+  @override
+  String get errorPrefix => 'Erreur : ';
+
+  @override
+  String get turnTorchOn => 'Allumer la lampe';
+
+  @override
+  String get turnTorchOff => 'Éteindre la lampe';
+
+  @override
+  String get undo => 'Annuler';
 }

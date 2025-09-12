@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/main.dart';
 import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_session_service.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class SquadCreateScreen extends StatelessWidget {
   const SquadCreateScreen({super.key});
@@ -10,7 +11,7 @@ class SquadCreateScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Create squad'),
+          title: Text(AppLocalizations.of(context)!.createSquadTitle),
         ),
         body: const SquadForm());
   }
@@ -40,13 +41,13 @@ class _SquadFormState extends State<SquadForm> {
             children: <Widget>[
               TextFormField(
                 controller: _squadNameController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Squad name',
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  hintText: AppLocalizations.of(context)!.squadNameHint,
                 ),
                 validator: (String? value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter some text';
+                    return AppLocalizations.of(context)!.userNameValidation;
                   }
                   return null;
                 },
@@ -68,7 +69,7 @@ class _SquadFormState extends State<SquadForm> {
                       Navigator.pop(context);
                     }
                   },
-                  child: const Text('Submit'),
+                  child: Text(AppLocalizations.of(context)!.submit),
                 ),
               ),
             ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/screens/squads/create/squads_create.dart';
 import 'package:squad_tracker_flutter/screens/squads/join/squads_join.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class SquadHomeScreen extends StatelessWidget {
   const SquadHomeScreen({super.key});
@@ -9,7 +10,7 @@ class SquadHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Squad Selection'),
+        title: Text(AppLocalizations.of(context)!.squadSelectionTitle),
       ),
       body: Center(
         child: Column(
@@ -22,7 +23,7 @@ class SquadHomeScreen extends StatelessWidget {
                   builder: (context) => const SquadJoinScreen(),
                 ));
               },
-              child: const Text('Join a squad'),
+              child: Text(AppLocalizations.of(context)!.joinASquad),
             ),
             const SizedBox(height: 20), // Add spacing between buttons
             ElevatedButton(
@@ -33,7 +34,7 @@ class SquadHomeScreen extends StatelessWidget {
                       builder: (context) => const SquadCreateScreen()),
                 );
               },
-              child: const Text('Create a squad'),
+              child: Text(AppLocalizations.of(context)!.createASquad),
             ),
           ],
         ),

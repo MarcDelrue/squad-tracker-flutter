@@ -237,4 +237,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noBattleLogs => 'No battle logs yet';
+
+  @override
+  String get youAreNowHost => 'You are now the host';
+
+  @override
+  String get youAreNoLongerHost => 'You are no longer the host';
+
+  @override
+  String get squadNameHint => 'Squad name';
+
+  @override
+  String get squadLobby => 'Squad Lobby';
+
+  @override
+  String get noActiveGame => 'No active game';
+
+  @override
+  String get leaveSquad => 'Leave Squad';
+
+  @override
+  String get gameStarted => 'Game started';
+
+  @override
+  String get gameEnded => 'Game ended';
+
+  @override
+  String failedToStartGame(String error) {
+    return 'Failed to start game: $error';
+  }
+
+  @override
+  String failedToEndGame(String error) {
+    return 'Failed to end game: $error';
+  }
+
+  @override
+  String failedToKickUser(String error) {
+    return 'Failed to kick user: $error';
+  }
+
+  @override
+  String failedToSetHost(String error) {
+    return 'Failed to set user as host: $error';
+  }
+
+  @override
+  String hostTransferredTo(String username) {
+    return 'Host transferred to $username';
+  }
+
+  @override
+  String failedToLeaveSquad(String error) {
+    return 'Failed to leave squad: $error';
+  }
+
+  @override
+  String get inviteToSquadTitle => 'Invite to Squad';
+
+  @override
+  String get inviteToSquadBody =>
+      'Share this code with users to join the squad:';
+
+  @override
+  String get addNewMember => 'Add New Member';
+
+  @override
+  String get recentSquadsTitle => 'Recent Squads';
+
+  @override
+  String get joinedSquadSuccess => 'Joined squad successfully!';
+
+  @override
+  String get failedToJoinSquad => 'Failed to join squad';
+
+  @override
+  String get errorPrefix => 'Error: ';
+
+  @override
+  String get turnTorchOn => 'Turn torch on';
+
+  @override
+  String get turnTorchOff => 'Turn torch off';
+
+  @override
+  String get undo => 'Undo';
 }

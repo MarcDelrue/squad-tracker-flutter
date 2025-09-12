@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:squad_tracker_flutter/models/squad_model.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class UserAddButton extends StatelessWidget {
   final Squad squad;
@@ -26,12 +27,12 @@ class UserAddButton extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Invite to Squad',
+                  AppLocalizations.of(context)!.inviteToSquadTitle,
                   style: Theme.of(context).textTheme.headlineLarge,
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Share this code with users to join the squad:',
+                  AppLocalizations.of(context)!.inviteToSquadBody,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 10),
@@ -51,9 +52,10 @@ class UserAddButton extends StatelessWidget {
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: squad.uuid));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Squad code copied to clipboard')),
+                            SnackBar(
+                              content: Text(AppLocalizations.of(context)!
+                                  .squadCodeCopied),
+                            ),
                           );
                         },
                       ),
@@ -72,7 +74,7 @@ class UserAddButton extends StatelessWidget {
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: const Text('Close'),
+                  child: Text(AppLocalizations.of(context)!.close),
                 ),
                 // Add extra bottom padding for better spacing
                 const SizedBox(height: 32),
@@ -94,9 +96,9 @@ class UserAddButton extends StatelessWidget {
           Icons.person_add,
           color: Colors.green,
         ),
-        title: const Text(
-          'Add New Member',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.addNewMember,
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),

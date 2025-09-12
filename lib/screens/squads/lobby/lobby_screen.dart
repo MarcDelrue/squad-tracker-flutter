@@ -11,6 +11,7 @@ import 'package:squad_tracker_flutter/providers/user_squad_session_service.dart'
 import 'package:squad_tracker_flutter/widgets/invite_user_row.dart';
 import 'package:squad_tracker_flutter/widgets/snack_bar.dart';
 import 'package:squad_tracker_flutter/widgets/user_session_row.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class SquadLobbyScreen extends StatefulWidget {
   const SquadLobbyScreen({super.key});
@@ -119,11 +120,13 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
       final id = await gameService.startGame(int.parse(squadIdStr));
       if (mounted) {
         setState(() => _activeGameId = id);
-        context.showSnackBar('Game started');
+        context.showSnackBar(AppLocalizations.of(context)!.gameStarted);
       }
     } catch (e) {
       if (mounted) {
-        context.showSnackBar('Failed to start game: $e', isError: true);
+        context.showSnackBar(
+            AppLocalizations.of(context)!.failedToStartGame(e.toString()),
+            isError: true);
       }
     }
   }
@@ -135,11 +138,13 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
       await gameService.endGame(int.parse(squadIdStr));
       if (mounted) {
         setState(() => _activeGameId = null);
-        context.showSnackBar('Game ended');
+        context.showSnackBar(AppLocalizations.of(context)!.gameEnded);
       }
     } catch (e) {
       if (mounted) {
-        context.showSnackBar('Failed to end game: $e', isError: true);
+        context.showSnackBar(
+            AppLocalizations.of(context)!.failedToEndGame(e.toString()),
+            isError: true);
       }
     }
   }
@@ -165,7 +170,9 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
       if (mounted) {
         setState(() {});
         context.showSnackBar(
-          isHostNow ? 'You are now the host' : 'You are no longer the host',
+          isHostNow
+              ? AppLocalizations.of(context)!.youAreNowHost
+              : AppLocalizations.of(context)!.youAreNoLongerHost,
           isError: !isHostNow,
         );
         // If we lost host while editing, exit edit mode
@@ -181,16 +188,17 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
     final shouldKick = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Kick User'),
-        content: Text('Are you sure you want to kick ${user.username}?'),
+        title: Text(AppLocalizations.of(context)!.confirmKickUserTitle),
+        content: Text(AppLocalizations.of(context)!
+            .confirmKickUserBody(user.username ?? '')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Kick'),
+            child: Text(AppLocalizations.of(context)!.kick),
           ),
         ],
       ),
@@ -205,7 +213,9 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
         debugPrint("Failed to kick user: $e");
         // Optionally show an error message to the user
         if (mounted) {
-          context.showSnackBar('Failed to kick user: $e', isError: true);
+          context.showSnackBar(
+              AppLocalizations.of(context)!.failedToKickUser(e.toString()),
+              isError: true);
         }
       }
     }
@@ -215,17 +225,17 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
     final shouldSetHost = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Set Host'),
-        content:
-            Text('Are you sure you want to set ${user.username} as the host?'),
+        title: Text(AppLocalizations.of(context)!.confirmSetHostTitle),
+        content: Text(AppLocalizations.of(context)!
+            .confirmSetHostBody(user.username ?? '')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Set Host'),
+            child: Text(AppLocalizations.of(context)!.setHost),
           ),
         ],
       ),
@@ -239,12 +249,15 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
         await userSquadSessionService
             .getUserSquadSessionId(userService.currentUser!.id);
         if (mounted) {
-          context.showSnackBar('Host transferred to ${user.username}');
+          context.showSnackBar(AppLocalizations.of(context)!
+              .hostTransferredTo(user.username ?? ''));
         }
       } catch (e) {
         debugPrint("Failed to set user as host: $e");
         if (mounted) {
-          context.showSnackBar('Failed to set user as host: $e', isError: true);
+          context.showSnackBar(
+              AppLocalizations.of(context)!.failedToSetHost(e.toString()),
+              isError: true);
         }
       }
     }
@@ -254,16 +267,16 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
     final shouldLeave = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Leave Squad'),
-        content: const Text('Are you sure you want to leave the squad?'),
+        title: Text(AppLocalizations.of(context)!.confirmLeaveSquadTitle),
+        content: Text(AppLocalizations.of(context)!.confirmLeaveSquadBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Leave'),
+            child: Text(AppLocalizations.of(context)!.leave),
           ),
         ],
       ),
@@ -277,7 +290,9 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
       } catch (e) {
         // Handle any errors during the leave process
         if (mounted) {
-          context.showSnackBar('Failed to leave squad: $e', isError: true);
+          context.showSnackBar(
+              AppLocalizations.of(context)!.failedToLeaveSquad(e.toString()),
+              isError: true);
         }
       }
     }
@@ -365,15 +380,16 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
                         setState(() => _isEditingName = false);
                       }
                     },
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
-                      hintText: 'Squad name',
+                      hintText: AppLocalizations.of(context)!.squadNameHint,
                     ),
                     style: Theme.of(context).textTheme.titleLarge,
                   );
                 }
-                return Text(squadService.currentSquad?.name ?? 'Squad Lobby');
+                return Text(squadService.currentSquad?.name ??
+                    AppLocalizations.of(context)!.squadLobby);
               },
             ),
           ),
@@ -427,9 +443,8 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
                     Expanded(
                       child: Text(
                         _activeGameId == null
-                            ? 'No active game'
-                            : 'Game active (#$_activeGameId)  –  ' +
-                                _formatElapsed(_elapsed),
+                            ? AppLocalizations.of(context)!.noActiveGame
+                            : 'Game active (#$_activeGameId)  –  ${_formatElapsed(_elapsed)}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -441,7 +456,7 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
                         ElevatedButton.icon(
                           onPressed: _startGame,
                           icon: const Icon(Icons.play_arrow),
-                          label: const Text('Start game'),
+                          label: Text(AppLocalizations.of(context)!.startGame),
                         )
                       else
                         ElevatedButton.icon(
@@ -450,13 +465,13 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
                             backgroundColor: Colors.red,
                           ),
                           icon: const Icon(Icons.stop),
-                          label: const Text('End game'),
+                          label: Text(AppLocalizations.of(context)!.endGame),
                         ),
                   ],
                 ),
               ),
             ),
-            const Text(
+            Text(
               "Squad Members",
               style: TextStyle(
                 fontSize: 24,
@@ -475,7 +490,8 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
                   if (currentMembers == null ||
                       userSquadSessionService.currentSquadSession == null ||
                       userService.currentUser == null) {
-                    return const Center(child: Text('Loading...'));
+                    return Center(
+                        child: Text(AppLocalizations.of(context)!.loading));
                   }
 
                   final List<UserWithSession> squadMembers = [
@@ -519,7 +535,7 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
             Center(
               child: ElevatedButton(
                 onPressed: _confirmLeaveSquad,
-                child: const Text("Leave Squad"),
+                child: Text(AppLocalizations.of(context)!.leaveSquad),
               ),
             ),
           ],

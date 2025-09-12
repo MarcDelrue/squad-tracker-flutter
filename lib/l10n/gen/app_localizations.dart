@@ -535,6 +535,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No battle logs yet'**
   String get noBattleLogs;
+
+  /// No description provided for @youAreNowHost.
+  ///
+  /// In en, this message translates to:
+  /// **'You are now the host'**
+  String get youAreNowHost;
+
+  /// No description provided for @youAreNoLongerHost.
+  ///
+  /// In en, this message translates to:
+  /// **'You are no longer the host'**
+  String get youAreNoLongerHost;
+
+  /// No description provided for @squadNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Squad name'**
+  String get squadNameHint;
+
+  /// No description provided for @squadLobby.
+  ///
+  /// In en, this message translates to:
+  /// **'Squad Lobby'**
+  String get squadLobby;
+
+  /// No description provided for @noActiveGame.
+  ///
+  /// In en, this message translates to:
+  /// **'No active game'**
+  String get noActiveGame;
+
+  /// No description provided for @leaveSquad.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave Squad'**
+  String get leaveSquad;
+
+  /// No description provided for @gameStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Game started'**
+  String get gameStarted;
+
+  /// No description provided for @gameEnded.
+  ///
+  /// In en, this message translates to:
+  /// **'Game ended'**
+  String get gameEnded;
+
+  /// No description provided for @failedToStartGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to start game: {error}'**
+  String failedToStartGame(String error);
+
+  /// No description provided for @failedToEndGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to end game: {error}'**
+  String failedToEndGame(String error);
+
+  /// No description provided for @failedToKickUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to kick user: {error}'**
+  String failedToKickUser(String error);
+
+  /// No description provided for @failedToSetHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to set user as host: {error}'**
+  String failedToSetHost(String error);
+
+  /// No description provided for @hostTransferredTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Host transferred to {username}'**
+  String hostTransferredTo(String username);
+
+  /// No description provided for @failedToLeaveSquad.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to leave squad: {error}'**
+  String failedToLeaveSquad(String error);
+
+  /// No description provided for @inviteToSquadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite to Squad'**
+  String get inviteToSquadTitle;
+
+  /// No description provided for @inviteToSquadBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this code with users to join the squad:'**
+  String get inviteToSquadBody;
+
+  /// No description provided for @addNewMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Add New Member'**
+  String get addNewMember;
+
+  /// No description provided for @recentSquadsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Squads'**
+  String get recentSquadsTitle;
+
+  /// No description provided for @joinedSquadSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined squad successfully!'**
+  String get joinedSquadSuccess;
+
+  /// No description provided for @failedToJoinSquad.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to join squad'**
+  String get failedToJoinSquad;
+
+  /// No description provided for @errorPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: '**
+  String get errorPrefix;
+
+  /// No description provided for @turnTorchOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn torch on'**
+  String get turnTorchOn;
+
+  /// No description provided for @turnTorchOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn torch off'**
+  String get turnTorchOff;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
 }
 
 class _AppLocalizationsDelegate
