@@ -35,6 +35,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   StreamSubscription<List<Map<String, dynamic>>>? _scoreboardSub;
   StreamSubscription<Map<String, dynamic>>? _myStatsSub;
   StreamSubscription<Map<String, dynamic>?>? _gameMetaSub;
+  StreamSubscription<List<dynamic>>? _locationsSub; // members location updates
   Map<String, Map<String, dynamic>> _scoreByUserId =
       <String, Map<String, dynamic>>{};
   int _lastProcessedMsgCount = 0;
@@ -113,6 +114,28 @@ class _TrackerScreenState extends State<TrackerScreen> {
       _sendSnapshotIfConnected(ble);
     });
 
+    // Immediate distance refresh from realtime location updates
+    _locationsSub ??= _combinedService!
+        .userSquadLocationService.currentMembersLocationStream
+        .listen((_) {
+      final distances = _combinedService!
+          .userSquadLocationService.currentMembersDistanceFromUser;
+      if (distances == null) return;
+      // Update member distances in-place
+      _members = _members.map((m) {
+        final id = m['id'] as String?;
+        if (id != null && distances.containsKey(id)) {
+          final d = distances[id];
+          return {
+            ...m,
+            'distance': d == null ? null : (d.isFinite ? d : null),
+          };
+        }
+        return m;
+      }).toList();
+      _sendSnapshotIfConnected(ble);
+    });
+
     // Start/refresh streams based on active game changes
     if (_gameMetaSub == null) {
       _gameMetaSub = GameService()
@@ -167,6 +190,23 @@ class _TrackerScreenState extends State<TrackerScreen> {
             }
           }
           _scoreByUserId = byId;
+          // Immediately merge scoreboard data into current members for BLE snapshots
+          _members = _members.map((m) {
+            final id = m['id'] as String?;
+            if (id != null) {
+              final sb = byId[id];
+              if (sb != null) {
+                return {
+                  ...m,
+                  'kills': sb['kills'] ?? m['kills'],
+                  'deaths': sb['deaths'] ?? m['deaths'],
+                  'status':
+                      (sb['status'] as String?)?.toLowerCase() ?? m['status'],
+                };
+              }
+            }
+            return m;
+          }).toList();
           if (myStatusFromScore != null) {
             _myStatus = myStatusFromScore;
           }
@@ -344,6 +384,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
     _scoreboardSub?.cancel();
     _myStatsSub?.cancel();
     _gameMetaSub?.cancel();
+    _locationsSub?.cancel();
     _filterController.dispose();
     super.dispose();
   }

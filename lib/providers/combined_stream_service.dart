@@ -15,9 +15,10 @@ class CombinedStreamService {
 
   Stream<List<UserWithLocationSession>?> get combinedStream async* {
     await for (var members in squadMembersService.currentSquadMembersStream) {
-      // Get the latest known locations snapshot
-      final locations =
-          await userSquadLocationService.currentMembersLocationStream.first;
+      // Use the latest cached locations immediately so joins/leaves reflect
+      // on the device without waiting for a location stream emission.
+      final locations = userSquadLocationService.currentMembersLocation ??
+          const <UserSquadLocation>[];
 
       if (members == null || members.isEmpty) {
         yield const <UserWithLocationSession>[];
