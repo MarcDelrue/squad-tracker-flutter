@@ -12,6 +12,7 @@ import 'package:squad_tracker_flutter/providers/game_service.dart';
 // colors_option not used here anymore after extracting MemberTile
 import 'package:squad_tracker_flutter/utils/member_sort.dart';
 import 'package:squad_tracker_flutter/widgets/members/member_tile.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 // supabase import not used here anymore; removed
 
 class SquadMembersList extends StatefulWidget {
@@ -178,14 +179,14 @@ class _SquadMembersListState extends State<SquadMembersList> {
               children: [
                 const CircularProgressIndicator(color: Colors.white),
                 const SizedBox(height: 16),
-                const Text(
-                  'Loading squad members...',
-                  style: TextStyle(color: Colors.white),
+                Text(
+                  AppLocalizations.of(context)!.loading,
+                  style: const TextStyle(color: Colors.white),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _loadSquadMembers,
-                  child: const Text('Retry'),
+                  child: Text(AppLocalizations.of(context)!.retry),
                 ),
               ],
             ),
@@ -213,10 +214,10 @@ class _SquadMembersListState extends State<SquadMembersList> {
         if (!snapshot.hasData ||
             snapshot.data == null ||
             snapshot.data!.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
-              'No squad members found',
-              style: TextStyle(color: Colors.white),
+              AppLocalizations.of(context)!.noRecentSquads,
+              style: const TextStyle(color: Colors.white),
             ),
           );
         }

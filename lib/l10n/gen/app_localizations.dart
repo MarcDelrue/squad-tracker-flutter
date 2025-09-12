@@ -259,6 +259,282 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Complete your profile to access Tracker'**
   String get tooltipCompleteProfileTracker;
+
+  /// No description provided for @loginTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get loginTitle;
+
+  /// No description provided for @emailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get emailLabel;
+
+  /// No description provided for @invalidSquadCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Not a valid squad code'**
+  String get invalidSquadCode;
+
+  /// No description provided for @scanSquadQrTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Squad QR'**
+  String get scanSquadQrTitle;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @join.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get join;
+
+  /// No description provided for @kickUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Kick User'**
+  String get kickUser;
+
+  /// No description provided for @setAsHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Set as Host'**
+  String get setAsHost;
+
+  /// No description provided for @confirmKickUserTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Kick User'**
+  String get confirmKickUserTitle;
+
+  /// No description provided for @confirmKickUserBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to kick {username}?'**
+  String confirmKickUserBody(String username);
+
+  /// No description provided for @confirmSetHostTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Set Host'**
+  String get confirmSetHostTitle;
+
+  /// No description provided for @confirmSetHostBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to set {username} as the host?'**
+  String confirmSetHostBody(String username);
+
+  /// No description provided for @confirmLeaveSquadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Leave Squad'**
+  String get confirmLeaveSquadTitle;
+
+  /// No description provided for @confirmLeaveSquadBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to leave the squad?'**
+  String get confirmLeaveSquadBody;
+
+  /// No description provided for @kick.
+  ///
+  /// In en, this message translates to:
+  /// **'Kick'**
+  String get kick;
+
+  /// No description provided for @setHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Host'**
+  String get setHost;
+
+  /// No description provided for @leave.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get leave;
+
+  /// No description provided for @startGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Start game'**
+  String get startGame;
+
+  /// No description provided for @endGame.
+  ///
+  /// In en, this message translates to:
+  /// **'End game'**
+  String get endGame;
+
+  /// No description provided for @loading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading...'**
+  String get loading;
+
+  /// No description provided for @trackerBleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracker (BLE)'**
+  String get trackerBleTitle;
+
+  /// No description provided for @scan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan'**
+  String get scan;
+
+  /// No description provided for @stop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get stop;
+
+  /// No description provided for @stopScanTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop scan'**
+  String get stopScanTooltip;
+
+  /// No description provided for @nameFilterHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Name filter (e.g. TTGO)'**
+  String get nameFilterHint;
+
+  /// No description provided for @disconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get disconnect;
+
+  /// No description provided for @connect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get connect;
+
+  /// No description provided for @syncToDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync to Device'**
+  String get syncToDevice;
+
+  /// No description provided for @bluetoothPermanentlyDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth permissions permanently denied'**
+  String get bluetoothPermanentlyDenied;
+
+  /// No description provided for @failedToUpdateStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update status. Please try again.'**
+  String get failedToUpdateStatus;
+
+  /// No description provided for @plusOneKillRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'+1 Kill recorded'**
+  String get plusOneKillRecorded;
+
+  /// No description provided for @failedToAddKill.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to add kill'**
+  String get failedToAddKill;
+
+  /// No description provided for @plusOneKill.
+  ///
+  /// In en, this message translates to:
+  /// **'+1 Kill'**
+  String get plusOneKill;
+
+  /// No description provided for @squadCodeCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Squad code copied to clipboard'**
+  String get squadCodeCopied;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @selectColorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a Color'**
+  String get selectColorTitle;
+
+  /// No description provided for @select.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get select;
+
+  /// No description provided for @createSquadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create squad'**
+  String get createSquadTitle;
+
+  /// No description provided for @submit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit'**
+  String get submit;
+
+  /// No description provided for @noRecentSquads.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent squads available'**
+  String get noRecentSquads;
+
+  /// No description provided for @lastJoinedPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Last joined: '**
+  String get lastJoinedPrefix;
+
+  /// No description provided for @squadSelectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Squad Selection'**
+  String get squadSelectionTitle;
+
+  /// No description provided for @joinASquad.
+  ///
+  /// In en, this message translates to:
+  /// **'Join a squad'**
+  String get joinASquad;
+
+  /// No description provided for @createASquad.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a squad'**
+  String get createASquad;
+
+  /// No description provided for @joinSquadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join squad'**
+  String get joinSquadTitle;
+
+  /// No description provided for @noBattleLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'No battle logs yet'**
+  String get noBattleLogs;
 }
 
 class _AppLocalizationsDelegate

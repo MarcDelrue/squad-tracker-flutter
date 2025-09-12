@@ -6,6 +6,7 @@ import 'package:squad_tracker_flutter/main.dart';
 import 'package:squad_tracker_flutter/widgets/navigation.dart';
 import 'package:squad_tracker_flutter/widgets/snack_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
@@ -90,8 +91,9 @@ class _LoginFormState extends State<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(title: Text(l10n.loginTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -103,13 +105,13 @@ class _LoginFormState extends State<LoginForm> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.emailLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
+                    return l10n.userNameValidation; // reuse generic prompt
                   }
                   return null;
                 },
@@ -117,7 +119,7 @@ class _LoginFormState extends State<LoginForm> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _isLoading ? null : _signIn,
-                child: Text(_isLoading ? 'Sending...' : 'Send link to email'),
+                child: Text(_isLoading ? l10n.saving : 'Send link to email'),
               ),
             ],
           ),

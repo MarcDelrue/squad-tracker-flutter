@@ -94,4 +94,149 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get tooltipCompleteProfileTracker =>
       'Complétez votre profil pour accéder au Tracker';
+
+  @override
+  String get loginTitle => 'Connexion';
+
+  @override
+  String get emailLabel => 'E-mail';
+
+  @override
+  String get invalidSquadCode => 'Code d\'escouade invalide';
+
+  @override
+  String get scanSquadQrTitle => 'Scanner le QR de l\'escouade';
+
+  @override
+  String get retry => 'Réessayer';
+
+  @override
+  String get join => 'Rejoindre';
+
+  @override
+  String get kickUser => 'Exclure l\'utilisateur';
+
+  @override
+  String get setAsHost => 'Définir comme hôte';
+
+  @override
+  String get confirmKickUserTitle => 'Confirmer l\'exclusion';
+
+  @override
+  String confirmKickUserBody(String username) {
+    return 'Êtes-vous sûr de vouloir exclure $username ?';
+  }
+
+  @override
+  String get confirmSetHostTitle => 'Confirmer l\'attribution d\'hôte';
+
+  @override
+  String confirmSetHostBody(String username) {
+    return 'Êtes-vous sûr de vouloir définir $username comme hôte ?';
+  }
+
+  @override
+  String get confirmLeaveSquadTitle => 'Confirmer le départ de l\'escouade';
+
+  @override
+  String get confirmLeaveSquadBody =>
+      'Êtes-vous sûr de vouloir quitter l\'escouade ?';
+
+  @override
+  String get kick => 'Exclure';
+
+  @override
+  String get setHost => 'Définir l\'hôte';
+
+  @override
+  String get leave => 'Quitter';
+
+  @override
+  String get startGame => 'Démarrer la partie';
+
+  @override
+  String get endGame => 'Terminer la partie';
+
+  @override
+  String get loading => 'Chargement...';
+
+  @override
+  String get trackerBleTitle => 'Tracker (BLE)';
+
+  @override
+  String get scan => 'Scanner';
+
+  @override
+  String get stop => 'Arrêter';
+
+  @override
+  String get stopScanTooltip => 'Arrêter le scan';
+
+  @override
+  String get nameFilterHint => 'Filtre de nom (ex : TTGO)';
+
+  @override
+  String get disconnect => 'Déconnecter';
+
+  @override
+  String get connect => 'Se connecter';
+
+  @override
+  String get syncToDevice => 'Synchroniser avec l\'appareil';
+
+  @override
+  String get bluetoothPermanentlyDenied =>
+      'Autorisations Bluetooth refusées définitivement';
+
+  @override
+  String get failedToUpdateStatus =>
+      'Échec de la mise à jour du statut. Veuillez réessayer.';
+
+  @override
+  String get plusOneKillRecorded => '+1 élimination enregistrée';
+
+  @override
+  String get failedToAddKill => 'Échec de l\'ajout de l\'élimination';
+
+  @override
+  String get plusOneKill => '+1 élimination';
+
+  @override
+  String get squadCodeCopied => 'Code d\'escouade copié dans le presse-papiers';
+
+  @override
+  String get close => 'Fermer';
+
+  @override
+  String get selectColorTitle => 'Sélectionner une couleur';
+
+  @override
+  String get select => 'Sélectionner';
+
+  @override
+  String get createSquadTitle => 'Créer une escouade';
+
+  @override
+  String get submit => 'Envoyer';
+
+  @override
+  String get noRecentSquads => 'Aucune escouade récente disponible';
+
+  @override
+  String get lastJoinedPrefix => 'Dernière connexion : ';
+
+  @override
+  String get squadSelectionTitle => 'Sélection de l\'escouade';
+
+  @override
+  String get joinASquad => 'Rejoindre une escouade';
+
+  @override
+  String get createASquad => 'Créer une escouade';
+
+  @override
+  String get joinSquadTitle => 'Rejoindre une escouade';
+
+  @override
+  String get noBattleLogs => 'Aucun journal de bataille pour l\'instant';
 }

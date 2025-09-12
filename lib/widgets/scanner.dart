@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class BarcodeScannerSimple extends StatefulWidget {
   const BarcodeScannerSimple({super.key});
@@ -54,9 +55,10 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
             _lastInvalidFeedbackAt = now;
             HapticFeedback.mediumImpact();
             if (mounted) {
+              final l10n = AppLocalizations.of(context)!;
               ScaffoldMessenger.of(context).hideCurrentSnackBar();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Not a valid squad code')),
+                SnackBar(content: Text(l10n.invalidSquadCode)),
               );
             }
           }
@@ -126,10 +128,12 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan Squad QR'),
+        title: Text(AppLocalizations.of(context)!.scanSquadQrTitle),
         actions: [
           IconButton(
-            tooltip: _isTorchOn ? 'Turn torch off' : 'Turn torch on',
+            tooltip: _isTorchOn
+                ? AppLocalizations.of(context)!.stop
+                : AppLocalizations.of(context)!.scan,
             onPressed: () async {
               try {
                 await controller.toggleTorch();
@@ -195,7 +199,7 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple>
                   children: [
                     _RoundButton(
                       icon: Icons.close,
-                      label: 'Cancel',
+                      label: AppLocalizations.of(context)!.cancel,
                       onTap: () async {
                         if (_isStarted) {
                           try {

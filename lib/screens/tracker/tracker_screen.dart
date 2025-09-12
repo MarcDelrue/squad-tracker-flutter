@@ -137,97 +137,95 @@ class _TrackerScreenState extends State<TrackerScreen> {
     });
 
     // Start/refresh streams based on active game changes
-    if (_gameMetaSub == null) {
-      _gameMetaSub = GameService()
-          .streamActiveGameMetaBySquad(int.parse(squad.id))
-          .listen((meta) async {
-        final newGameId = (meta == null) ? null : (meta['id'] as num?)?.toInt();
-        final changed = newGameId != _activeGameId;
-        if (!changed) return;
-        if (newGameId == null) {
-          return;
+    _gameMetaSub ??= GameService()
+        .streamActiveGameMetaBySquad(int.parse(squad.id))
+        .listen((meta) async {
+      final newGameId = (meta == null) ? null : (meta['id'] as num?)?.toInt();
+      final changed = newGameId != _activeGameId;
+      if (!changed) return;
+      if (newGameId == null) {
+        return;
+      }
+
+      await _scoreboardSub?.cancel();
+      _scoreboardSub = null;
+      await _myStatsSub?.cancel();
+      _myStatsSub = null;
+
+      _activeGameId = newGameId;
+      _myKills = 0;
+      _myDeaths = 0;
+      _scoreByUserId = <String, Map<String, dynamic>>{};
+      _members = _members
+          .map((m) => {
+                'id': m['id'],
+                'username': (m['username'] ?? m['name'] ?? 'member'),
+                'kills': 0,
+                'deaths': 0,
+              })
+          .toList();
+      _sendSnapshotIfConnected(ble);
+
+      // Subscribe to new game's scoreboard
+      _scoreboardSub =
+          GameService().streamScoreboardByGame(newGameId).listen((rows) {
+        final Map<String, Map<String, dynamic>> byId = {};
+        for (final r in rows) {
+          final uid = r['user_id'] as String?;
+          if (uid == null) continue;
+          byId[uid] = {
+            'kills': (r['kills'] ?? 0) as int,
+            'deaths': (r['deaths'] ?? 0) as int,
+            'status': r['user_status'] as String?,
+          };
         }
-
-        await _scoreboardSub?.cancel();
-        _scoreboardSub = null;
-        await _myStatsSub?.cancel();
-        _myStatsSub = null;
-
-        _activeGameId = newGameId;
-        _myKills = 0;
-        _myDeaths = 0;
-        _scoreByUserId = <String, Map<String, dynamic>>{};
-        _members = _members
-            .map((m) => {
-                  'id': m['id'],
-                  'username': (m['username'] ?? m['name'] ?? 'member'),
-                  'kills': 0,
-                  'deaths': 0,
-                })
-            .toList();
+        final me = UserService().currentUser;
+        String? myStatusFromScore;
+        if (me != null) {
+          final mine = byId[me.id];
+          final s = mine != null ? mine['status'] as String? : null;
+          if (s != null && s.isNotEmpty) {
+            myStatusFromScore = s.toLowerCase();
+          }
+        }
+        _scoreByUserId = byId;
+        // Immediately merge scoreboard data into current members for BLE snapshots
+        _members = _members.map((m) {
+          final id = m['id'] as String?;
+          if (id != null) {
+            final sb = byId[id];
+            if (sb != null) {
+              return {
+                ...m,
+                'kills': sb['kills'] ?? m['kills'],
+                'deaths': sb['deaths'] ?? m['deaths'],
+                'status':
+                    (sb['status'] as String?)?.toLowerCase() ?? m['status'],
+              };
+            }
+          }
+          return m;
+        }).toList();
+        if (myStatusFromScore != null) {
+          _myStatus = myStatusFromScore;
+        }
         _sendSnapshotIfConnected(ble);
+      });
 
-        // Subscribe to new game's scoreboard
-        _scoreboardSub =
-            GameService().streamScoreboardByGame(newGameId).listen((rows) {
-          final Map<String, Map<String, dynamic>> byId = {};
-          for (final r in rows) {
-            final uid = r['user_id'] as String?;
-            if (uid == null) continue;
-            byId[uid] = {
-              'kills': (r['kills'] ?? 0) as int,
-              'deaths': (r['deaths'] ?? 0) as int,
-              'status': r['user_status'] as String?,
-            };
-          }
-          final me = UserService().currentUser;
-          String? myStatusFromScore;
-          if (me != null) {
-            final mine = byId[me.id];
-            final s = mine != null ? mine['status'] as String? : null;
-            if (s != null && s.isNotEmpty) {
-              myStatusFromScore = s.toLowerCase();
-            }
-          }
-          _scoreByUserId = byId;
-          // Immediately merge scoreboard data into current members for BLE snapshots
-          _members = _members.map((m) {
-            final id = m['id'] as String?;
-            if (id != null) {
-              final sb = byId[id];
-              if (sb != null) {
-                return {
-                  ...m,
-                  'kills': sb['kills'] ?? m['kills'],
-                  'deaths': sb['deaths'] ?? m['deaths'],
-                  'status':
-                      (sb['status'] as String?)?.toLowerCase() ?? m['status'],
-                };
-              }
-            }
-            return m;
-          }).toList();
-          if (myStatusFromScore != null) {
-            _myStatus = myStatusFromScore;
-          }
+      // Faster initial K/D for me only
+      final myStatsStream =
+          await GameService().streamMyStats(int.parse(squad.id));
+      if (myStatsStream != null) {
+        _myStatsSub = myStatsStream.listen((row) {
+          if (row.isEmpty) return;
+          final kills = (row['kills'] ?? 0) as int;
+          final deaths = (row['deaths'] ?? 0) as int;
+          _myKills = kills;
+          _myDeaths = deaths;
           _sendSnapshotIfConnected(ble);
         });
-
-        // Faster initial K/D for me only
-        final myStatsStream =
-            await GameService().streamMyStats(int.parse(squad.id));
-        if (myStatsStream != null) {
-          _myStatsSub = myStatsStream.listen((row) {
-            if (row.isEmpty) return;
-            final kills = (row['kills'] ?? 0) as int;
-            final deaths = (row['deaths'] ?? 0) as int;
-            _myKills = kills;
-            _myDeaths = deaths;
-            _sendSnapshotIfConnected(ble);
-          });
-        }
-      });
-    }
+      }
+    });
   }
 
   void _sendSnapshotIfConnected(BleService ble) {
@@ -253,7 +251,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
             if (seq != null) {
               // Log RTT from when we sent SEQ to when device applied
               // ignore: avoid_print
-              print('[BLE] Snapshot applied seq=' + seq.toString());
+              print('[BLE] Snapshot applied seq=$seq');
             }
           }
         } else {
@@ -269,10 +267,10 @@ class _TrackerScreenState extends State<TrackerScreen> {
     lines.add('RESET_MEMBERS');
     // Current user
     final safeMyName = _myName.replaceAll(' ', '_');
-    lines.add('MY_NAME ' + safeMyName);
+    lines.add('MY_NAME $safeMyName');
     lines.add('MY_STATUS $_myStatus');
     lines.add('MY_KD $_myKills $_myDeaths');
-    lines.add('MY_COLOR ' + _myColorHex);
+    lines.add('MY_COLOR $_myColorHex');
     // Removed legacy MEM lines to reduce BLE traffic; device supports MEMX
     // Extended MEMX lines with status, distance(m), staleness bucket, and color
     for (final m in _members) {
@@ -292,20 +290,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
           .toString()
           .replaceAll('#', '')
           .toUpperCase();
-      lines.add('MEMX ' +
-          safeName +
-          ' ' +
-          kills +
-          ' ' +
-          deaths +
-          ' ' +
-          status +
-          ' ' +
-          intDistance.toString() +
-          ' ' +
-          stale +
-          ' ' +
-          color);
+      lines.add(
+          'MEMX $safeName $kills $deaths $status $intDistance $stale $color');
     }
     lines.add('ACK $_ackOpId');
     lines.add('SEQ $_seqCounter');

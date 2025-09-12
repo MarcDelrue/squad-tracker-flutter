@@ -92,4 +92,149 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tooltipCompleteProfileTracker =>
       'Complete your profile to access Tracker';
+
+  @override
+  String get loginTitle => 'Login';
+
+  @override
+  String get emailLabel => 'Email';
+
+  @override
+  String get invalidSquadCode => 'Not a valid squad code';
+
+  @override
+  String get scanSquadQrTitle => 'Scan Squad QR';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get join => 'Join';
+
+  @override
+  String get kickUser => 'Kick User';
+
+  @override
+  String get setAsHost => 'Set as Host';
+
+  @override
+  String get confirmKickUserTitle => 'Confirm Kick User';
+
+  @override
+  String confirmKickUserBody(String username) {
+    return 'Are you sure you want to kick $username?';
+  }
+
+  @override
+  String get confirmSetHostTitle => 'Confirm Set Host';
+
+  @override
+  String confirmSetHostBody(String username) {
+    return 'Are you sure you want to set $username as the host?';
+  }
+
+  @override
+  String get confirmLeaveSquadTitle => 'Confirm Leave Squad';
+
+  @override
+  String get confirmLeaveSquadBody =>
+      'Are you sure you want to leave the squad?';
+
+  @override
+  String get kick => 'Kick';
+
+  @override
+  String get setHost => 'Set Host';
+
+  @override
+  String get leave => 'Leave';
+
+  @override
+  String get startGame => 'Start game';
+
+  @override
+  String get endGame => 'End game';
+
+  @override
+  String get loading => 'Loading...';
+
+  @override
+  String get trackerBleTitle => 'Tracker (BLE)';
+
+  @override
+  String get scan => 'Scan';
+
+  @override
+  String get stop => 'Stop';
+
+  @override
+  String get stopScanTooltip => 'Stop scan';
+
+  @override
+  String get nameFilterHint => 'Name filter (e.g. TTGO)';
+
+  @override
+  String get disconnect => 'Disconnect';
+
+  @override
+  String get connect => 'Connect';
+
+  @override
+  String get syncToDevice => 'Sync to Device';
+
+  @override
+  String get bluetoothPermanentlyDenied =>
+      'Bluetooth permissions permanently denied';
+
+  @override
+  String get failedToUpdateStatus =>
+      'Failed to update status. Please try again.';
+
+  @override
+  String get plusOneKillRecorded => '+1 Kill recorded';
+
+  @override
+  String get failedToAddKill => 'Failed to add kill';
+
+  @override
+  String get plusOneKill => '+1 Kill';
+
+  @override
+  String get squadCodeCopied => 'Squad code copied to clipboard';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get selectColorTitle => 'Select a Color';
+
+  @override
+  String get select => 'Select';
+
+  @override
+  String get createSquadTitle => 'Create squad';
+
+  @override
+  String get submit => 'Submit';
+
+  @override
+  String get noRecentSquads => 'No recent squads available';
+
+  @override
+  String get lastJoinedPrefix => 'Last joined: ';
+
+  @override
+  String get squadSelectionTitle => 'Squad Selection';
+
+  @override
+  String get joinASquad => 'Join a squad';
+
+  @override
+  String get createASquad => 'Create a squad';
+
+  @override
+  String get joinSquadTitle => 'Join squad';
+
+  @override
+  String get noBattleLogs => 'No battle logs yet';
 }
