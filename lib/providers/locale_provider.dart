@@ -8,8 +8,10 @@ class LocaleProvider extends ChangeNotifier {
 
   static const String _prefsKey = 'app_locale_code';
   Locale? _locale;
+  bool _isInitialized = false;
 
   Locale? get locale => _locale;
+  bool get isInitialized => _isInitialized;
 
   Future<void> setLocale(Locale? newLocale) async {
     _locale = newLocale;
@@ -25,10 +27,15 @@ class LocaleProvider extends ChangeNotifier {
   Future<void> _loadSavedLocale() async {
     final prefs = await SharedPreferences.getInstance();
     final code = prefs.getString(_prefsKey);
-    if (code == null || code.isEmpty) return;
+    if (code == null || code.isEmpty) {
+      _isInitialized = true;
+      notifyListeners();
+      return;
+    }
     if (code == 'en' || code == 'fr') {
       _locale = Locale(code);
-      notifyListeners();
     }
+    _isInitialized = true;
+    notifyListeners();
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
+import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
 class MapSettings extends StatefulWidget {
   final Function(bool) onGeolocationToggled;
@@ -42,8 +43,8 @@ class MapSettingsState extends State<MapSettings> {
       child: ElevatedButton(
         onPressed: _toggleGeolocation,
         child: Text(_isGeolocationEnabled
-            ? 'Disable Geolocation'
-            : 'Enable Geolocation'),
+            ? AppLocalizations.of(context)!.disableGeolocation
+            : AppLocalizations.of(context)!.enableGeolocation),
       ),
     );
   }

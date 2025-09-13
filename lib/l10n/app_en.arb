@@ -103,6 +103,12 @@
   "errorPrefix": "Error: ",
   "turnTorchOn": "Turn torch on",
   "turnTorchOff": "Turn torch off",
-  "undo": "Undo"
+  "undo": "Undo",
+  "squadMembers": "Squad Members",
+  "disableGeolocation": "Disable Geolocation",
+  "enableGeolocation": "Enable Geolocation",
+  "you": "You",
+  "joinedTheSquad": "joined the squad",
+  "leftTheSquad": "left the squad"
 }
 

@@ -472,7 +472,7 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
               ),
             ),
             Text(
-              "Squad Members",
+              AppLocalizations.of(context)!.squadMembers,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,

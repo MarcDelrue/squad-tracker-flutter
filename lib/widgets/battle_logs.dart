@@ -66,7 +66,7 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         title: Text(
-          battleLog.text,
+          _translateBattleLogText(battleLog.text),
           style: const TextStyle(color: Colors.white),
         ),
         subtitle: Text(
@@ -84,6 +84,21 @@ class BattleLogsWidgetState extends State<BattleLogsWidget> {
         },
       ),
     );
+  }
+
+  String _translateBattleLogText(String text) {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Replace "You" with localized "You"
+    text = text.replaceAll("You", l10n.you);
+
+    // Replace "joined the squad" with localized text
+    text = text.replaceAll("joined the squad", l10n.joinedTheSquad);
+
+    // Replace "left the squad" with localized text
+    text = text.replaceAll("left the squad", l10n.leftTheSquad);
+
+    return text;
   }
 
   void _flyToMember(User user) {

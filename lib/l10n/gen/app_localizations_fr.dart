@@ -324,4 +324,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get undo => 'Annuler';
+
+  @override
+  String get squadMembers => 'Membres de l\'escouade';
+
+  @override
+  String get disableGeolocation => 'Désactiver la géolocalisation';
+
+  @override
+  String get enableGeolocation => 'Activer la géolocalisation';
+
+  @override
+  String get you => 'Vous';
+
+  @override
+  String get joinedTheSquad => 'a rejoint l\'escouade';
+
+  @override
+  String get leftTheSquad => 'a quitté l\'escouade';
 }

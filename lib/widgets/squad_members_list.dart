@@ -259,15 +259,18 @@ class _SquadMembersListState extends State<SquadMembersList> {
                     size: 20,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'Squad Members (${otherMembers.length})',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      '${AppLocalizations.of(context)!.squadMembers} (${otherMembers.length})',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   if (_activeGameId != null || _statsByUserId.isNotEmpty)
                     TextButton.icon(
                       onPressed: () {

@@ -679,6 +679,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Undo'**
   String get undo;
+
+  /// No description provided for @squadMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Squad Members'**
+  String get squadMembers;
+
+  /// No description provided for @disableGeolocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable Geolocation'**
+  String get disableGeolocation;
+
+  /// No description provided for @enableGeolocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Geolocation'**
+  String get enableGeolocation;
+
+  /// No description provided for @you.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get you;
+
+  /// No description provided for @joinedTheSquad.
+  ///
+  /// In en, this message translates to:
+  /// **'joined the squad'**
+  String get joinedTheSquad;
+
+  /// No description provided for @leftTheSquad.
+  ///
+  /// In en, this message translates to:
+  /// **'left the squad'**
+  String get leftTheSquad;
 }
 
 class _AppLocalizationsDelegate

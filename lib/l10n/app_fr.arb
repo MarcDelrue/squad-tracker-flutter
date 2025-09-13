@@ -103,6 +103,12 @@
   "errorPrefix": "Erreur : ",
   "turnTorchOn": "Allumer la lampe",
   "turnTorchOff": "Éteindre la lampe",
-  "undo": "Annuler"
+  "undo": "Annuler",
+  "squadMembers": "Membres de l'escouade",
+  "disableGeolocation": "Désactiver la géolocalisation",
+  "enableGeolocation": "Activer la géolocalisation",
+  "you": "Vous",
+  "joinedTheSquad": "a rejoint l'escouade",
+  "leftTheSquad": "a quitté l'escouade"
 }
 
