@@ -44,6 +44,10 @@ class _TrackerScreenState extends State<TrackerScreen> {
   int? _activeGameId;
   int _seqCounter = 0; // BLE snapshot sequence number
   int _ackOpId = 0; // last OP id received from device
+  DateTime? _gameStartedAt;
+  Timer? _gameTicker;
+  int _gameElapsedSec = -1; // -1 means no game
+  int _lastTimerSyncSec = -1;
 
   void _maybeStartDataSync(BleService ble) async {
     final squad = SquadService().currentSquad;
@@ -145,6 +149,11 @@ class _TrackerScreenState extends State<TrackerScreen> {
       final changed = newGameId != _activeGameId;
       if (!changed) return;
       if (newGameId == null) {
+        _gameStartedAt = null;
+        _gameElapsedSec = -1;
+        _gameTicker?.cancel();
+        _gameTicker = null;
+        _sendSnapshotIfConnected(ble);
         return;
       }
 
@@ -154,6 +163,14 @@ class _TrackerScreenState extends State<TrackerScreen> {
       _myStatsSub = null;
 
       _activeGameId = newGameId;
+      // Initialize timer baseline from meta
+      final s = meta?['started_at']?.toString();
+      final start = s != null ? DateTime.tryParse(s) : null;
+      _gameStartedAt = start;
+      _gameElapsedSec =
+          start == null ? -1 : DateTime.now().difference(start).inSeconds;
+      _lastTimerSyncSec = -1;
+      _ensureGameTicker(ble);
       _myKills = 0;
       _myDeaths = 0;
       _scoreByUserId = <String, Map<String, dynamic>>{};
@@ -294,10 +311,20 @@ class _TrackerScreenState extends State<TrackerScreen> {
       lines.add(
           'MEMX $safeName $kills $deaths $status $intDistance $stale $color');
     }
+    // Include game elapsed only when a baseline is needed (on connection/start/stop or rare resyncs)
+    if (_gameElapsedSec >= 0 && _shouldSendTimerBaseline()) {
+      lines.add('GAME_ELAPSED $_gameElapsedSec');
+    }
     lines.add('ACK $_ackOpId');
     lines.add('SEQ $_seqCounter');
     lines.add('EOT');
     return lines;
+  }
+
+  bool _shouldSendTimerBaseline() {
+    // Send baseline once after connection/active game change or when forced by ticker resync
+    // Heuristic: send when _lastTimerSyncSec == _gameElapsedSec (we set it at the time we decide to resync)
+    return _lastTimerSyncSec == _gameElapsedSec || _seqCounter <= 2;
   }
 
   void _handleInbound(String msg) {
@@ -367,6 +394,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   @override
   void dispose() {
+    _gameTicker?.cancel();
     _combinedSub?.cancel();
     _scoreboardSub?.cancel();
     _myStatsSub?.cancel();
@@ -374,6 +402,26 @@ class _TrackerScreenState extends State<TrackerScreen> {
     _locationsSub?.cancel();
     _filterController.dispose();
     super.dispose();
+  }
+
+  void _ensureGameTicker(BleService ble) {
+    if (_gameStartedAt == null) return;
+    _gameTicker ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      final start = _gameStartedAt;
+      if (start == null) return;
+      final now = DateTime.now();
+      final sec = now.difference(start).inSeconds;
+      if (sec != _gameElapsedSec) {
+        _gameElapsedSec = sec;
+        // Rarely resync over BLE (every 5 minutes) to correct drift without causing UI flicker
+        if (_lastTimerSyncSec == -1 ||
+            (sec / 300) != (_lastTimerSyncSec / 300)) {
+          _lastTimerSyncSec = sec;
+          _sendSnapshotIfConnected(
+              Provider.of<BleService>(context, listen: false));
+        }
+      }
+    });
   }
 
   Future<void> _ensurePermissions() async {
