@@ -40,6 +40,13 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Foreground service notification/channel config for background BLE -->
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:exported="true"
+            tools:replace="android:exported"
+            android:stopWithTask="false"
+            android:foregroundServiceType="dataSync|connectedDevice" />
         <!-- Mapbox access token -->
         <meta-data
             android:name="mapbox_access_token"
@@ -74,5 +81,8 @@ https://developer.android.com/about/versions/12/features/bluetooth-permissions -
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 </manifest>

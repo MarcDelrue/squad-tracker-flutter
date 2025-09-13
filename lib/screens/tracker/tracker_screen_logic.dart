@@ -221,7 +221,9 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
   void _sendSnapshotIfConnected(BleService ble) {
     if (ble.connectedDevice != null) {
       _seqCounter++;
-      ble.sendLines(_buildSnapshotLines());
+      final lines = _buildSnapshotLines();
+      // Send immediately and update background snapshot cache
+      ble.updateSnapshot(lines);
     }
   }
 

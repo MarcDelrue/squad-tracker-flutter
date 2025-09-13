@@ -5,6 +5,8 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:squad_tracker_flutter/background/ble_foreground_task.dart';
 
 /// BLE UART (Nordic UART Service) UUIDs
 class BleUartUuids {
@@ -46,6 +48,13 @@ class BleService with ChangeNotifier {
   bool _isScanning = false;
   bool _isConnecting = false;
   bool _isDisposed = false;
+
+  // Store the last built snapshot lines from the UI so we can
+  // continue sending them periodically while in background.
+  List<String> _lastSnapshotLines = <String>[];
+  Timer? _snapshotTimer;
+  static const Duration _snapshotInterval = Duration(seconds: 5);
+  int _bgSeq = 0; // background sequence tracker derived from last snapshot
 
   List<DiscoveredDevice> get devices => List.unmodifiable(_devices);
   BluetoothDevice? get connectedDevice => _connectedDevice;
@@ -228,7 +237,7 @@ class BleService with ChangeNotifier {
       if (_isDisposed) return;
       await _txCharacteristic!.setNotifyValue(true);
       await _txNotifySub?.cancel();
-      _txNotifySub = _txCharacteristic!.lastValueStream.listen((data) {
+      _txNotifySub = _txCharacteristic!.onValueReceived.listen((data) {
         if (_isDisposed || data.isEmpty) return;
         final String chunk = utf8.decode(data, allowMalformed: true);
         _rxLineBuffer += chunk;
@@ -243,6 +252,21 @@ class BleService with ChangeNotifier {
         }
         _notifyIfNotDisposed();
       });
+
+      // Keep device awake while a BLE device is connected to ensure
+      // continuous communication even when the screen would otherwise sleep.
+      try {
+        await WakelockPlus.enable();
+      } catch (_) {}
+
+      // Start a minimal foreground service on Android to keep BLE alive when
+      // the app is backgrounded. No-op on iOS.
+      try {
+        await startBleForegroundService();
+      } catch (_) {}
+
+      // Start periodic snapshot sender so updates continue while app is backgrounded
+      _startSnapshotTimer();
 
       // Persist last connected device for this user
       final String? uid = UserService().currentUser?.id;
@@ -262,6 +286,14 @@ class BleService with ChangeNotifier {
           _rxCharacteristic = null;
           _txCharacteristic = null;
           _connectedDevice = null;
+          try {
+            await WakelockPlus.disable();
+          } catch (_) {}
+          try {
+            await stopBleForegroundService();
+          } catch (_) {}
+          _snapshotTimer?.cancel();
+          _snapshotTimer = null;
           _notifyIfNotDisposed();
         }
       });
@@ -287,6 +319,14 @@ class BleService with ChangeNotifier {
       } catch (_) {}
     }
     _connectedDevice = null;
+    try {
+      await WakelockPlus.disable();
+    } catch (_) {}
+    try {
+      await stopBleForegroundService();
+    } catch (_) {}
+    _snapshotTimer?.cancel();
+    _snapshotTimer = null;
     _notifyIfNotDisposed();
   }
 
@@ -299,9 +339,11 @@ class BleService with ChangeNotifier {
     final List<int> bytes = utf8.encode(withNewline);
     // Prefer write without response for throughput; fall back if not supported
     try {
-      await _rxCharacteristic!.write(bytes, withoutResponse: true);
-    } catch (_) {
+      // Prefer reliability in background: use write WITH response
       await _rxCharacteristic!.write(bytes, withoutResponse: false);
+    } catch (_) {
+      // Best-effort fallback
+      await _rxCharacteristic!.write(bytes, withoutResponse: true);
     }
   }
 
@@ -333,10 +375,60 @@ class BleService with ChangeNotifier {
   Future<void> _writeChunk(String data) async {
     final List<int> bytes = utf8.encode(data);
     try {
-      await _rxCharacteristic!.write(bytes, withoutResponse: true);
-    } catch (_) {
       await _rxCharacteristic!.write(bytes, withoutResponse: false);
+    } catch (_) {
+      await _rxCharacteristic!.write(bytes, withoutResponse: true);
     }
+  }
+
+  // Public API for UI to provide latest snapshot lines.
+  // Sends immediately if connected, and stores for periodic resends.
+  Future<void> updateSnapshot(List<String> lines) async {
+    _lastSnapshotLines = List<String>.from(lines);
+    // derive starting bg seq from provided lines if present
+    try {
+      final seqLine = _lastSnapshotLines.firstWhere((l) => l.startsWith('SEQ '),
+          orElse: () => '');
+      if (seqLine.isNotEmpty) {
+        final v = int.tryParse(seqLine.substring(4));
+        if (v != null) _bgSeq = v;
+      }
+    } catch (_) {}
+    if (_rxCharacteristic != null) {
+      try {
+        await sendLines(lines);
+      } catch (_) {}
+    }
+  }
+
+  void _startSnapshotTimer() {
+    _snapshotTimer?.cancel();
+    _snapshotTimer = Timer.periodic(_snapshotInterval, (_) async {
+      if (_rxCharacteristic == null) return;
+      if (_lastSnapshotLines.isEmpty) return;
+      try {
+        // Bump SEQ so device applies snapshot
+        final List<String> copy = List<String>.from(_lastSnapshotLines);
+        bool replaced = false;
+        for (int i = 0; i < copy.length; i++) {
+          if (copy[i].startsWith('SEQ ')) {
+            _bgSeq = _bgSeq + 1;
+            copy[i] = 'SEQ ' + _bgSeq.toString();
+            replaced = true;
+            break;
+          }
+        }
+        if (!replaced) {
+          _bgSeq = _bgSeq + 1;
+          copy.add('SEQ ' + _bgSeq.toString());
+        }
+        if (!copy.isNotEmpty || copy.last != 'EOT') {
+          // ensure EOT at end
+          copy.add('EOT');
+        }
+        await sendLines(copy);
+      } catch (_) {}
+    });
   }
 
   // --- Simple RTT tracking by SEQ ---
