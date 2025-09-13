@@ -12,6 +12,9 @@ import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'package:squad_tracker_flutter/models/user_with_location_session_model.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/screens/tracker/widgets/scan_controls.dart';
+import 'package:squad_tracker_flutter/screens/tracker/widgets/device_list.dart';
+import 'package:squad_tracker_flutter/screens/tracker/widgets/connected_panel.dart';
 
 class TrackerScreen extends StatefulWidget {
   const TrackerScreen({super.key});
@@ -483,105 +486,37 @@ class _TrackerScreenState extends State<TrackerScreen> {
           ),
           body: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _filterController,
-                        decoration: InputDecoration(
-                          labelText:
-                              AppLocalizations.of(context)!.nameFilterHint,
-                          border: const OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: ble.isScanning
-                          ? null
-                          : () async {
-                              await _ensurePermissions();
-                              await ble.ensureAdapterOn();
-                              await ble.startScan(
-                                  nameFilter:
-                                      _filterController.text.trim().isEmpty
-                                          ? null
-                                          : _filterController.text.trim());
-                            },
-                      child: Text(AppLocalizations.of(context)!.scan),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: ble.isScanning ? () => ble.stopScan() : null,
-                      child: Text(AppLocalizations.of(context)!.stop),
-                    ),
-                  ],
-                ),
+              ScanControls(
+                filterController: _filterController,
+                isScanning: ble.isScanning,
+                onStartScan: (String? nameFilter) async {
+                  await _ensurePermissions();
+                  await ble.ensureAdapterOn();
+                  await ble.startScan(nameFilter: nameFilter);
+                },
+                onStopScan: ble.isScanning ? () => ble.stopScan() : null,
               ),
               if (ble.connectedDevice == null)
                 Expanded(
-                  child: ListView.separated(
-                    itemCount: ble.devices.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final d = ble.devices[index];
-                      return ListTile(
-                        leading: const Icon(Icons.bluetooth),
-                        title: Text(
-                            d.name.isNotEmpty ? d.name : d.device.remoteId.str),
-                        subtitle: Text('RSSI ${d.rssi}'),
-                        trailing: ble.isConnecting
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : ElevatedButton(
-                                onPressed: () async {
-                                  await ble.connect(d.device);
-                                },
-                                child:
-                                    Text(AppLocalizations.of(context)!.connect),
-                              ),
-                      );
+                  child: DeviceList(
+                    devices: ble.devices,
+                    isConnecting: ble.isConnecting,
+                    onConnect: (d) async {
+                      await ble.connect(d.device);
                     },
                   ),
                 )
               else
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.bluetooth_connected),
-                        title: Text(ble.connectedDevice!.platformName.isNotEmpty
+                  child: ConnectedPanel(
+                    connectedDeviceName:
+                        ble.connectedDevice!.platformName.isNotEmpty
                             ? ble.connectedDevice!.platformName
-                            : ble.connectedDevice!.remoteId.str),
-                        trailing: ElevatedButton(
-                          onPressed: () => ble.disconnect(),
-                          child: Text(AppLocalizations.of(context)!.disconnect),
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Row(
-                          children: [
-                            const Spacer(),
-                            ElevatedButton(
-                              onPressed: () async {
-                                _sendSnapshotIfConnected(ble);
-                              },
-                              child: Text(
-                                  AppLocalizations.of(context)!.syncToDevice),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                            : ble.connectedDevice!.remoteId.str,
+                    onDisconnect: () => ble.disconnect(),
+                    onSync: () {
+                      _sendSnapshotIfConnected(ble);
+                    },
                   ),
                 ),
             ],
