@@ -54,6 +54,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   Timer? _gameTicker;
   int _gameElapsedSec = -1; // -1 means no game
   int _lastTimerSyncSec = -1;
+  String _gameState = 'none'; // active | ended | none
 
   // No extra boilerplate needed: mixin now targets _TrackerScreenState directly
 

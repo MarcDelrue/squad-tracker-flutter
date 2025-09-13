@@ -111,6 +111,7 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
       if (newGameId == null) {
         _gameStartedAt = null;
         _gameElapsedSec = -1;
+        _gameState = 'ended';
         _gameTicker?.cancel();
         _gameTicker = null;
         _sendSnapshotIfConnected(ble);
@@ -128,6 +129,7 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
       _gameStartedAt = start;
       _gameElapsedSec =
           start == null ? -1 : DateTime.now().difference(start).inSeconds;
+      _gameState = 'active';
       _lastTimerSyncSec = -1;
       _ensureGameTicker(ble);
       _myKills = 0;
@@ -281,9 +283,16 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
       lines.add(
           'MEMX $safeName $kills $deaths $status $intDistance $stale $color');
     }
+r    // Always send baseline for game timer state:
+    // - Non-negative seconds => active game with elapsed timer
+    // - -1 => no active game (device should stop timer and show label)
     if (_gameElapsedSec >= 0 && _shouldSendTimerBaseline()) {
       lines.add('GAME_ELAPSED $_gameElapsedSec');
+    } else if (_gameElapsedSec < 0 && _shouldSendTimerBaseline()) {
+      lines.add('GAME_ELAPSED -1');
     }
+    // Also include explicit game state for UI messaging on device
+    lines.add('GAME_STATE ' + _gameState);
     lines.add('ACK $_ackOpId');
     lines.add('SEQ $_seqCounter');
     lines.add('EOT');
