@@ -220,6 +220,38 @@ Additional policies to enforce:
 - Android token: stored in `android/gradle.properties`; read at runtime (no `--dart-define`).
 - iOS token: stored in Xcode config (e.g., `Runner.xcconfig`); read at runtime (no `--dart-define`).
 
+### Internationalization (i18n)
+- Uses Flutter `gen_l10n` with ARB files in `lib/l10n/`.
+  - Template: `app_en.arb` (English) — source of truth for keys.
+  - French: `app_fr.arb`.
+  - Generator config: `l10n.yaml` → outputs to `lib/l10n/gen/app_localizations.dart` with `synthetic-package: false`.
+- App wiring (see `lib/main.dart`):
+  - `localizationsDelegates` and `supportedLocales` from `AppLocalizations`.
+  - `onGenerateTitle` uses `AppLocalizations.of(context)?.appTitle`.
+  - `localeResolutionCallback` falls back to `Locale('en')` when unsupported.
+- Locale selection (see `lib/providers/locale_provider.dart`):
+  - Persists user choice in `SharedPreferences` under key `app_locale_code`.
+  - Allowed saved codes: `en`, `fr`. App starts with system locale if none saved.
+  - `isInitialized` gates the first frame until the saved locale is loaded.
+- Relative time strings: `timeago` locales registered for `en`, `en_short`, `fr`, `fr_short` in `main.dart`.
+- Using strings in code:
+  - No imports from a synthetic package; import generated file directly: `package:squad_tracker_flutter/l10n/gen/app_localizations.dart`.
+  - Access via `AppLocalizations.of(context)!` (e.g., `AppLocalizations.of(context)!.loginTitle`).
+  - Placeholders: define in ARB with `@key.placeholders` and call like `AppLocalizations.of(context)!.confirmKickUserBody(username)`.
+- Adding a new string:
+  1) Add the key/value to `lib/l10n/app_en.arb` (and placeholder metadata if needed).
+  2) Add the same key to `lib/l10n/app_fr.arb`.
+  3) Regenerate: run `flutter gen-l10n` (or build/run; generation happens automatically).
+  4) Use it via `AppLocalizations` in widgets.
+- Adding a new locale:
+  1) Create `lib/l10n/app_<lang>.arb` mirroring keys from the template.
+  2) If relative times are shown, register `timeago` messages for the new locale in `main.dart`.
+  3) Update `LocaleProvider` to accept the new language code in `_loadSavedLocale` (currently checks `en`/`fr`).
+  4) Rebuild to regenerate `supportedLocales`.
+- Conventions/notes:
+  - Keep keys camelCase; values can include punctuation and placeholders `{name}`.
+  - The generator warns on missing keys or mismatched placeholders across locales.
+
 ### Gameplay Concepts
 - Create squads; members set username, color, role.
 - Configure game rules per squad/game.
