@@ -43,6 +43,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
   StreamSubscription<List<dynamic>>? _locationsSub; // members location updates
   Map<String, Map<String, dynamic>> _scoreByUserId =
       <String, Map<String, dynamic>>{};
+  // Track the most recent activity timestamp per user across location, sessions, and game stats
+  final Map<String, DateTime> _lastActivityByUserId = <String, DateTime>{};
   int _lastProcessedMsgCount = 0;
   String? _lastConnectedRemoteId;
   int? _activeGameId;

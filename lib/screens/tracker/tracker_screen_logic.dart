@@ -30,7 +30,8 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
                 : 'alive');
         final kills = score?['kills'] ?? 0;
         final deaths = score?['deaths'] ?? 0;
-        final updatedAt = r.location?.updated_at;
+        final updatedAt =
+            _maxDate(r.location?.updated_at, _lastActivityByUserId[uid]);
         int staleBucket = 2; // default stale if unknown
         if (updatedAt != null) {
           final age = DateTime.now().toUtc().difference(updatedAt.toUtc());
@@ -76,6 +77,17 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
       final distances = _combinedService!
           .userSquadLocationService.currentMembersDistanceFromUser;
       if (distances == null) return;
+      final locs =
+          _combinedService!.userSquadLocationService.currentMembersLocation;
+      if (locs != null) {
+        for (final l in locs) {
+          final ts = l.updated_at?.toUtc();
+          if (ts != null) {
+            _lastActivityByUserId[l.user_id] =
+                _maxDate(_lastActivityByUserId[l.user_id], ts) ?? ts;
+          }
+        }
+      }
       _members = _members.map((m) {
         final id = m['id'] as String?;
         if (id != null && distances.containsKey(id)) {
@@ -134,6 +146,7 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
       _scoreboardSub =
           GameService().streamScoreboardByGame(newGameId).listen((rows) {
         final Map<String, Map<String, dynamic>> byId = {};
+        final Map<String, Map<String, dynamic>> prevById = _scoreByUserId;
         for (final r in rows) {
           final uid = r['user_id'] as String?;
           if (uid == null) continue;
@@ -142,6 +155,21 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
             'deaths': (r['deaths'] ?? 0) as int,
             'status': r['user_status'] as String?,
           };
+          // Mark activity ONLY for users whose scoreboard row actually changed
+          final prev = prevById[uid];
+          if (prev != null) {
+            final int prevKills = (prev['kills'] ?? 0) as int;
+            final int prevDeaths = (prev['deaths'] ?? 0) as int;
+            final String prevStatus = (prev['status'] as String?) ?? '';
+            final int curKills = (byId[uid]?['kills'] ?? 0) as int;
+            final int curDeaths = (byId[uid]?['deaths'] ?? 0) as int;
+            final String curStatus = (byId[uid]?['status'] as String?) ?? '';
+            if (prevKills != curKills ||
+                prevDeaths != curDeaths ||
+                prevStatus != curStatus) {
+              _lastActivityByUserId[uid] = DateTime.now().toUtc();
+            }
+          }
         }
         final me = UserService().currentUser;
         String? myStatusFromScore;
@@ -264,6 +292,12 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
     return _lastTimerSyncSec == _gameElapsedSec || _seqCounter <= 2;
   }
 
+  DateTime? _maxDate(DateTime? a, DateTime? b) {
+    if (a == null) return b;
+    if (b == null) return a;
+    return a.isAfter(b) ? a : b;
+  }
+
   void _handleInbound(String msg) {
     if (msg.startsWith('OP ')) {
       final parts = msg.split(' ');
@@ -281,6 +315,11 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
             if (wasAlive) {
               _myDeaths = _myDeaths + 1;
             }
+            // Mark my own recent activity
+            final me = UserService().currentUser;
+            if (me != null) {
+              _lastActivityByUserId[me.id] = DateTime.now().toUtc();
+            }
             _sendSnapshotIfConnected(
                 Provider.of<BleService>(context, listen: false));
             final nextServer = _myStatus == 'alive' ? 'ALIVE' : 'DEAD';
@@ -292,6 +331,10 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
           if (squad != null) {
             if (_myStatus == 'alive') {
               _myKills = _myKills + 1;
+            }
+            final me = UserService().currentUser;
+            if (me != null) {
+              _lastActivityByUserId[me.id] = DateTime.now().toUtc();
             }
             _sendSnapshotIfConnected(
                 Provider.of<BleService>(context, listen: false));
@@ -308,6 +351,10 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
         if (wasAlive) {
           _myDeaths = _myDeaths + 1;
         }
+        final me = UserService().currentUser;
+        if (me != null) {
+          _lastActivityByUserId[me.id] = DateTime.now().toUtc();
+        }
         _sendSnapshotIfConnected(
             Provider.of<BleService>(context, listen: false));
         final nextServer = _myStatus == 'alive' ? 'ALIVE' : 'DEAD';
@@ -320,6 +367,10 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
           _myKills = _myKills + 1;
           _sendSnapshotIfConnected(
               Provider.of<BleService>(context, listen: false));
+        }
+        final me = UserService().currentUser;
+        if (me != null) {
+          _lastActivityByUserId[me.id] = DateTime.now().toUtc();
         }
         GameService().bumpKill(int.parse(squad.id));
       }
