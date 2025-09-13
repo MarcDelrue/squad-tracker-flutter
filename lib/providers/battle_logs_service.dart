@@ -114,12 +114,56 @@ class BattleLogsService extends ChangeNotifier {
   void _pushLogs(List<BattleLogModel> newBattleLogs) {
     if (newBattleLogs.isEmpty) return;
     for (var battleLog in newBattleLogs) {
-      _battleLogs.insert(0, battleLog);
+      _insertOrMerge(battleLog);
       if (_battleLogs.length > 15) {
         _battleLogs.removeAt(15);
       }
     }
     notifyListeners();
+  }
+
+  bool _isKillLog(BattleLogModel log) => log.status == 'KILL';
+
+  String _formatKillText(User user, int mergedCount, int killsFinal) {
+    final username = youOrOtherUsername(user);
+    if (mergedCount <= 1) {
+      return "$username killed an enemy — kills: $killsFinal";
+    }
+    return "$username killed $mergedCount enemies — kills: $killsFinal";
+  }
+
+  void _insertOrMerge(BattleLogModel log) {
+    // For KILL logs, merge with the most recent entry if it's also a KILL by the same user.
+    if (_isKillLog(log)) {
+      // Ensure text and kills are consistent before considering merge
+      final killsFinal = log.kills;
+      if (_battleLogs.isNotEmpty) {
+        final top = _battleLogs.first;
+        if (_isKillLog(top) && top.user.id == log.user.id) {
+          final newMergedCount = (top.mergedCount) + (log.mergedCount);
+          final finalKills = killsFinal ?? top.kills ?? 0;
+          final merged = BattleLogModel(
+            user: log.user,
+            status: 'KILL',
+            date: log.date, // keep newest timestamp
+            kills: finalKills,
+            mergedCount: newMergedCount,
+            text: _formatKillText(log.user, newMergedCount, finalKills),
+          );
+          // Replace the top entry with the merged one
+          _battleLogs[0] = merged;
+          return;
+        }
+      }
+      // No merge target found; ensure single-kill text is correct
+      final singleKills = killsFinal ?? 0;
+      log.text = _formatKillText(log.user, log.mergedCount, singleKills);
+      _battleLogs.insert(0, log);
+      return;
+    }
+
+    // Default behavior for non-KILL logs
+    _battleLogs.insert(0, log);
   }
 
   Future<void> _startGameStatsListening() async {
@@ -151,7 +195,8 @@ class BattleLogsService extends ChangeNotifier {
             user: user,
             status: 'KILL',
             date: DateTime.now(),
-            text: "${youOrOtherUsername(user)} killed an enemy — kills: $kills",
+            kills: kills,
+            text: _formatKillText(user, 1, kills),
           ));
         }
         // Death bump (status may or may not also change)
@@ -170,14 +215,17 @@ class BattleLogsService extends ChangeNotifier {
                 ? UserSquadSessionStatusExtension.fromValue(prevStatus)
                 : UserSquadSessionStatus.alive;
             final newS = UserSquadSessionStatusExtension.fromValue(statusStr);
-            newLogs.add(BattleLogModel(
-              user: user,
-              status: newS.toText,
-              previousStatus: oldS.toText,
-              date: DateTime.now(),
-              text:
-                  "${youOrOtherUsername(user)} ${generateLogText(oldS, newS)}",
-            ));
+            // Avoid redundant "You died" when deaths bump already communicates it
+            if (newS != UserSquadSessionStatus.dead) {
+              newLogs.add(BattleLogModel(
+                user: user,
+                status: newS.toText,
+                previousStatus: oldS.toText,
+                date: DateTime.now(),
+                text:
+                    "${youOrOtherUsername(user)} ${generateLogText(oldS, newS)}",
+              ));
+            }
           } catch (_) {}
         }
 
