@@ -65,6 +65,7 @@ class MapWithLocationState extends State<MapWithLocation> {
           GameTimerChip(startedAt: _startedAt, elapsed: _elapsed),
           MapControlButtons(
             isGeolocationDisabled: !_isGeolocationEnabled,
+            showBattleLogs: _showBattleLogs,
             onBattleLogsPressed: () {
               setState(() {
                 _showBattleLogs = !_showBattleLogs;

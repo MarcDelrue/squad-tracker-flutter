@@ -342,4 +342,47 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get leftTheSquad => 'a quitté l\'escouade';
+
+  @override
+  String get statusDied => 'Mort';
+
+  @override
+  String get statusDead => 'Mort';
+
+  @override
+  String get statusSendHelp => 'Besoin d\'aide';
+
+  @override
+  String get statusHelpAsked => 'Aide demandée';
+
+  @override
+  String get statusSendMedic => 'Besoin d\'un médic';
+
+  @override
+  String get statusMedicAsked => 'Médic demandé';
+
+  @override
+  String get fixMistakes => 'Corriger les erreurs';
+
+  @override
+  String get killMinusOne => 'Élimination -1';
+
+  @override
+  String get deathMinusOne => 'Mort -1';
+
+  @override
+  String get killDecremented => 'Élimination décrémentée';
+
+  @override
+  String get deathDecremented => 'Mort décrémentée';
+
+  @override
+  String get failedToDecrementKill =>
+      'Échec de la décrémentation de l\'élimination';
+
+  @override
+  String get failedToDecrementDeath => 'Échec de la décrémentation de la mort';
+
+  @override
+  String get statusActions => 'Statut';
 }

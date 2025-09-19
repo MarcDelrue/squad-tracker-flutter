@@ -39,6 +39,18 @@ class GameService extends ChangeNotifier {
     });
   }
 
+  Future<void> decrementKill(int squadId) async {
+    await _sb.rpc('decrement_kill', params: {
+      'p_squad_id': squadId,
+    });
+  }
+
+  Future<void> decrementDeath(int squadId) async {
+    await _sb.rpc('decrement_death', params: {
+      'p_squad_id': squadId,
+    });
+  }
+
   Future<int?> getActiveGameId(int squadId) async {
     final resp = await _sb.rpc('get_active_game_id', params: {
       'p_squad_id': squadId,

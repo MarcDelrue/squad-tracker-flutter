@@ -340,4 +340,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get leftTheSquad => 'left the squad';
+
+  @override
+  String get statusDied => 'Died';
+
+  @override
+  String get statusDead => 'Dead';
+
+  @override
+  String get statusSendHelp => 'Send help';
+
+  @override
+  String get statusHelpAsked => 'Help asked';
+
+  @override
+  String get statusSendMedic => 'Send medic';
+
+  @override
+  String get statusMedicAsked => 'Medic asked';
+
+  @override
+  String get fixMistakes => 'Fix mistakes';
+
+  @override
+  String get killMinusOne => 'Kill -1';
+
+  @override
+  String get deathMinusOne => 'Death -1';
+
+  @override
+  String get killDecremented => 'Kill decremented';
+
+  @override
+  String get deathDecremented => 'Death decremented';
+
+  @override
+  String get failedToDecrementKill => 'Failed to decrement kill';
+
+  @override
+  String get failedToDecrementDeath => 'Failed to decrement death';
+
+  @override
+  String get statusActions => 'Status';
 }

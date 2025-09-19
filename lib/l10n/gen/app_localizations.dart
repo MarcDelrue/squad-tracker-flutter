@@ -715,6 +715,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'left the squad'**
   String get leftTheSquad;
+
+  /// No description provided for @statusDied.
+  ///
+  /// In en, this message translates to:
+  /// **'Died'**
+  String get statusDied;
+
+  /// No description provided for @statusDead.
+  ///
+  /// In en, this message translates to:
+  /// **'Dead'**
+  String get statusDead;
+
+  /// No description provided for @statusSendHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Send help'**
+  String get statusSendHelp;
+
+  /// No description provided for @statusHelpAsked.
+  ///
+  /// In en, this message translates to:
+  /// **'Help asked'**
+  String get statusHelpAsked;
+
+  /// No description provided for @statusSendMedic.
+  ///
+  /// In en, this message translates to:
+  /// **'Send medic'**
+  String get statusSendMedic;
+
+  /// No description provided for @statusMedicAsked.
+  ///
+  /// In en, this message translates to:
+  /// **'Medic asked'**
+  String get statusMedicAsked;
+
+  /// No description provided for @fixMistakes.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix mistakes'**
+  String get fixMistakes;
+
+  /// No description provided for @killMinusOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Kill -1'**
+  String get killMinusOne;
+
+  /// No description provided for @deathMinusOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Death -1'**
+  String get deathMinusOne;
+
+  /// No description provided for @killDecremented.
+  ///
+  /// In en, this message translates to:
+  /// **'Kill decremented'**
+  String get killDecremented;
+
+  /// No description provided for @deathDecremented.
+  ///
+  /// In en, this message translates to:
+  /// **'Death decremented'**
+  String get deathDecremented;
+
+  /// No description provided for @failedToDecrementKill.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to decrement kill'**
+  String get failedToDecrementKill;
+
+  /// No description provided for @failedToDecrementDeath.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to decrement death'**
+  String get failedToDecrementDeath;
+
+  /// No description provided for @statusActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get statusActions;
 }
 
 class _AppLocalizationsDelegate

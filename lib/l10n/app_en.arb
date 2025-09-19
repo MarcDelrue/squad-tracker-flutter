@@ -109,6 +109,20 @@
   "enableGeolocation": "Enable Geolocation",
   "you": "You",
   "joinedTheSquad": "joined the squad",
-  "leftTheSquad": "left the squad"
+  "leftTheSquad": "left the squad",
+  "statusDied": "Died",
+  "statusDead": "Dead",
+  "statusSendHelp": "Send help",
+  "statusHelpAsked": "Help asked",
+  "statusSendMedic": "Send medic",
+  "statusMedicAsked": "Medic asked",
+  "fixMistakes": "Fix mistakes",
+  "killMinusOne": "Kill -1",
+  "deathMinusOne": "Death -1",
+  "killDecremented": "Kill decremented",
+  "deathDecremented": "Death decremented",
+  "failedToDecrementKill": "Failed to decrement kill",
+  "failedToDecrementDeath": "Failed to decrement death",
+  "statusActions": "Status"
 }
 

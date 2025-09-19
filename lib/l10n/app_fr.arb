@@ -109,6 +109,20 @@
   "enableGeolocation": "Activer la géolocalisation",
   "you": "Vous",
   "joinedTheSquad": "a rejoint l'escouade",
-  "leftTheSquad": "a quitté l'escouade"
+  "leftTheSquad": "a quitté l'escouade",
+  "statusDied": "Mort",
+  "statusDead": "Mort",
+  "statusSendHelp": "Besoin d'aide",
+  "statusHelpAsked": "Aide demandée",
+  "statusSendMedic": "Besoin d'un médic",
+  "statusMedicAsked": "Médic demandé",
+  "fixMistakes": "Corriger les erreurs",
+  "killMinusOne": "Élimination -1",
+  "deathMinusOne": "Mort -1",
+  "killDecremented": "Élimination décrémentée",
+  "deathDecremented": "Mort décrémentée",
+  "failedToDecrementKill": "Échec de la décrémentation de l'élimination",
+  "failedToDecrementDeath": "Échec de la décrémentation de la mort",
+  "statusActions": "Statut"
 }
 

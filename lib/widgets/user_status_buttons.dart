@@ -150,37 +150,51 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
             _currentStatus == UserSquadSessionStatus.help) &&
         _activeGameId != null;
     if (squadId == null || !canKill) return const SizedBox.shrink();
-    return OutlinedButton.icon(
-      onPressed: () async {
-        try {
-          await gameService.bumpKill(int.parse(squadId));
-          if (!mounted) return;
-          final messenger = ScaffoldMessenger.of(context);
-          messenger.hideCurrentSnackBar();
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context)!.plusOneKillRecorded),
-              action: SnackBarAction(
-                label: AppLocalizations.of(context)!.undo,
-                onPressed: () {
-                  // Optional: requires adjust_stats RPC; noop for now
-                },
-              ),
-            ),
-          );
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(AppLocalizations.of(context)!.failedToAddKill),
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
-            );
-          }
-        }
-      },
-      icon: const Icon(Icons.add_task),
-      label: Text(AppLocalizations.of(context)!.plusOneKill),
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 48,
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              try {
+                await gameService.bumpKill(int.parse(squadId));
+                if (!mounted) return;
+                final messenger = ScaffoldMessenger.of(context);
+                messenger.hideCurrentSnackBar();
+                messenger.showSnackBar(
+                  SnackBar(
+                    content:
+                        Text(AppLocalizations.of(context)!.plusOneKillRecorded),
+                    action: SnackBarAction(
+                      label: AppLocalizations.of(context)!.undo,
+                      onPressed: () async {
+                        try {
+                          await gameService.decrementKill(int.parse(squadId));
+                        } catch (_) {}
+                      },
+                    ),
+                  ),
+                );
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          Text(AppLocalizations.of(context)!.failedToAddKill),
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.add_task),
+            label: Text(AppLocalizations.of(context)!.plusOneKill),
+          ),
+        ),
+      ],
     );
   }
 
@@ -188,24 +202,136 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        _buildKillButton(),
+        const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildToggleButton(
-                'Died', 'Dead', Colors.grey, UserSquadSessionStatus.dead),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: _buildToggleButton(l10n.statusDied, l10n.statusDead,
+                  Colors.grey, UserSquadSessionStatus.dead),
+            ),
             const SizedBox(width: 10),
-            _buildToggleButton('Send help', 'Help asked', Colors.red,
-                UserSquadSessionStatus.help),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: _buildToggleButton(
+                  l10n.statusSendHelp,
+                  l10n.statusHelpAsked,
+                  Colors.red,
+                  UserSquadSessionStatus.help),
+            ),
             const SizedBox(width: 10),
-            _buildToggleButton('Send medic', 'Medic asked', Colors.orange,
-                UserSquadSessionStatus.medic),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: _buildToggleButton(
+                  l10n.statusSendMedic,
+                  l10n.statusMedicAsked,
+                  Colors.orange,
+                  UserSquadSessionStatus.medic),
+            ),
           ],
         ),
         const SizedBox(height: 12),
-        _buildKillButton(),
+        if (_activeGameId != null) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              l10n.fixMistakes,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 6.0),
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final squadId = squadService.currentSquad?.id;
+                      if (squadId == null) return;
+                      try {
+                        await gameService.decrementKill(int.parse(squadId));
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(l10n.killDecremented),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.failedToDecrementKill),
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.error,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.restore),
+                    label: Text(l10n.killMinusOne),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.orange,
+                      side: const BorderSide(color: Colors.orange),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 6.0),
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final squadId = squadService.currentSquad?.id;
+                      if (squadId == null) return;
+                      try {
+                        await gameService.decrementDeath(int.parse(squadId));
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(l10n.deathDecremented),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(l10n.failedToDecrementDeath),
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.error,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.restore),
+                    label: Text(l10n.deathMinusOne),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.orange,
+                      side: const BorderSide(color: Colors.orange),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
