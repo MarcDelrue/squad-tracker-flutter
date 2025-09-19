@@ -413,14 +413,14 @@ class BleService with ChangeNotifier {
         for (int i = 0; i < copy.length; i++) {
           if (copy[i].startsWith('SEQ ')) {
             _bgSeq = _bgSeq + 1;
-            copy[i] = 'SEQ ' + _bgSeq.toString();
+            copy[i] = 'SEQ $_bgSeq';
             replaced = true;
             break;
           }
         }
         if (!replaced) {
           _bgSeq = _bgSeq + 1;
-          copy.add('SEQ ' + _bgSeq.toString());
+          copy.add('SEQ $_bgSeq');
         }
         if (!copy.isNotEmpty || copy.last != 'EOT') {
           // ensure EOT at end
