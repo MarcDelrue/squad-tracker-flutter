@@ -3,11 +3,13 @@ import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
 
 class MapControlButtons extends StatelessWidget {
   final bool isGeolocationDisabled;
+  final bool showBattleLogs;
   final VoidCallback onBattleLogsPressed;
 
   const MapControlButtons({
     super.key,
     required this.isGeolocationDisabled,
+    required this.showBattleLogs,
     required this.onBattleLogsPressed,
   });
 
@@ -61,16 +63,16 @@ class MapControlButtons extends StatelessWidget {
             child: FloatingActionButton.small(
               heroTag: 'battle_logs_fab',
               onPressed: onBattleLogsPressed,
-              backgroundColor: Colors.white,
+              backgroundColor: showBattleLogs ? Colors.blue : Colors.white,
               shape: CircleBorder(
                 side: BorderSide(
-                  color: Colors.blue,
+                  color: showBattleLogs ? Colors.white : Colors.blue,
                   width: 2.0,
                 ),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.list_alt,
-                color: Colors.blue,
+                color: showBattleLogs ? Colors.white : Colors.blue,
               ),
             ),
           ),
