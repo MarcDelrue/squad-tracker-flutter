@@ -21,7 +21,9 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
   final userService = UserService();
 
   UserSquadSessionStatus? _currentStatus;
+  int? _activeGameId;
   StreamSubscription<List<Map<String, dynamic>>>? _scoreboardSub;
+  StreamSubscription<Map<String, dynamic>?>? _gameMetaSub;
 
   // Respawn countdown can be sourced from GameService in future
 
@@ -35,6 +37,7 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
   @override
   void dispose() {
     _scoreboardSub?.cancel();
+    _gameMetaSub?.cancel();
     super.dispose();
   }
 
@@ -42,38 +45,53 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
     final currentSquad = squadService.currentSquad;
     if (currentSquad == null) return;
 
-    final gameId =
-        await gameService.getActiveGameId(int.parse(currentSquad.id));
-    if (!mounted) return;
+    // Cancel existing subscriptions
     _scoreboardSub?.cancel();
+    _gameMetaSub?.cancel();
 
-    if (gameId != null) {
-      _scoreboardSub =
-          gameService.streamScoreboardByGame(gameId).listen((rows) {
-        final currentUserId = userService.currentUser?.id;
-        if (currentUserId == null) return;
+    // Listen to game meta changes to track active game ID
+    _gameMetaSub = gameService
+        .streamActiveGameMetaBySquad(int.parse(currentSquad.id))
+        .listen((meta) {
+      if (!mounted) return;
 
-        // Find the current user's status from the game stats
-        final userRow =
-            rows.where((r) => r['user_id'] == currentUserId).firstOrNull;
-        if (userRow != null) {
-          final statusString = userRow['user_status'] as String?;
-          if (statusString != null) {
-            try {
-              final newStatus =
-                  UserSquadSessionStatusExtension.fromValue(statusString);
-              if (mounted && _currentStatus != newStatus) {
-                setState(() {
-                  _currentStatus = newStatus;
-                });
+      setState(() {
+        _activeGameId = meta != null ? (meta['id'] as num?)?.toInt() : null;
+      });
+
+      // Subscribe to scoreboard if there's an active game
+      if (_activeGameId != null) {
+        _scoreboardSub =
+            gameService.streamScoreboardByGame(_activeGameId!).listen((rows) {
+          final currentUserId = userService.currentUser?.id;
+          if (currentUserId == null) return;
+
+          // Find the current user's status from the game stats
+          final userRow =
+              rows.where((r) => r['user_id'] == currentUserId).firstOrNull;
+          if (userRow != null) {
+            final statusString = userRow['user_status'] as String?;
+            if (statusString != null) {
+              try {
+                final newStatus =
+                    UserSquadSessionStatusExtension.fromValue(statusString);
+                if (mounted && _currentStatus != newStatus) {
+                  setState(() {
+                    _currentStatus = newStatus;
+                  });
+                }
+              } catch (_) {
+                // Handle invalid status values
               }
-            } catch (_) {
-              // Handle invalid status values
             }
           }
-        }
-      });
-    }
+        });
+      } else {
+        // No active game, cancel scoreboard subscription
+        _scoreboardSub?.cancel();
+        _scoreboardSub = null;
+      }
+    });
   }
 
   Widget _buildToggleButton(String text, String toggledText, Color color,
@@ -128,8 +146,9 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
 
   Widget _buildKillButton() {
     final squadId = squadService.currentSquad?.id;
-    final canKill = _currentStatus == UserSquadSessionStatus.alive ||
-        _currentStatus == UserSquadSessionStatus.help;
+    final canKill = (_currentStatus == UserSquadSessionStatus.alive ||
+            _currentStatus == UserSquadSessionStatus.help) &&
+        _activeGameId != null;
     if (squadId == null || !canKill) return const SizedBox.shrink();
     return OutlinedButton.icon(
       onPressed: () async {
