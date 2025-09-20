@@ -102,6 +102,13 @@ Notes:
 - App → Device: `MY_STATUS <alive|dead|help|medic>` is always sent in lowercase within the snapshot block so the device can render status consistently.
 
 #### Schema Details (provided DDL)
+- `game_events`
+  - Columns: `id` (bigserial PK), `created_at`, `occurred_at`, `game_id`, `squad_id`, `user_id` nullable, `event_type` enum, `payload` jsonb.
+  - Event types: `KILL`, `DEATH`, `STATUS_CHANGE`, `JOIN`, `LEAVE`, `GAME_STARTED`, `GAME_ENDED`, `HOST_TRANSFER`.
+  - FKs: `game_id` → `squad_games.id` (ON DELETE CASCADE), `squad_id` → `squads.id` (ON DELETE CASCADE), `user_id` → `users.id` (ON DELETE SET NULL).
+  - Indexes: `game_events_game_id_idx` on `(game_id, occurred_at)`, `game_events_squad_id_idx` on `(squad_id, occurred_at)`.
+  - Purpose: Battle log and game history tracking for final reports.
+
 - `game_rules`
   - Columns: `id` (identity PK), `created_at`, `time_before_death` default 30, `time_before_respawn` default 10, `squad_id`.
   - Constraints: `game_rules_pkey` (PK id), `game_rules_squad_id_key` (UNIQUE squad_id).
@@ -116,20 +123,30 @@ Notes:
   - Columns: `squad_id`, `game_id`, `user_id`, `username`, `kills`, `deaths`, `user_status`, `respawn_available_at`.
   - Sources: join `squad_games sg` + `user_game_stats ugs` + `users u`.
 
+- `scoreboard_final` (VIEW)
+  - Purpose: Final scoreboard for ended games (only where `squad_games.ended_at IS NOT NULL`).
+  - Columns: `game_id`, `squad_id`, `user_id`, `username`, `kills`, `deaths`, `user_status`, `max_kill_streak`.
+  - Sources: join `user_game_stats ugs` + `squad_games sg` + `users u`.
+  - Security: `security_invoker = on` to respect underlying RLS.
+
 - `squad_games`
   - Columns: `id` (bigserial PK), `created_at`, `started_at` default now(), `ended_at` nullable, `squad_id` (required), `host_user_id` nullable.
   - Constraints: `squad_games_pkey` (PK id), `ended_after_started` CHECK (ended_at null or >= started_at).
   - FKs: `host_user_id` → `users.id`, `squad_id` → `squads.id`.
   - Index: `one_active_game_per_squad` UNIQUE on `squad_id` WHERE `ended_at IS NULL`.
+  - Triggers: Auto-log `GAME_STARTED` on INSERT, `GAME_ENDED` when `ended_at` transitions from NULL to non-NULL.
 
 - `squads`
   - Columns: `id` (identity PK), `created_at`, `name`, `uuid` default `substring(md5(random()::text),1,6)`.
   - Constraints: `squads_pkey` (PK id), `squads_id_key` (UNIQUE id), `squads_uuid_key` (UNIQUE uuid).
 
 - `user_game_stats`
-  - Columns: `id` (bigserial PK), `game_id`, `user_id`, `kills` default 0, `deaths` default 0, `user_status` enum default `ALIVE`, `joined_at`, `last_status_change_at`, `respawn_available_at` nullable, `left_at` nullable.
+  - Columns: `id` (bigserial PK), `game_id`, `user_id`, `kills` default 0, `deaths` default 0, `user_status` enum default `ALIVE`, `joined_at`, `last_status_change_at`, `respawn_available_at` nullable, `left_at` nullable, `max_kill_streak` default 0, `current_kill_streak` default 0.
   - Constraints: `user_game_stats_pkey` (PK id), `user_game_stats_unique` (UNIQUE game_id, user_id).
   - FKs: `game_id` → `squad_games.id` (ON DELETE CASCADE), `user_id` → `users.id`.
+  - Triggers: 
+    - `user_game_stats_bu_streaks` BEFORE UPDATE: auto-maintain kill streak counters (increment on kills, reset on deaths/status=DEAD).
+    - `user_game_stats_au_events` AFTER UPDATE: auto-log `KILL`, `DEATH`, `STATUS_CHANGE` events to `game_events`.
 
 - `user_squad_locations`
   - Columns: `id` (identity PK), `created_at`, `updated_at` default now(), `user_id` default `auth.uid()` (required), `squad_id` (required), `longitude`, `latitude`, `direction`.
@@ -146,6 +163,8 @@ Notes:
     - `user_squad_sessions_trigger` AFTER INSERT/DELETE/UPDATE executes `manage_user_squad_locations()`.
     - `user_squad_sessions_biu_host` BEFORE INSERT or UPDATE OF `is_active` executes `auto_assign_host_on_insert_update()`.
     - `user_squad_sessions_aud_host` AFTER UPDATE OF `is_active`, `is_host` OR DELETE executes `reassign_host_if_needed()`.
+    - `user_squad_sessions_au_join_leave` AFTER INSERT/UPDATE OF `is_active`: auto-log `JOIN`/`LEAVE` events during active games.
+    - `user_squad_sessions_au_host_transfer` AFTER UPDATE OF `is_host`: auto-log `HOST_TRANSFER` events during active games.
   - Host rules:
     - Hosts must be active. On deactivation, session is automatically demoted from host.
     - When the host leaves (deactivates or session deleted), transfer host to another active member if any (oldest by `created_at`).
@@ -161,8 +180,24 @@ Notes:
   - FKs: `id` → `auth.users(id)` (ON UPDATE CASCADE, ON DELETE SET DEFAULT), `main_role` → `roles(name)` (ON UPDATE CASCADE, ON DELETE SET NULL).
 
 #### RLS Policies (current)
+- `game_events`
+  - SELECT: role `public`; qual: requester is active member of the same squad:
+    `(EXISTS (SELECT 1 FROM user_squad_sessions uss WHERE uss.squad_id = game_events.squad_id AND uss.user_id = auth.uid() AND uss.is_active = true))`
+  - INSERT: role `authenticated`; with_check: requester is active member of the same squad:
+    `(EXISTS (SELECT 1 FROM user_squad_sessions uss WHERE uss.squad_id = squad_id AND uss.user_id = auth.uid() AND uss.is_active = true))`
+- `game_rules`
+  - SELECT: role `public`; qual: requester is active in the same squad:
+    `(EXISTS (SELECT 1 FROM user_squad_sessions uss WHERE uss.squad_id = game_rules.squad_id AND uss.user_id = auth.uid() AND uss.is_active = true))`
+  - INSERT/UPDATE/DELETE: role `authenticated`; qual + with_check: requester is active host in the same squad:
+    `((SELECT auth.uid()) IN (SELECT uss1.user_id FROM user_squad_sessions uss1 WHERE uss1.squad_id = game_rules.squad_id AND uss1.is_active = true AND uss1.is_host = true))`
 - `roles`
   - SELECT: role `public`; qual: `true`.
+- `scoreboard_current` (VIEW)
+  - View executes with security invoker to respect underlying table RLS:
+    `ALTER VIEW scoreboard_current SET (security_invoker = on);`
+- `scoreboard_final` (VIEW)
+  - View executes with security invoker to respect underlying table RLS:
+    `ALTER VIEW scoreboard_final SET (security_invoker = on);`
 - `squad_games`
   - SELECT: role `public`; qual: EXISTS user session in same squad and active:
     `(EXISTS (SELECT 1 FROM user_squad_sessions uss WHERE uss.squad_id = squad_games.squad_id AND uss.user_id = auth.uid() AND uss.is_active = true))`
@@ -190,29 +225,34 @@ Notes:
   - INSERT: role `public`; with_check: `auth.uid() = id` (two identical policies present).
   - UPDATE: role `public`; qual: `auth.uid() = id` (two identical policies present).
 
-Additional policies to enforce:
-- `game_rules`
-  - SELECT: role `public`; qual: requester is active in the same squad:
-    `(EXISTS (SELECT 1 FROM user_squad_sessions uss WHERE uss.squad_id = game_rules.squad_id AND uss.user_id = auth.uid() AND uss.is_active = true))`
-  - INSERT/UPDATE/DELETE: role `authenticated`; qual + with_check: requester is active host in the same squad:
-    `((SELECT auth.uid()) IN (SELECT uss1.user_id FROM user_squad_sessions uss1 WHERE uss1.squad_id = game_rules.squad_id AND uss1.is_active = true AND uss1.is_host = true))`
-- `scoreboard_current` (VIEW)
-  - View executes with security invoker to respect underlying table RLS:
-    `ALTER VIEW scoreboard_current SET (security_invoker = on);`
-
 ### Mobile App Screens (Flutter)
 - Login (via magic link): Supabase + Resend.
 - User: change name, color, role; disconnect.
 - Squads: join/create squads; view members; see if a game is ongoing; invite users; leave squad; host-only: start game, kick user, reassign host.
+- Squad Lobby:
+  - Game controls: start/end game (host only), game timer display.
+  - Squad members list with host controls.
+  - Past games button: navigates to dedicated past games screen.
+- Past Games Screen:
+  - List of ended games with date, duration, game ID.
+  - "View report" button opens final report overlay for each game.
+  - Pull-to-refresh functionality.
 - Map (Mapbox):
   - Shows members' locations with markers based on status (alive, dead, need medic/help).
   - Controls: center/follow user position.
   - Battle log: events (kills, deaths, status changes, joins/leaves).
   - Game timer when ongoing.
+  - Auto-triggers final report overlay when game ends.
   - FABs → bottom sheets:
     - Members: list with score, status, distance, bearing; sorting by kills, K/D, distance.
     - Actions: toggle statuses (Died, Send help, Send medic). Untoggling returns to Alive. Increment kills. (Future: objective contributions.)
     - Location: currently disable geolocation.
+- Final Report Overlay:
+  - Full-screen modal triggered automatically on game end or manually from past games.
+  - Two tabs: Leaderboard and History.
+  - Leaderboard: sortable by kills, K/D ratio, kill streak; shows rank, username, stats, streak badge.
+  - History: chronological list of game events with icons and timestamps.
+  - Back to Lobby and Share buttons.
 - Tracker: scan BLE devices; connect to user's TTGO; persist device ID for auto-reconnect.
 
 ### Mapping/Keys
@@ -256,15 +296,18 @@ Additional policies to enforce:
 - Create squads; members set username, color, role.
 - Configure game rules per squad/game.
 - Start/stop games; create new ones.
-- Track per-user/per-game stats: kills, deaths, status; show per-game scorecards.
+- Track per-user/per-game stats: kills, deaths, status, kill streaks; show per-game scorecards.
+- End-of-game experience: automatic final report overlay with leaderboard and battle history.
+- Historical game browsing: access past game results and reports from squad lobby.
 
 ### Roadmap / Future
 - TTGO UI:
   - Compass-style view indicating direction to each member.
 - App gameplay/config:
-  - Add i18n in the whole app
   - Define flexible game modes for multiple scenarios.
   - Map editing for objectives and markers (spawn points, objectives, misc markers).
+  - Pagination for game history when events >500.
+  - Share functionality for final reports.
 - Connectivity (later):
   - Explore switching/bridging between cellular data and LoRa for communications.
 
@@ -282,3 +325,14 @@ Additional policies to enforce:
   - Roadmap items completed or new ones added
 - Update the "Assumptions / To Clarify" section as items are resolved.
 - When providing new schema/RLS/enum details, update the relevant sections immediately.
+
+### Recent Updates
+- **Final Report Overlay Feature (2025-01-20)**:
+  - Added `game_events` table for battle log tracking with auto-logging triggers.
+  - Added kill streak tracking (`max_kill_streak`, `current_kill_streak`) to `user_game_stats`.
+  - Added `scoreboard_final` view for ended game scoreboards.
+  - Implemented automatic end-of-game detection and overlay trigger.
+  - Added dedicated Past Games screen accessible from squad lobby.
+  - Added Final Report Overlay with Leaderboard and History tabs.
+  - Added i18n support for new UI elements (EN/FR).
+  - Updated GameService with final report queries and game end detection streams.
