@@ -40,13 +40,13 @@ class GameService extends ChangeNotifier {
   }
 
   Future<void> decrementKill(int squadId) async {
-    await _sb.rpc('decrement_kill', params: {
+    await _sb.rpc('decrease_kill', params: {
       'p_squad_id': squadId,
     });
   }
 
   Future<void> decrementDeath(int squadId) async {
-    await _sb.rpc('decrement_death', params: {
+    await _sb.rpc('decrease_death', params: {
       'p_squad_id': squadId,
     });
   }
