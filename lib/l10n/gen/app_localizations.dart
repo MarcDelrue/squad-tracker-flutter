@@ -809,7 +809,7 @@ abstract class AppLocalizations {
   /// No description provided for @mustBeAliveToKill.
   ///
   /// In en, this message translates to:
-  /// **'You must be alive or need help to record kills'**
+  /// **'You must be alive to record kills'**
   String get mustBeAliveToKill;
 }
 

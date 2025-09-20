@@ -22,6 +22,8 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
 
   UserSquadSessionStatus? _currentStatus;
   int? _activeGameId;
+  int _kills = 0;
+  int _deaths = 0;
   StreamSubscription<List<Map<String, dynamic>>>? _scoreboardSub;
   StreamSubscription<Map<String, dynamic>?>? _gameMetaSub;
 
@@ -83,6 +85,16 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
               } catch (_) {
                 // Handle invalid status values
               }
+            }
+
+            // Update kills and deaths
+            final kills = (userRow['kills'] as num?)?.toInt() ?? 0;
+            final deaths = (userRow['deaths'] as num?)?.toInt() ?? 0;
+            if (mounted && (_kills != kills || _deaths != deaths)) {
+              setState(() {
+                _kills = kills;
+                _deaths = deaths;
+              });
             }
           }
         });
@@ -239,6 +251,66 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Kill/Death count display
+          if (_activeGameId != null) ...[
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(8.0),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$_kills',
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      Text(
+                        'Kills',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                  Container(
+                    height: 30,
+                    width: 1,
+                    color:
+                        Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$_deaths',
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      Text(
+                        'Deaths',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           _buildKillButton(),
           const SizedBox(height: 12),
           Wrap(

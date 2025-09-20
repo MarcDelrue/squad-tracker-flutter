@@ -391,5 +391,5 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get mustBeAliveToKill =>
-      'Vous devez être vivant ou avoir besoin d\'aide pour enregistrer des éliminations';
+      'Vous devez être vivant pour enregistrer des éliminations';
 }

@@ -387,6 +387,5 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noSquadSelected => 'No squad selected';
 
   @override
-  String get mustBeAliveToKill =>
-      'You must be alive or need help to record kills';
+  String get mustBeAliveToKill => 'You must be alive to record kills';
 }
