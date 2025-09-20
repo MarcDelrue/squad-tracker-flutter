@@ -122,6 +122,25 @@ class GameService extends ChangeNotifier {
     }
   }
 
+  Future<Map<String, String>> getUsernamesByIds(List<String> userIds) async {
+    if (userIds.isEmpty) return <String, String>{};
+    try {
+      final rows = await _sb
+          .from('users')
+          .select('id, username')
+          .inFilter('id', userIds);
+      final map = <String, String>{};
+      for (final r in rows) {
+        final id = r['id'] as String?;
+        final name = r['username'] as String?;
+        if (id != null) map[id] = name ?? '';
+      }
+      return map;
+    } catch (_) {
+      return <String, String>{};
+    }
+  }
+
   Future<Map<String, dynamic>?> getActiveGameMeta(int squadId) async {
     final id = await getActiveGameId(squadId);
     if (id == null) return null;

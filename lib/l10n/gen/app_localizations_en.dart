@@ -439,4 +439,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deathsLabel => 'Deaths';
+
+  @override
+  String get killedEnemy => 'killed an enemy';
+
+  @override
+  String get died => 'died';
+
+  @override
+  String get respawned => 'respawned';
+
+  @override
+  String get askForHelp => 'asked for help';
+
+  @override
+  String get askForMedic => 'asked for medic';
+
+  @override
+  String get hostTransferred => 'Host transferred';
 }

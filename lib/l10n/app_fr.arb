@@ -142,6 +142,12 @@
   "durationLabel": "Durée",
   "endedJustNow": "Terminé à l'instant",
   "killsLabel": "Éliminations",
-  "deathsLabel": "Morts"
+  "deathsLabel": "Morts",
+  "killedEnemy": "a éliminé un ennemi",
+  "died": "est mort",
+  "respawned": "a réapparu",
+  "askForHelp": "demande de l'aide",
+  "askForMedic": "demande un médic",
+  "hostTransferred": "Transfert d'hôte"
 }
 

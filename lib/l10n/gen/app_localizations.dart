@@ -913,6 +913,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Deaths'**
   String get deathsLabel;
+
+  /// No description provided for @killedEnemy.
+  ///
+  /// In en, this message translates to:
+  /// **'killed an enemy'**
+  String get killedEnemy;
+
+  /// No description provided for @died.
+  ///
+  /// In en, this message translates to:
+  /// **'died'**
+  String get died;
+
+  /// No description provided for @respawned.
+  ///
+  /// In en, this message translates to:
+  /// **'respawned'**
+  String get respawned;
+
+  /// No description provided for @askForHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'asked for help'**
+  String get askForHelp;
+
+  /// No description provided for @askForMedic.
+  ///
+  /// In en, this message translates to:
+  /// **'asked for medic'**
+  String get askForMedic;
+
+  /// No description provided for @hostTransferred.
+  ///
+  /// In en, this message translates to:
+  /// **'Host transferred'**
+  String get hostTransferred;
 }
 
 class _AppLocalizationsDelegate

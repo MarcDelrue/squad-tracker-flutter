@@ -143,5 +143,12 @@
   "endedJustNow": "Ended just now",
   "killsLabel": "Kills",
   "deathsLabel": "Deaths"
+  ,
+  "killedEnemy": "killed an enemy",
+  "died": "died",
+  "respawned": "respawned",
+  "askForHelp": "asked for help",
+  "askForMedic": "asked for medic",
+  "hostTransferred": "Host transferred"
 }
 

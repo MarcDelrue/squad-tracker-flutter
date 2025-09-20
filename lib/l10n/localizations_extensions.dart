@@ -20,4 +20,11 @@ extension FinalReportStrings on AppLocalizations {
   String get endedJustNow => 'Ended just now';
   String get killsLabel => 'Kills';
   String get deathsLabel => 'Deaths';
+  // History labels
+  String get killedEnemy => 'killed an enemy';
+  String get died => 'died';
+  String get respawned => 'respawned';
+  String get askForHelp => 'asked for help';
+  String get askForMedic => 'asked for medic';
+  String get hostTransferred => 'Host transferred';
 }
