@@ -125,6 +125,30 @@
   "failedToDecrementDeath": "Failed to decrement death",
   "statusActions": "Status",
   "noSquadSelected": "No squad selected",
-  "mustBeAliveToKill": "You must be alive to record kills"
+  "mustBeAliveToKill": "You must be alive to record kills",
+  "finalReportTitle": "Final report",
+  "leaderboardTab": "Leaderboard",
+  "historyTab": "History",
+  "sortByKills": "Sort by Kills",
+  "sortByKDR": "Sort by K/D",
+  "sortByStreak": "Sort by Streak",
+  "kdLabel": "K/D",
+  "streakLabel": "Streak",
+  "noEventsYet": "No events yet",
+  "backToLobby": "Back to Lobby",
+  "share": "Share",
+  "viewReport": "View report",
+  "pastGamesTitle": "Past games",
+  "durationLabel": "Duration",
+  "endedJustNow": "Ended just now",
+  "killsLabel": "Kills",
+  "deathsLabel": "Deaths"
+  ,
+  "killedEnemy": "killed an enemy",
+  "died": "died",
+  "respawned": "respawned",
+  "askForHelp": "asked for help",
+  "askForMedic": "asked for medic",
+  "hostTransferred": "Host transferred"
 }
 

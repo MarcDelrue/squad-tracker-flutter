@@ -10,7 +10,9 @@ import 'package:squad_tracker_flutter/widgets/map.dart';
 import 'package:squad_tracker_flutter/widgets/map_settings.dart';
 import 'package:squad_tracker_flutter/widgets/squad_members_list.dart';
 import 'package:squad_tracker_flutter/widgets/user_status_buttons.dart';
+import 'package:squad_tracker_flutter/widgets/scoreboard/final_report_overlay.dart';
 import 'package:squad_tracker_flutter/widgets/game/game_timer_chip.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MapWithLocation extends StatefulWidget {
   const MapWithLocation({super.key});
@@ -30,6 +32,9 @@ class MapWithLocationState extends State<MapWithLocation> {
   DateTime? _startedAt;
   Timer? _ticker;
   Duration _elapsed = Duration.zero;
+  int? _lastShownFinalGameId;
+  int? _lastSeenFinalGameId; // persisted across launches per squad
+  StreamSubscription<int?>? _endedGameStreamSub;
   void _handleGeolocationToggle(bool isEnabled) {
     setState(() {
       _isGeolocationEnabled = isEnabled;
@@ -54,6 +59,7 @@ class MapWithLocationState extends State<MapWithLocation> {
       // Add more widgets as needed
     ];
     _startGameMetaStream();
+    _startGameEndDetection();
   }
 
   @override
@@ -114,9 +120,68 @@ class MapWithLocationState extends State<MapWithLocation> {
     });
   }
 
+  void _startGameEndDetection() async {
+    final sidStr = _squadService.currentSquad?.id;
+    if (sidStr == null) return;
+    final sid = int.parse(sidStr);
+    // Load last seen final report id for this squad
+    final prefs = await SharedPreferences.getInstance();
+    final seenKey = 'last_seen_final_report_' + sid.toString();
+    _lastSeenFinalGameId = prefs.getInt(seenKey);
+    // Treat last seen as already shown in this session
+    _lastShownFinalGameId = _lastSeenFinalGameId;
+    // Catch-up on offline
+    final latestEnded = await _gameService.getLatestEndedGameId(sid);
+    if (latestEnded != null && _lastSeenFinalGameId != latestEnded) {
+      _openFinalReport(latestEnded);
+    }
+    _endedGameStreamSub?.cancel();
+    _endedGameStreamSub =
+        _gameService.streamGameEndedIdBySquad(sid).listen((gid) {
+      if (!mounted) return;
+      if (gid != null && gid != _lastShownFinalGameId) {
+        _openFinalReport(gid);
+      }
+    });
+  }
+
+  Future<void> _openFinalReport(int gameId) async {
+    _lastShownFinalGameId = gameId;
+    if (!mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      builder: (ctx) {
+        return SizedBox(
+          height: MediaQuery.of(ctx).size.height * 0.92,
+          child: FinalReportOverlay(
+            gameId: gameId,
+            onBackToLobby: () {
+              Navigator.of(ctx).pop(); // Close the modal
+              Navigator.of(context).pushReplacementNamed('/squad-lobby');
+            },
+          ),
+        );
+      },
+    );
+    // Persist as seen for this squad after dismissal
+    final sidStr = _squadService.currentSquad?.id;
+    if (sidStr != null) {
+      final sid = int.parse(sidStr);
+      final prefs = await SharedPreferences.getInstance();
+      final seenKey = 'last_seen_final_report_' + sid.toString();
+      await prefs.setInt(seenKey, gameId);
+      _lastSeenFinalGameId = gameId;
+      _lastShownFinalGameId = gameId;
+    }
+  }
+
   @override
   void dispose() {
     _ticker?.cancel();
+    _endedGameStreamSub?.cancel();
     super.dispose();
   }
 

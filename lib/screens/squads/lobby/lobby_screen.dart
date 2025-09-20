@@ -12,6 +12,7 @@ import 'package:squad_tracker_flutter/widgets/invite_user_row.dart';
 import 'package:squad_tracker_flutter/widgets/snack_bar.dart';
 import 'package:squad_tracker_flutter/widgets/user_session_row.dart';
 import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/screens/squads/lobby/past_games_screen.dart';
 
 class SquadLobbyScreen extends StatefulWidget {
   const SquadLobbyScreen({super.key});
@@ -469,6 +470,22 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
                         ),
                   ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.history),
+                title: Text(AppLocalizations.of(context)!.pastGamesTitle),
+                subtitle: const Text('View previous game results'),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const PastGamesScreen(),
+                    ),
+                  );
+                },
               ),
             ),
             Text(
