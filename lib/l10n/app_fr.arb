@@ -125,6 +125,23 @@
   "failedToDecrementDeath": "Échec de la décrémentation de la mort",
   "statusActions": "Statut",
   "noSquadSelected": "Aucune escouade sélectionnée",
-  "mustBeAliveToKill": "Vous devez être vivant pour enregistrer des éliminations"
+  "mustBeAliveToKill": "Vous devez être vivant pour enregistrer des éliminations",
+  "finalReportTitle": "Rapport final",
+  "leaderboardTab": "Classement",
+  "historyTab": "Historique",
+  "sortByKills": "Trier par éliminations",
+  "sortByKDR": "Trier par K/D",
+  "sortByStreak": "Trier par série",
+  "kdLabel": "K/D",
+  "streakLabel": "Série",
+  "noEventsYet": "Aucun événement pour l'instant",
+  "backToLobby": "Retour au salon",
+  "share": "Partager",
+  "viewReport": "Voir le rapport",
+  "pastGamesTitle": "Parties passées",
+  "durationLabel": "Durée",
+  "endedJustNow": "Terminé à l'instant",
+  "killsLabel": "Éliminations",
+  "deathsLabel": "Morts"
 }
 

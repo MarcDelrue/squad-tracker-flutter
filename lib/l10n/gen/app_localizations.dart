@@ -811,6 +811,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You must be alive to record kills'**
   String get mustBeAliveToKill;
+
+  /// No description provided for @finalReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Final report'**
+  String get finalReportTitle;
+
+  /// No description provided for @leaderboardTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaderboard'**
+  String get leaderboardTab;
+
+  /// No description provided for @historyTab.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get historyTab;
+
+  /// No description provided for @sortByKills.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by Kills'**
+  String get sortByKills;
+
+  /// No description provided for @sortByKDR.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by K/D'**
+  String get sortByKDR;
+
+  /// No description provided for @sortByStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by Streak'**
+  String get sortByStreak;
+
+  /// No description provided for @kdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'K/D'**
+  String get kdLabel;
+
+  /// No description provided for @streakLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak'**
+  String get streakLabel;
+
+  /// No description provided for @noEventsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No events yet'**
+  String get noEventsYet;
+
+  /// No description provided for @backToLobby.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Lobby'**
+  String get backToLobby;
+
+  /// No description provided for @share.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get share;
+
+  /// No description provided for @viewReport.
+  ///
+  /// In en, this message translates to:
+  /// **'View report'**
+  String get viewReport;
+
+  /// No description provided for @pastGamesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Past games'**
+  String get pastGamesTitle;
+
+  /// No description provided for @durationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get durationLabel;
+
+  /// No description provided for @endedJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended just now'**
+  String get endedJustNow;
+
+  /// No description provided for @killsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Kills'**
+  String get killsLabel;
+
+  /// No description provided for @deathsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Deaths'**
+  String get deathsLabel;
 }
 
 class _AppLocalizationsDelegate

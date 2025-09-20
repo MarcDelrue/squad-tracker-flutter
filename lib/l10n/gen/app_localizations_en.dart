@@ -388,4 +388,55 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mustBeAliveToKill => 'You must be alive to record kills';
+
+  @override
+  String get finalReportTitle => 'Final report';
+
+  @override
+  String get leaderboardTab => 'Leaderboard';
+
+  @override
+  String get historyTab => 'History';
+
+  @override
+  String get sortByKills => 'Sort by Kills';
+
+  @override
+  String get sortByKDR => 'Sort by K/D';
+
+  @override
+  String get sortByStreak => 'Sort by Streak';
+
+  @override
+  String get kdLabel => 'K/D';
+
+  @override
+  String get streakLabel => 'Streak';
+
+  @override
+  String get noEventsYet => 'No events yet';
+
+  @override
+  String get backToLobby => 'Back to Lobby';
+
+  @override
+  String get share => 'Share';
+
+  @override
+  String get viewReport => 'View report';
+
+  @override
+  String get pastGamesTitle => 'Past games';
+
+  @override
+  String get durationLabel => 'Duration';
+
+  @override
+  String get endedJustNow => 'Ended just now';
+
+  @override
+  String get killsLabel => 'Kills';
+
+  @override
+  String get deathsLabel => 'Deaths';
 }

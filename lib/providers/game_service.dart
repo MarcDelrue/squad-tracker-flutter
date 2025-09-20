@@ -59,6 +59,69 @@ class GameService extends ChangeNotifier {
     return (resp as num).toInt();
   }
 
+  Future<int?> getLatestEndedGameId(int squadId) async {
+    try {
+      final rows = await _sb
+          .from('squad_games')
+          .select('id, ended_at')
+          .eq('squad_id', squadId)
+          .not('ended_at', 'is', null)
+          .order('ended_at', ascending: false)
+          .limit(1);
+      if (rows.isEmpty) return null;
+      return (rows.first['id'] as num).toInt();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getFinalScoreboard(int gameId) async {
+    try {
+      final rows = await _sb
+          .from('scoreboard_final')
+          .select(
+              'game_id, squad_id, user_id, username, kills, deaths, user_status, max_kill_streak')
+          .eq('game_id', gameId);
+      return List<Map<String, dynamic>>.from(rows);
+    } catch (_) {
+      return <Map<String, dynamic>>[];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getGameEvents(int gameId,
+      {int? limit, int? offset}) async {
+    try {
+      var query = _sb
+          .from('game_events')
+          .select(
+              'id, created_at, occurred_at, game_id, squad_id, user_id, event_type, payload')
+          .eq('game_id', gameId)
+          .order('occurred_at', ascending: true);
+      if (limit != null) query = query.limit(limit);
+      if (offset != null) query = query.range(offset, offset + (limit ?? 0));
+      final rows = await query;
+      return List<Map<String, dynamic>>.from(rows);
+    } catch (_) {
+      return <Map<String, dynamic>>[];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> listPastGames(int squadId,
+      {int limit = 10}) async {
+    try {
+      final rows = await _sb
+          .from('squad_games')
+          .select('id, started_at, ended_at, squad_id, host_user_id')
+          .eq('squad_id', squadId)
+          .not('ended_at', 'is', null)
+          .order('ended_at', ascending: false)
+          .limit(limit);
+      return List<Map<String, dynamic>>.from(rows);
+    } catch (_) {
+      return <Map<String, dynamic>>[];
+    }
+  }
+
   Future<Map<String, dynamic>?> getActiveGameMeta(int squadId) async {
     final id = await getActiveGameId(squadId);
     if (id == null) return null;
@@ -91,6 +154,27 @@ class GameService extends ChangeNotifier {
             return sb.compareTo(sa);
           });
           return active.first;
+        });
+  }
+
+  /// Stream that emits ended game id when the current active game ends.
+  Stream<int?> streamGameEndedIdBySquad(int squadId) {
+    return _sb
+        .from('squad_games')
+        .stream(primaryKey: ['id'])
+        .eq('squad_id', squadId)
+        .map((rows) {
+          // Find games that have ended recently; pick the most recent ended
+          final ended = rows.where((r) => r['ended_at'] != null).toList()
+            ..sort((a, b) {
+              final ea = DateTime.tryParse(a['ended_at']?.toString() ?? '');
+              final eb = DateTime.tryParse(b['ended_at']?.toString() ?? '');
+              if (ea == null && eb == null) return 0;
+              if (ea == null) return 1;
+              if (eb == null) return -1;
+              return eb.compareTo(ea);
+            });
+          return ended.isNotEmpty ? (ended.first['id'] as num).toInt() : null;
         });
   }
 

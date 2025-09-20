@@ -10,6 +10,7 @@ import 'package:squad_tracker_flutter/widgets/map.dart';
 import 'package:squad_tracker_flutter/widgets/map_settings.dart';
 import 'package:squad_tracker_flutter/widgets/squad_members_list.dart';
 import 'package:squad_tracker_flutter/widgets/user_status_buttons.dart';
+import 'package:squad_tracker_flutter/widgets/scoreboard/final_report_overlay.dart';
 import 'package:squad_tracker_flutter/widgets/game/game_timer_chip.dart';
 
 class MapWithLocation extends StatefulWidget {
@@ -30,6 +31,8 @@ class MapWithLocationState extends State<MapWithLocation> {
   DateTime? _startedAt;
   Timer? _ticker;
   Duration _elapsed = Duration.zero;
+  int? _lastShownFinalGameId;
+  StreamSubscription<int?>? _endedGameStreamSub;
   void _handleGeolocationToggle(bool isEnabled) {
     setState(() {
       _isGeolocationEnabled = isEnabled;
@@ -54,6 +57,7 @@ class MapWithLocationState extends State<MapWithLocation> {
       // Add more widgets as needed
     ];
     _startGameMetaStream();
+    _startGameEndDetection();
   }
 
   @override
@@ -114,9 +118,46 @@ class MapWithLocationState extends State<MapWithLocation> {
     });
   }
 
+  void _startGameEndDetection() async {
+    final sidStr = _squadService.currentSquad?.id;
+    if (sidStr == null) return;
+    final sid = int.parse(sidStr);
+    // Catch-up on offline
+    final latestEnded = await _gameService.getLatestEndedGameId(sid);
+    if (latestEnded != null && _lastShownFinalGameId != latestEnded) {
+      _openFinalReport(latestEnded);
+    }
+    _endedGameStreamSub?.cancel();
+    _endedGameStreamSub =
+        _gameService.streamGameEndedIdBySquad(sid).listen((gid) {
+      if (!mounted) return;
+      if (gid != null && gid != _lastShownFinalGameId) {
+        _openFinalReport(gid);
+      }
+    });
+  }
+
+  Future<void> _openFinalReport(int gameId) async {
+    _lastShownFinalGameId = gameId;
+    if (!mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      builder: (ctx) {
+        return SizedBox(
+          height: MediaQuery.of(ctx).size.height * 0.92,
+          child: FinalReportOverlay(gameId: gameId),
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _ticker?.cancel();
+    _endedGameStreamSub?.cancel();
     super.dispose();
   }
 
