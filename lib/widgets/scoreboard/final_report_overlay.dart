@@ -51,27 +51,29 @@ class _FinalReportOverlayState extends State<FinalReportOverlay>
           ],
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.of(context).maybePop(),
-                child: Text(l10n.backToLobby),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  child: Text(l10n.backToLobby),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // Optional: implement share later
-                },
-                icon: const Icon(Icons.ios_share),
-                label: Text(l10n.share),
-              ),
-            )
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Optional: implement share later
+                  },
+                  icon: const Icon(Icons.ios_share),
+                  label: Text(l10n.share),
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );
