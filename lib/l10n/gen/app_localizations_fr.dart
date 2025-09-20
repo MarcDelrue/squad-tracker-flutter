@@ -385,4 +385,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get statusActions => 'Statut';
+
+  @override
+  String get noSquadSelected => 'Aucune escouade sélectionnée';
+
+  @override
+  String get mustBeAliveToKill =>
+      'Vous devez être vivant ou avoir besoin d\'aide pour enregistrer des éliminations';
 }

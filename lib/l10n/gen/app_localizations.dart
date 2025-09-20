@@ -799,6 +799,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Status'**
   String get statusActions;
+
+  /// No description provided for @noSquadSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No squad selected'**
+  String get noSquadSelected;
+
+  /// No description provided for @mustBeAliveToKill.
+  ///
+  /// In en, this message translates to:
+  /// **'You must be alive or need help to record kills'**
+  String get mustBeAliveToKill;
 }
 
 class _AppLocalizationsDelegate

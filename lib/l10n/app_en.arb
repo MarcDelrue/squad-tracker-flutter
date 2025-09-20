@@ -123,6 +123,8 @@
   "deathDecremented": "Death decremented",
   "failedToDecrementKill": "Failed to decrement kill",
   "failedToDecrementDeath": "Failed to decrement death",
-  "statusActions": "Status"
+  "statusActions": "Status",
+  "noSquadSelected": "No squad selected",
+  "mustBeAliveToKill": "You must be alive to record kills"
 }
 

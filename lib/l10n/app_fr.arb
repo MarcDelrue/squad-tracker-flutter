@@ -123,6 +123,8 @@
   "deathDecremented": "Mort décrémentée",
   "failedToDecrementKill": "Échec de la décrémentation de l'élimination",
   "failedToDecrementDeath": "Échec de la décrémentation de la mort",
-  "statusActions": "Statut"
+  "statusActions": "Statut",
+  "noSquadSelected": "Aucune escouade sélectionnée",
+  "mustBeAliveToKill": "Vous devez être vivant pour enregistrer des éliminations"
 }
 
