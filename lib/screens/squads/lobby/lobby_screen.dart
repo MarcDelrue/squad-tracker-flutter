@@ -12,8 +12,7 @@ import 'package:squad_tracker_flutter/widgets/invite_user_row.dart';
 import 'package:squad_tracker_flutter/widgets/snack_bar.dart';
 import 'package:squad_tracker_flutter/widgets/user_session_row.dart';
 import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
-import 'package:squad_tracker_flutter/l10n/localizations_extensions.dart';
-import 'package:squad_tracker_flutter/widgets/scoreboard/final_report_overlay.dart';
+import 'package:squad_tracker_flutter/screens/squads/lobby/past_games_screen.dart';
 
 class SquadLobbyScreen extends StatefulWidget {
   const SquadLobbyScreen({super.key});
@@ -474,63 +473,20 @@ class SquadLobbyScreenState extends State<SquadLobbyScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              AppLocalizations.of(context)!.pastGamesTitle,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: gameService
-                  .listPastGames(int.parse(squadService.currentSquad!.id)),
-              builder: (context, snapshot) {
-                final rows = snapshot.data ?? const [];
-                if (rows.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(AppLocalizations.of(context)!.noEventsYet),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.history),
+                title: Text(AppLocalizations.of(context)!.pastGamesTitle),
+                subtitle: const Text('View previous game results'),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const PastGamesScreen(),
+                    ),
                   );
-                }
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: rows.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final g = rows[index];
-                    final started =
-                        DateTime.tryParse(g['started_at']?.toString() ?? '');
-                    final ended =
-                        DateTime.tryParse(g['ended_at']?.toString() ?? '');
-                    final dur = (started != null && ended != null)
-                        ? ended.difference(started)
-                        : null;
-                    return ListTile(
-                      title: Text(
-                          '#${g['id']} — ${started?.toLocal().toString().substring(0, 16) ?? ''}'),
-                      subtitle: Text(
-                        dur != null
-                            ? '${AppLocalizations.of(context)!.durationLabel}: ${dur.inMinutes}m'
-                            : AppLocalizations.of(context)!.endedJustNow,
-                      ),
-                      trailing: TextButton(
-                        onPressed: () async {
-                          await showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            useSafeArea: true,
-                            builder: (ctx) => SizedBox(
-                              height: MediaQuery.of(ctx).size.height * 0.92,
-                              child: FinalReportOverlay(
-                                  gameId: (g['id'] as num).toInt()),
-                            ),
-                          );
-                        },
-                        child: Text(AppLocalizations.of(context)!.viewReport),
-                      ),
-                    );
-                  },
-                );
-              },
+                },
+              ),
             ),
             Text(
               AppLocalizations.of(context)!.squadMembers,
