@@ -116,7 +116,13 @@ class _PastGamesScreenState extends State<PastGamesScreen> {
                               builder: (ctx) => SizedBox(
                                 height: MediaQuery.of(ctx).size.height * 0.92,
                                 child: FinalReportOverlay(
-                                    gameId: (game['id'] as num).toInt()),
+                                  gameId: (game['id'] as num).toInt(),
+                                  onBackToLobby: () {
+                                    Navigator.of(ctx).pop(); // Close the modal
+                                    Navigator.of(context)
+                                        .pop(); // Go back to main lobby screen
+                                  },
+                                ),
                               ),
                             );
                           },

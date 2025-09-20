@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
-import 'package:squad_tracker_flutter/l10n/localizations_extensions.dart';
 import 'package:squad_tracker_flutter/widgets/scoreboard/leaderboard_view.dart';
 import 'package:squad_tracker_flutter/widgets/scoreboard/history_view.dart';
 
 class FinalReportOverlay extends StatefulWidget {
   final int gameId;
-  const FinalReportOverlay({super.key, required this.gameId});
+  final VoidCallback? onBackToLobby;
+  const FinalReportOverlay({
+    super.key,
+    required this.gameId,
+    this.onBackToLobby,
+  });
 
   @override
   State<FinalReportOverlay> createState() => _FinalReportOverlayState();
@@ -58,7 +62,13 @@ class _FinalReportOverlayState extends State<FinalReportOverlay>
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
+                  onPressed: () {
+                    if (widget.onBackToLobby != null) {
+                      widget.onBackToLobby!();
+                    } else {
+                      Navigator.of(context).maybePop();
+                    }
+                  },
                   child: Text(l10n.backToLobby),
                 ),
               ),
