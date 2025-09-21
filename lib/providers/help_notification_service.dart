@@ -30,7 +30,7 @@ class HelpNotificationService with ChangeNotifier {
   StreamSubscription<List<Map<String, dynamic>>>? _sub;
   StreamSubscription<Map<String, dynamic>?>? _gameMetaSub;
   final Set<String> _activeNotifications = <String>{};
-  final Set<String> _activeBanners = <String>{};
+  final Map<String, HelpRequest> _activeBanners = <String, HelpRequest>{};
   bool _initialized = false;
   bool _isAppInForeground = true;
 
@@ -256,8 +256,8 @@ class HelpNotificationService with ChangeNotifier {
       );
     }
 
-    // Auto dismiss after 12s
-    Future.delayed(const Duration(seconds: 12), () async {
+    // Auto dismiss after 20s
+    Future.delayed(const Duration(seconds: 20), () async {
       await _ln.cancel(_hashId(request.requestId));
       _activeNotifications.remove(request.requestId);
       _dismissInAppBanner(request.requestId);
@@ -323,7 +323,7 @@ class HelpNotificationService with ChangeNotifier {
   }
 
   void _showInAppBanner(HelpRequest request, String title, String body) {
-    _activeBanners.add(request.requestId);
+    _activeBanners[request.requestId] = request;
     notifyListeners(); // Trigger UI rebuild to show banner
   }
 
@@ -336,6 +336,6 @@ class HelpNotificationService with ChangeNotifier {
   bool get hasActiveBanners => _activeBanners.isNotEmpty;
 
   // Getter for UI to get the first active banner (for simplicity, show one at a time)
-  String? get firstActiveBannerId =>
-      _activeBanners.isNotEmpty ? _activeBanners.first : null;
+  HelpRequest? get firstActiveBanner =>
+      _activeBanners.isNotEmpty ? _activeBanners.values.first : null;
 }
