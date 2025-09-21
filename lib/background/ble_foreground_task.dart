@@ -63,6 +63,7 @@ void bleServiceOnStart(ServiceInstance service) async {
             ongoing: true,
             importance: Importance.low,
             priority: Priority.low,
+            icon: '@mipmap/ic_launcher',
           ),
         ),
       );

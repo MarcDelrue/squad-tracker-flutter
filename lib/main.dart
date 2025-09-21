@@ -15,24 +15,39 @@ import 'package:squad_tracker_flutter/background/ble_foreground_task.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeBleBackgroundService();
+
+  // Initialize critical services first
   await Supabase.initialize(
     url: 'https://uglsleerwgatuemmodfv.supabase.co',
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnbHNsZWVyd2dhdHVlbW1vZGZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzNTY0NDMsImV4cCI6MjA3MDkzMjQ0M30.v3UsXfqhzeqQCT-f4WZOjSDWKawdh6M1qh3wg3qaShM',
   );
+
   // Set Mapbox access token - it's now in AndroidManifest.xml
   MapboxOptions.setAccessToken(
       "sk.eyJ1IjoibWFyY2RlbHJ1ZSIsImEiOiJjbTNodW5sNmswZ3N0Mm1zNjk0aDVjYzM5In0.Mbv7uMcYheJ4bXHmzK707g");
+
+  // Initialize timeago messages
   timeago.setLocaleMessages('en_short', timeago.EnShortMessages());
   timeago.setLocaleMessages('en', timeago.EnMessages());
   timeago.setLocaleMessages('fr', timeago.FrMessages());
   timeago.setLocaleMessages('fr_short', timeago.FrShortMessages());
 
-  // Start battle logs service to listen continuously
-  BattleLogsService().startListening();
-
+  // Start the app immediately
   runApp(const MyApp());
+
+  // Initialize non-critical services in background
+  _initializeBackgroundServices();
+}
+
+void _initializeBackgroundServices() async {
+  try {
+    await initializeBleBackgroundService();
+    // Start battle logs service to listen continuously
+    BattleLogsService().startListening();
+  } catch (e) {
+    debugPrint('Error initializing background services: $e');
+  }
 }
 
 final supabase = Supabase.instance.client;

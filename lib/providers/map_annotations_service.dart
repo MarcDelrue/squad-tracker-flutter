@@ -27,12 +27,13 @@ class MapAnnotationsService extends ChangeNotifier {
 
   static const Duration _staleThreshold = Duration(seconds: 45);
 
-  // Status-based soldier images
-  late Uint8List soldierAliveImage = Uint8List(0);
-  late Uint8List soldierDeadImage = Uint8List(0);
-  late Uint8List soldierHelpImage = Uint8List(0);
-  late Uint8List soldierMedicImage = Uint8List(0);
+  // Status-based soldier images - lazy loaded
+  Uint8List? _soldierAliveImage;
+  Uint8List? _soldierDeadImage;
+  Uint8List? _soldierHelpImage;
+  Uint8List? _soldierMedicImage;
   bool _imagesLoaded = false;
+  bool _imagesLoading = false;
 
   // Per-game status map
   StreamSubscription<List<Map<String, dynamic>>>? _statusSub;
@@ -49,9 +50,62 @@ class MapAnnotationsService extends ChangeNotifier {
   final Map<String, mapbox.Point> _spawnByUserId = {};
 
   // Asset for tombstone (fallback to soldierDead if not provided)
-  late Uint8List tombstoneImage = Uint8List(0);
+  Uint8List? _tombstoneImage;
 
   // Pulsating logic removed for performance
+
+  // Getters for images with lazy loading
+  Uint8List get soldierAliveImage => _soldierAliveImage ?? Uint8List(0);
+  Uint8List get soldierDeadImage => _soldierDeadImage ?? Uint8List(0);
+  Uint8List get soldierHelpImage => _soldierHelpImage ?? Uint8List(0);
+  Uint8List get soldierMedicImage => _soldierMedicImage ?? Uint8List(0);
+  Uint8List get tombstoneImage => _tombstoneImage ?? soldierDeadImage;
+
+  Future<void> _loadImagesAsync() async {
+    if (_imagesLoading || _imagesLoaded) return;
+    _imagesLoading = true;
+
+    try {
+      // Load images in parallel for better performance
+      final futures = await Future.wait([
+        rootBundle.load('assets/images/soldiers/default_soldier.png'),
+        rootBundle.load('assets/images/soldiers/soldier_dead.png'),
+        rootBundle.load('assets/images/soldiers/soldier_help.png'),
+        rootBundle.load('assets/images/soldiers/soldier_medic.png'),
+      ]);
+
+      _soldierAliveImage = futures[0].buffer.asUint8List();
+      _soldierDeadImage = futures[1].buffer.asUint8List();
+      _soldierHelpImage = futures[2].buffer.asUint8List();
+      _soldierMedicImage = futures[3].buffer.asUint8List();
+
+      if (kDebugMode) {
+        debugPrint('Loaded alive image, size: ${_soldierAliveImage!.length}');
+        debugPrint('Loaded dead image, size: ${_soldierDeadImage!.length}');
+        debugPrint('Loaded help image, size: ${_soldierHelpImage!.length}');
+        debugPrint('Loaded medic image, size: ${_soldierMedicImage!.length}');
+      }
+
+      // Try to load tombstone icon; fallback to dead image
+      try {
+        final tombBytes =
+            await rootBundle.load('assets/images/markers/tombstone.png');
+        _tombstoneImage = tombBytes.buffer.asUint8List();
+      } catch (_) {
+        _tombstoneImage = _soldierDeadImage;
+      }
+
+      _imagesLoaded = true;
+      _imagesLoading = false;
+
+      // Notify listeners that images are ready
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading soldier images: $e');
+      _imagesLoaded = false;
+      _imagesLoading = false;
+    }
+  }
 
   Future<void> initMembersAnnotation(mapbox.MapboxMap mapboxMap) async {
     pointAnnotationManager =
@@ -62,52 +116,8 @@ class MapAnnotationsService extends ChangeNotifier {
     tombstoneAnnotationManager =
         await mapboxMap.annotations.createPointAnnotationManager();
 
-    // Load all status-based soldier images
-    try {
-      final ByteData aliveBytes =
-          await rootBundle.load('assets/images/soldiers/default_soldier.png');
-      soldierAliveImage = aliveBytes.buffer.asUint8List();
-      if (kDebugMode) {
-        debugPrint('Loaded alive image, size: ${soldierAliveImage.length}');
-      }
-
-      final ByteData deadBytes =
-          await rootBundle.load('assets/images/soldiers/soldier_dead.png');
-      soldierDeadImage = deadBytes.buffer.asUint8List();
-      if (kDebugMode) {
-        debugPrint('Loaded dead image, size: ${soldierDeadImage.length}');
-      }
-
-      final ByteData helpBytes =
-          await rootBundle.load('assets/images/soldiers/soldier_help.png');
-      soldierHelpImage = helpBytes.buffer.asUint8List();
-      if (kDebugMode) {
-        debugPrint('Loaded help image, size: ${soldierHelpImage.length}');
-      }
-
-      final ByteData medicBytes =
-          await rootBundle.load('assets/images/soldiers/soldier_medic.png');
-      soldierMedicImage = medicBytes.buffer.asUint8List();
-      if (kDebugMode) {
-        debugPrint('Loaded medic image, size: ${soldierMedicImage.length}');
-      }
-
-      // Try to load a dedicated tombstone icon; fallback to soldierDead
-      try {
-        final ByteData tombBytes =
-            await rootBundle.load('assets/images/markers/tombstone.png');
-        tombstoneImage = tombBytes.buffer.asUint8List();
-      } catch (_) {
-        tombstoneImage = soldierDeadImage;
-      }
-      _imagesLoaded = soldierAliveImage.isNotEmpty &&
-          soldierDeadImage.isNotEmpty &&
-          soldierHelpImage.isNotEmpty &&
-          soldierMedicImage.isNotEmpty;
-    } catch (e) {
-      debugPrint('Error loading soldier images: $e');
-      _imagesLoaded = false;
-    }
+    // Start loading images asynchronously in background
+    _loadImagesAsync();
 
     // Subscribe to per-game status
     await subscribeToGameStatus();
