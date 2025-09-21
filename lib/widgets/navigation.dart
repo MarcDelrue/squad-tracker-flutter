@@ -49,13 +49,21 @@ class _NavigationWidgetState extends State<NavigationWidget> {
     await squadService.setCurrentSquad(userId: userService.currentUser!.id);
     await rolesService.getAndStoreRoles();
     squadService.listenToUserSquadSession(userService.currentUser!.id);
-    // Auto-reconnect BLE if a device was previously paired for this user
+
+    // Start BLE auto-reconnect in background without blocking UI
+    _startBleAutoReconnect();
+  }
+
+  void _startBleAutoReconnect() {
     final uid = userService.currentUser?.id;
     if (uid != null && uid.isNotEmpty) {
-      try {
-        await Provider.of<BleService>(context, listen: false)
-            .tryAutoReconnect(uid);
-      } catch (_) {}
+      // Run BLE auto-reconnect in background without awaiting
+      Provider.of<BleService>(context, listen: false)
+          .tryAutoReconnect(uid)
+          .catchError((error) {
+        // Silently handle errors in background
+        debugPrint('BLE auto-reconnect failed: $error');
+      });
     }
   }
 
