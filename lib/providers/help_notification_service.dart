@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:provider/provider.dart';
 import 'package:squad_tracker_flutter/models/help_request.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/providers/distance_calculator_service.dart';
@@ -11,6 +12,7 @@ import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart
 import 'package:squad_tracker_flutter/providers/ble_service.dart';
 import 'package:squad_tracker_flutter/widgets/navigation.dart';
 import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
+import 'package:squad_tracker_flutter/providers/notification_settings_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:collection/collection.dart';
 
@@ -26,6 +28,7 @@ class HelpNotificationService with ChangeNotifier {
   final DistanceCalculatorService _distance = DistanceCalculatorService();
   final UserSquadLocationService _loc = UserSquadLocationService();
   final FlutterLocalNotificationsPlugin _ln = FlutterLocalNotificationsPlugin();
+  NotificationSettingsService? _settings;
 
   StreamSubscription<List<Map<String, dynamic>>>? _sub;
   StreamSubscription<Map<String, dynamic>?>? _gameMetaSub;
@@ -36,8 +39,12 @@ class HelpNotificationService with ChangeNotifier {
 
   static const String _channelId = 'help_requests';
 
-  Future<void> initialize() async {
+  Future<void> initialize(BuildContext context) async {
     if (_initialized) return;
+
+    // Initialize settings first
+    _settings = context.read<NotificationSettingsService>();
+    await _settings!.initialize();
     const AndroidInitializationSettings androidInit =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings iosInit = DarwinInitializationSettings();
@@ -86,8 +93,8 @@ class HelpNotificationService with ChangeNotifier {
     _initialized = true;
   }
 
-  Future<void> startListening() async {
-    await initialize();
+  Future<void> startListening(BuildContext context) async {
+    await initialize(context);
     await _sub?.cancel();
     await _gameMetaSub?.cancel();
     final squad = SquadService().currentSquad;
@@ -148,6 +155,9 @@ class HelpNotificationService with ChangeNotifier {
 
   Future<void> _emitNotificationForRow(
       Map<String, dynamic> row, UserSquadSessionStatus status) async {
+    // Check if notifications are enabled
+    if (_settings?.enabled != true) return;
+
     final requestId = row['id'].toString();
     final requesterId = row['requester_id']?.toString() ?? '';
     String requesterName = requesterId.substring(0, 6);
@@ -172,6 +182,13 @@ class HelpNotificationService with ChangeNotifier {
             _distance.calculateDirectionToMember(memberLoc, meLoc);
       }
     } catch (_) {}
+
+    // Check distance threshold
+    if (distanceMeters != null &&
+        _settings != null &&
+        distanceMeters > _settings!.distanceThresholdMeters) {
+      return; // Skip notification if too far
+    }
 
     final req = HelpRequest(
       requestId: requestId,
@@ -225,10 +242,10 @@ class HelpNotificationService with ChangeNotifier {
     if (dirPart != null) bodyParts.add(dirPart);
     final body = bodyParts.join(' • ');
 
-    if (_isAppInForeground) {
+    if (_isAppInForeground && _settings?.showInAppBanner == true) {
       // App is in foreground - show in-app banner only
       _showInAppBanner(request, title, body);
-    } else {
+    } else if (!_isAppInForeground && _settings?.showSystemNotification == true) {
       // App is in background - show system notification only
       await _ln.show(
         _hashId(request.requestId),
@@ -241,6 +258,7 @@ class HelpNotificationService with ChangeNotifier {
             importance: Importance.high,
             priority: Priority.high,
             category: AndroidNotificationCategory.call,
+            playSound: _settings?.soundEnabled ?? true,
             actions: <AndroidNotificationAction>[
               const AndroidNotificationAction('help_ignore', 'Ignore',
                   showsUserInterface: true, cancelNotification: true),
@@ -248,16 +266,17 @@ class HelpNotificationService with ChangeNotifier {
                   showsUserInterface: true, cancelNotification: true),
             ],
           ),
-          iOS: const DarwinNotificationDetails(
+          iOS: DarwinNotificationDetails(
             categoryIdentifier: 'help_category',
+            presentSound: _settings?.soundEnabled ?? true,
           ),
         ),
         payload: 'help:${request.requestId}:none',
       );
     }
 
-    // Auto dismiss after 20s
-    Future.delayed(const Duration(seconds: 20), () async {
+    // Auto dismiss after configured timeout
+    Future.delayed(Duration(seconds: _settings?.timeoutSeconds ?? 20), () async {
       await _ln.cancel(_hashId(request.requestId));
       _activeNotifications.remove(request.requestId);
       _dismissInAppBanner(request.requestId);
@@ -338,4 +357,7 @@ class HelpNotificationService with ChangeNotifier {
   // Getter for UI to get the first active banner (for simplicity, show one at a time)
   HelpRequest? get firstActiveBanner =>
       _activeBanners.isNotEmpty ? _activeBanners.values.first : null;
+
+  // Getter for settings service
+  NotificationSettingsService? get settingsService => _settings;
 }

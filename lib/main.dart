@@ -11,6 +11,7 @@ import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 import 'package:squad_tracker_flutter/providers/locale_provider.dart';
 import 'package:squad_tracker_flutter/background/ble_foreground_task.dart';
 import 'package:squad_tracker_flutter/providers/help_notification_service.dart';
+import 'package:squad_tracker_flutter/providers/notification_settings_service.dart';
 
 /// Flutter code sample for [NavigationBar].
 
@@ -46,8 +47,7 @@ void _initializeBackgroundServices() async {
     await initializeBleBackgroundService();
     // Start battle logs service to listen continuously
     BattleLogsService().startListening();
-    // Start help request notifications listener (realtime)
-    await HelpNotificationService().startListening();
+    // Note: HelpNotificationService initialization moved to navigation.dart where context is available
   } catch (e) {
     debugPrint('Error initializing background services: $e');
   }
@@ -57,6 +57,50 @@ final supabase = Supabase.instance.client;
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider<BleService>(create: (_) {
+          final s = BleService();
+          BleService.setGlobal(s);
+          return s;
+        }),
+        ChangeNotifierProvider<HelpNotificationService>(
+            create: (_) => HelpNotificationService()),
+        ChangeNotifierProvider<NotificationSettingsService>(
+            create: (_) => NotificationSettingsService()),
+      ],
+      child: _AppInitializer(),
+    );
+  }
+}
+
+class _AppInitializer extends StatefulWidget {
+  @override
+  State<_AppInitializer> createState() => _AppInitializerState();
+}
+
+class _AppInitializerState extends State<_AppInitializer> {
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeServices();
+  }
+
+  Future<void> _initializeServices() async {
+    final notificationSettings = context.read<NotificationSettingsService>();
+    await notificationSettings.initialize();
+    if (mounted) {
+      setState(() {
+        _initialized = true;
+      });
+    }
+  }
 
   Future<bool> _checkSession() async {
     final session = supabase.auth.currentSession;
@@ -84,74 +128,60 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
-        ChangeNotifierProvider<BleService>(create: (_) {
-          final s = BleService();
-          BleService.setGlobal(s);
-          return s;
-        }),
-        ChangeNotifierProvider<HelpNotificationService>(
-            create: (_) => HelpNotificationService()),
-      ],
-      child: Builder(builder: (context) {
-        final localeProvider = context.watch<LocaleProvider>();
-        final locale = localeProvider.locale;
+    final localeProvider = context.watch<LocaleProvider>();
+    final locale = localeProvider.locale;
 
-        // Wait for locale provider to be initialized
-        if (!localeProvider.isInitialized) {
-          return const Center(child: CircularProgressIndicator());
+    // Wait for providers to be initialized
+    if (!localeProvider.isInitialized || !_initialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return MaterialApp(
+      onGenerateTitle: (context) =>
+          AppLocalizations.of(context)?.appTitle ?? 'Squad Tracker',
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeResolutionCallback: (locale, supportedLocales) {
+        if (locale == null) {
+          return const Locale('en');
         }
-
-        return MaterialApp(
-          onGenerateTitle: (context) =>
-              AppLocalizations.of(context)?.appTitle ?? 'Squad Tracker',
-          locale: locale,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localeResolutionCallback: (locale, supportedLocales) {
-            if (locale == null) {
-              return const Locale('en');
-            }
-            final languageCode = locale.languageCode.toLowerCase();
-            for (final supported in supportedLocales) {
-              if (supported.languageCode.toLowerCase() == languageCode) {
-                return supported;
-              }
-            }
-            return const Locale('en');
-          },
-          theme: ThemeData.dark().copyWith(
-            primaryColor: Colors.green,
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.green,
-              ),
-            ),
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: Colors.green,
-              ),
-            ),
+        final languageCode = locale.languageCode.toLowerCase();
+        for (final supported in supportedLocales) {
+          if (supported.languageCode.toLowerCase() == languageCode) {
+            return supported;
+          }
+        }
+        return const Locale('en');
+      },
+      theme: ThemeData.dark().copyWith(
+        primaryColor: Colors.green,
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.green,
           ),
-          home: FutureBuilder<bool>(
-            future: _checkSession(),
-            builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              } else if (snapshot.hasError ||
-                  !snapshot.hasData ||
-                  !snapshot.data!) {
-                return const LoginForm();
-              } else {
-                return NavigationWidget(key: NavigationWidget.globalKey);
-              }
-            },
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.green,
           ),
-        );
-      }),
+        ),
+      ),
+      home: FutureBuilder<bool>(
+        future: _checkSession(),
+        builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError ||
+              !snapshot.hasData ||
+              !snapshot.data!) {
+            return const LoginForm();
+          } else {
+            return NavigationWidget(key: NavigationWidget.globalKey);
+          }
+        },
+      ),
     );
   }
 }

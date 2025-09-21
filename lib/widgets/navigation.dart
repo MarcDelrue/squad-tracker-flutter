@@ -57,7 +57,7 @@ class _NavigationWidgetState extends State<NavigationWidget> {
 
     // Attach help notifications after squad is resolved; listener follows active game
     try {
-      await HelpNotificationService().startListening();
+      await HelpNotificationService().startListening(context);
     } catch (e) {
       debugPrint('Help notifications attach failed: $e');
     }

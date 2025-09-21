@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:squad_tracker_flutter/models/users_model.dart' as users_model;
 import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 import 'package:squad_tracker_flutter/providers/locale_provider.dart';
+import 'package:squad_tracker_flutter/screens/settings/notification_settings_screen.dart';
 import 'package:provider/provider.dart';
 
 class UserScreen extends StatefulWidget {
@@ -211,6 +212,17 @@ class _UserScreenState extends State<UserScreen> {
         appBar: AppBar(
           title: Text(l10n.userScreenTitle),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.settings),
+              tooltip: 'Notification Settings',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationSettingsScreen(),
+                  ),
+                );
+              },
+            ),
             PopupMenuButton<String>(
               tooltip: l10n.language,
               onSelected: (value) {
