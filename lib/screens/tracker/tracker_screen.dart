@@ -15,6 +15,7 @@ import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 import 'package:squad_tracker_flutter/screens/tracker/widgets/scan_controls.dart';
 import 'package:squad_tracker_flutter/screens/tracker/widgets/device_list.dart';
 import 'package:squad_tracker_flutter/screens/tracker/widgets/connected_panel.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 part 'tracker_screen_logic.dart';
 
 class TrackerScreen extends StatefulWidget {

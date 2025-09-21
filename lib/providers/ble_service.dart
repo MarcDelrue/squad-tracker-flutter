@@ -32,6 +32,13 @@ class DiscoveredDevice {
 }
 
 class BleService with ChangeNotifier {
+  // Optional global handle for services that cannot use Provider context
+  static BleService? _global;
+  static void setGlobal(BleService service) {
+    _global = service;
+  }
+
+  static BleService? get global => _global;
   final List<DiscoveredDevice> _devices = <DiscoveredDevice>[];
   StreamSubscription<List<ScanResult>>? _scanSub;
   StreamSubscription<List<int>>? _txNotifySub;

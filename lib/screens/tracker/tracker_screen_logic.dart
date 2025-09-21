@@ -299,6 +299,25 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
     return lines;
   }
 
+  // Send a HELP_REQ to device when a new help request comes in
+  Future<void> sendHelpReqToDevice({
+    required String requestId,
+    required String requesterName,
+    required String status, // help|medic
+    required int distanceMeters,
+    required String directionCardinal,
+    required String colorHex,
+  }) async {
+    final ble = Provider.of<BleService>(context, listen: false);
+    if (ble.connectedDevice == null) return;
+    final safeName = requesterName.replaceAll(' ', '_');
+    final line =
+        'HELP_REQ $requestId $safeName $status $distanceMeters $directionCardinal ${colorHex.replaceAll('#', '').toUpperCase()}';
+    try {
+      await ble.sendString(line);
+    } catch (_) {}
+  }
+
   bool _shouldSendTimerBaseline() {
     return _lastTimerSyncSec == _gameElapsedSec || _seqCounter <= 2;
   }
@@ -384,6 +403,30 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
           _lastActivityByUserId[me.id] = DateTime.now().toUtc();
         }
         GameService().bumpKill(int.parse(squad.id));
+      }
+    }
+    // Device replied to a help request
+    if (msg.startsWith('HELP_RESP ')) {
+      final parts = msg.split(' ');
+      if (parts.length >= 3) {
+        final reqId = parts[1];
+        final action = parts[2];
+        // Best-effort: mark resolution in DB
+        try {
+          final res = action == 'accept' ? 'accepted' : 'ignored';
+          final sb = Supabase.instance.client;
+          // Fire and forget; no await in this sync handler
+          // ignore: unawaited_futures
+          sb
+              .from('help_requests')
+              .update({
+                'resolved_at': DateTime.now().toIso8601String(),
+                'resolved_by': UserService().currentUser?.id,
+                'resolution': res,
+              })
+              .eq('id', reqId)
+              .isFilter('resolved_at', null);
+        } catch (_) {}
       }
     }
   }

@@ -10,6 +10,7 @@ import 'package:squad_tracker_flutter/providers/ble_service.dart';
 import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 import 'package:squad_tracker_flutter/providers/locale_provider.dart';
 import 'package:squad_tracker_flutter/background/ble_foreground_task.dart';
+import 'package:squad_tracker_flutter/providers/help_notification_service.dart';
 
 /// Flutter code sample for [NavigationBar].
 
@@ -45,6 +46,8 @@ void _initializeBackgroundServices() async {
     await initializeBleBackgroundService();
     // Start battle logs service to listen continuously
     BattleLogsService().startListening();
+    // Start help request notifications listener (realtime)
+    await HelpNotificationService().startListening();
   } catch (e) {
     debugPrint('Error initializing background services: $e');
   }
@@ -84,7 +87,13 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
-        ChangeNotifierProvider<BleService>(create: (_) => BleService()),
+        ChangeNotifierProvider<BleService>(create: (_) {
+          final s = BleService();
+          BleService.setGlobal(s);
+          return s;
+        }),
+        ChangeNotifierProvider<HelpNotificationService>(
+            create: (_) => HelpNotificationService()),
       ],
       child: Builder(builder: (context) {
         final localeProvider = context.watch<LocaleProvider>();

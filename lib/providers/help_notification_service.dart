@@ -1,0 +1,355 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:squad_tracker_flutter/models/help_request.dart';
+import 'package:squad_tracker_flutter/models/squad_session_model.dart';
+import 'package:squad_tracker_flutter/providers/distance_calculator_service.dart';
+import 'package:squad_tracker_flutter/providers/game_service.dart';
+import 'package:squad_tracker_flutter/providers/squad_service.dart';
+import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
+import 'package:squad_tracker_flutter/providers/ble_service.dart';
+import 'package:squad_tracker_flutter/widgets/navigation.dart';
+import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:collection/collection.dart';
+
+enum HelpResponse { ignore, accept }
+
+class HelpNotificationService with ChangeNotifier {
+  static final HelpNotificationService _singleton =
+      HelpNotificationService._internal();
+  factory HelpNotificationService() => _singleton;
+  HelpNotificationService._internal();
+
+  final SupabaseClient _sb = Supabase.instance.client;
+  final DistanceCalculatorService _distance = DistanceCalculatorService();
+  final UserSquadLocationService _loc = UserSquadLocationService();
+  final FlutterLocalNotificationsPlugin _ln = FlutterLocalNotificationsPlugin();
+
+  StreamSubscription<List<Map<String, dynamic>>>? _sub;
+  StreamSubscription<Map<String, dynamic>?>? _gameMetaSub;
+  final Set<String> _activeNotifications = <String>{};
+  final Set<String> _activeBanners = <String>{};
+  bool _initialized = false;
+  bool _isAppInForeground = true;
+
+  static const String _channelId = 'help_requests';
+
+  Future<void> initialize() async {
+    if (_initialized) return;
+    const AndroidInitializationSettings androidInit =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings iosInit = DarwinInitializationSettings();
+    const InitializationSettings initSettings =
+        InitializationSettings(android: androidInit, iOS: iosInit);
+    await _ln.initialize(initSettings, onDidReceiveNotificationResponse:
+        (NotificationResponse response) async {
+      final payload = response.payload ?? '';
+      if (payload.startsWith('help:')) {
+        final parts = payload.split(':');
+        if (parts.length >= 3) {
+          final requestId = parts[1];
+          final actionFromPayload = parts[2];
+          final actionId = response.actionId;
+          final decided =
+              (actionId == 'help_accept' || actionFromPayload == 'accept')
+                  ? HelpResponse.accept
+                  : HelpResponse.ignore;
+          await handleResponse(requestId, decided);
+        }
+      }
+    });
+
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      _channelId,
+      'Help Requests',
+      description: 'Notifications for squad help/medic requests',
+      importance: Importance.high,
+    );
+    await _ln
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
+    // Listen to app lifecycle changes
+    SystemChannels.lifecycle.setMessageHandler((message) async {
+      if (message == AppLifecycleState.resumed.toString()) {
+        _isAppInForeground = true;
+        debugPrint('[help] App resumed - showing in-app banners only');
+      } else if (message == AppLifecycleState.paused.toString() ||
+          message == AppLifecycleState.inactive.toString()) {
+        _isAppInForeground = false;
+        debugPrint('[help] App backgrounded - showing system notifications');
+      }
+      return null;
+    });
+
+    _initialized = true;
+  }
+
+  Future<void> startListening() async {
+    await initialize();
+    await _sub?.cancel();
+    await _gameMetaSub?.cancel();
+    final squad = SquadService().currentSquad;
+    if (squad == null) return;
+    final squadId = int.parse(squad.id);
+    debugPrint('[help] startListening squadId=$squadId');
+    _gameMetaSub =
+        GameService().streamActiveGameMetaBySquad(squadId).listen((meta) async {
+      final gameId = (meta == null) ? null : (meta['id'] as num?)?.toInt();
+      debugPrint('[help] active game meta update: gameId=$gameId');
+      await _sub?.cancel();
+      _sub = null;
+      if (gameId == null) return;
+      _sub =
+          _sb.from('help_requests').stream(primaryKey: ['id']).listen((rows) {
+        final filtered = rows.where((r) =>
+            (r['squad_id'] as int?) == squadId &&
+            (r['game_id'] as int?) == gameId);
+        for (final r in filtered) {
+          final id = r['id']?.toString();
+          if (id == null) continue;
+          final resolvedAt = r['resolved_at'];
+          if (resolvedAt != null) {
+            _activeNotifications.remove(id);
+            continue;
+          }
+          if (_activeNotifications.contains(id)) continue;
+          final requesterId = r['requester_id']?.toString();
+          final statusStr = r['status']?.toString() ?? 'HELP';
+          final status = UserSquadSessionStatusExtension.fromValue(statusStr);
+          if (requesterId == _sb.auth.currentUser?.id)
+            continue; // don't notify self
+          debugPrint(
+              '[help] incoming request id=$id requester=$requesterId status=$statusStr');
+          _emitNotificationForRow(r, status);
+        }
+      });
+      debugPrint(
+          '[help] subscribed to help_requests stream for squad=$squadId game=$gameId');
+
+      // Fallback: fetch unresolved requests that already exist
+      try {
+        final existing = await _sb
+            .from('help_requests')
+            .select()
+            .eq('squad_id', squadId)
+            .eq('game_id', gameId)
+            .isFilter('resolved_at', null);
+        for (final r in existing) {
+          final id = r['id']?.toString();
+          if (id == null) continue;
+          if (_activeNotifications.contains(id)) continue;
+          final requesterId = r['requester_id']?.toString();
+          if (requesterId == _sb.auth.currentUser?.id) continue;
+          final statusStr = r['status']?.toString() ?? 'HELP';
+          final status = UserSquadSessionStatusExtension.fromValue(statusStr);
+          debugPrint(
+              '[help] existing unresolved id=$id requester=$requesterId status=$statusStr');
+          _emitNotificationForRow(r, status);
+        }
+      } catch (e) {
+        debugPrint('[help] error fetching unresolved help_requests: $e');
+      }
+    });
+  }
+
+  Future<void> _emitNotificationForRow(
+      Map<String, dynamic> row, UserSquadSessionStatus status) async {
+    final requestId = row['id'].toString();
+    final requesterId = row['requester_id']?.toString() ?? '';
+    String requesterName = requesterId.substring(0, 6);
+    String? colorHex;
+    int kills = 0, deaths = 0;
+    try {
+      // Try to enrich with scoreboard/user data already cached via GameService if available
+      final users = await GameService().getUsernamesByIds([requesterId]);
+      requesterName = users[requesterId] ?? requesterName;
+    } catch (_) {}
+
+    // Distance and bearing
+    double? distanceMeters;
+    double? directionDegrees;
+    try {
+      final memberLoc = _loc.currentMembersLocation
+          ?.firstWhereOrNull((l) => l.user_id == requesterId);
+      final meLoc = _loc.currentUserLocation;
+      if (memberLoc != null && meLoc != null) {
+        distanceMeters = _distance.calculateDistanceFromUser(memberLoc, meLoc);
+        directionDegrees =
+            _distance.calculateDirectionToMember(memberLoc, meLoc);
+      }
+    } catch (_) {}
+
+    final req = HelpRequest(
+      requestId: requestId,
+      requesterId: requesterId,
+      requesterName: requesterName,
+      status: status,
+      distanceMeters: distanceMeters,
+      directionDegrees: directionDegrees,
+      timestamp: DateTime.tryParse(row['created_at']?.toString() ?? '') ??
+          DateTime.now(),
+      requesterAvatarUrl: null,
+      requesterKills: kills,
+      requesterDeaths: deaths,
+      requesterColorHex: colorHex,
+    );
+
+    _activeNotifications.add(requestId);
+    debugPrint(
+        '[help] show notifications for request=$requestId name=$requesterName');
+    await showForegroundAlert(req);
+    await showBackgroundNotification(req);
+
+    // Also forward to TTGO device if connected
+    try {
+      final ble = BleService.global;
+      if (ble != null && ble.connectedDevice != null) {
+        final dirCard = directionDegrees != null
+            ? _bearingToCardinal(directionDegrees)
+            : '';
+        final color = (colorHex ?? '#8410').replaceAll('#', '').toUpperCase();
+        final name = requesterName.replaceAll(' ', '_');
+        final distInt = (distanceMeters ?? -1).round();
+        final statusToken =
+            status == UserSquadSessionStatus.medic ? 'medic' : 'help';
+        final line =
+            'HELP_REQ $requestId $name $statusToken $distInt $dirCard $color';
+        debugPrint('[help] sending to TTGO: $line');
+        await ble.sendString(line);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> showForegroundAlert(HelpRequest request) async {
+    final title =
+        '${request.requesterName} needs ${request.status == UserSquadSessionStatus.help ? 'help' : 'medic'}';
+    final distancePart = request.distanceMeters != null
+        ? '${request.distanceMeters!.round()}m'
+        : null;
+    final dirPart = request.directionDegrees != null
+        ? _bearingToCardinal(request.directionDegrees!)
+        : null;
+    final bodyParts = <String>[];
+    if (distancePart != null) bodyParts.add(distancePart);
+    if (dirPart != null) bodyParts.add(dirPart);
+    final body = bodyParts.join(' • ');
+
+    if (_isAppInForeground) {
+      // App is in foreground - show in-app banner only
+      debugPrint('[help] App in foreground - showing in-app banner only');
+      _showInAppBanner(request, title, body);
+    } else {
+      // App is in background - show system notification only
+      debugPrint('[help] App in background - showing system notification only');
+      await _ln.show(
+        _hashId(request.requestId),
+        title,
+        body.isEmpty ? null : body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            'Help Requests',
+            importance: Importance.high,
+            priority: Priority.high,
+            category: AndroidNotificationCategory.call,
+            actions: <AndroidNotificationAction>[
+              const AndroidNotificationAction('help_ignore', 'Ignore',
+                  showsUserInterface: true, cancelNotification: true),
+              const AndroidNotificationAction('help_accept', 'Go Help',
+                  showsUserInterface: true, cancelNotification: true),
+            ],
+          ),
+          iOS: const DarwinNotificationDetails(
+            categoryIdentifier: 'help_category',
+          ),
+        ),
+        payload: 'help:${request.requestId}:none',
+      );
+    }
+
+    // Auto dismiss after 12s
+    Future.delayed(const Duration(seconds: 12), () async {
+      await _ln.cancel(_hashId(request.requestId));
+      _activeNotifications.remove(request.requestId);
+      _dismissInAppBanner(request.requestId);
+    });
+  }
+
+  Future<void> showBackgroundNotification(HelpRequest request) async {
+    // Same as foreground; platform will show appropriately
+    return; // already shown via showForegroundAlert
+  }
+
+  Future<void> handleResponse(String requestId, HelpResponse response) async {
+    // Mark resolved in DB if accepting/ignoring as self action
+    try {
+      await _sb
+          .from('help_requests')
+          .update({
+            'resolved_at': DateTime.now().toIso8601String(),
+            'resolved_by': _sb.auth.currentUser?.id,
+            'resolution':
+                response == HelpResponse.accept ? 'accepted' : 'ignored',
+          })
+          .eq('id', requestId)
+          .isFilter('resolved_at', null);
+    } catch (_) {}
+    _activeNotifications.remove(requestId);
+    // If accepted, fly map to requester
+    if (response == HelpResponse.accept) {
+      try {
+        final reqRow = await _sb
+            .from('help_requests')
+            .select('requester_id')
+            .eq('id', requestId)
+            .maybeSingle();
+        final requesterId = reqRow?['requester_id']?.toString();
+        if (requesterId != null) {
+          // Compute location and fly camera
+          final memberLoc = _loc.currentMembersLocation
+              ?.firstWhereOrNull((l) => l.user_id == requesterId);
+          if (memberLoc?.latitude != null && memberLoc?.longitude != null) {
+            try {
+              NavigationWidget.goToTab(2); // Map tab
+              await MapUserLocationService().flyToLocation(
+                memberLoc!.longitude!,
+                memberLoc.latitude!,
+              );
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+    }
+  }
+
+  String _bearingToCardinal(double degrees) {
+    const List<String> dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    final idx = ((degrees % 360) / 45).round() % 8;
+    return dirs[idx];
+  }
+
+  int _hashId(String id) {
+    return id.hashCode & 0x7fffffff;
+  }
+
+  void _showInAppBanner(HelpRequest request, String title, String body) {
+    _activeBanners.add(request.requestId);
+    notifyListeners(); // Trigger UI rebuild to show banner
+  }
+
+  void _dismissInAppBanner(String requestId) {
+    _activeBanners.remove(requestId);
+    notifyListeners(); // Trigger UI rebuild to hide banner
+  }
+
+  // Getter for UI to check if there are active banners
+  bool get hasActiveBanners => _activeBanners.isNotEmpty;
+
+  // Getter for UI to get the first active banner (for simplicity, show one at a time)
+  String? get firstActiveBannerId =>
+      _activeBanners.isNotEmpty ? _activeBanners.first : null;
+}

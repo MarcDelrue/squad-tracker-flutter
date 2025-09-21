@@ -7,6 +7,8 @@ import 'package:squad_tracker_flutter/screens/tracker/tracker_screen.dart';
 import 'package:squad_tracker_flutter/screens/squads/squads_entrypoint.dart';
 import 'package:squad_tracker_flutter/screens/user/user_screen.dart';
 import 'package:squad_tracker_flutter/providers/ble_service.dart';
+import 'package:squad_tracker_flutter/providers/help_notification_service.dart';
+import 'package:squad_tracker_flutter/widgets/help_banner.dart';
 import 'package:provider/provider.dart';
 import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
 
@@ -52,6 +54,13 @@ class _NavigationWidgetState extends State<NavigationWidget> {
 
     // Start BLE auto-reconnect in background without blocking UI
     _startBleAutoReconnect();
+
+    // Attach help notifications after squad is resolved; listener follows active game
+    try {
+      await HelpNotificationService().startListening();
+    } catch (e) {
+      debugPrint('Help notifications attach failed: $e');
+    }
   }
 
   void _startBleAutoReconnect() {
@@ -97,6 +106,25 @@ class _NavigationWidgetState extends State<NavigationWidget> {
                 bool hasBasicInfo = userService.hasBasicInfo();
                 final l10n = AppLocalizations.of(context)!;
                 return Scaffold(
+                  body: Stack(
+                    children: [
+                      IndexedStack(
+                        index: currentPageIndex,
+                        children: const <Widget>[
+                          UserScreen(),
+                          SquadsEntrypoint(),
+                          MapWithLocation(),
+                          TrackerScreen(),
+                        ],
+                      ),
+                      const Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: HelpBanner(),
+                      ),
+                    ],
+                  ),
                   bottomNavigationBar: NavigationBar(
                     onDestinationSelected: onDestinationSelected,
                     indicatorColor: Colors.green,
@@ -149,15 +177,6 @@ class _NavigationWidgetState extends State<NavigationWidget> {
                             : l10n.tooltipCompleteProfileTracker,
                         enabled: hasBasicInfo,
                       )
-                    ],
-                  ),
-                  body: IndexedStack(
-                    index: currentPageIndex,
-                    children: const <Widget>[
-                      UserScreen(),
-                      SquadsEntrypoint(),
-                      MapWithLocation(),
-                      TrackerScreen(),
                     ],
                   ),
                 );
