@@ -29,6 +29,7 @@ class HelpNotificationService with ChangeNotifier {
   final UserSquadLocationService _loc = UserSquadLocationService();
   final FlutterLocalNotificationsPlugin _ln = FlutterLocalNotificationsPlugin();
   NotificationSettingsService? _settings;
+  BuildContext? _context;
 
   StreamSubscription<List<Map<String, dynamic>>>? _sub;
   StreamSubscription<Map<String, dynamic>?>? _gameMetaSub;
@@ -42,9 +43,13 @@ class HelpNotificationService with ChangeNotifier {
   Future<void> initialize(BuildContext context) async {
     if (_initialized) return;
 
-    // Initialize settings first
+    // Store context and initialize settings
+    _context = context;
     _settings = context.read<NotificationSettingsService>();
     await _settings!.initialize();
+
+    // Listen to settings changes
+    _settings!.addListener(_onSettingsChanged);
     const AndroidInitializationSettings androidInit =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings iosInit = DarwinInitializationSettings();
@@ -91,6 +96,13 @@ class HelpNotificationService with ChangeNotifier {
     });
 
     _initialized = true;
+  }
+
+  void _onSettingsChanged() {
+    // Restart listening when settings change
+    if (_context != null && _initialized) {
+      startListening(_context!);
+    }
   }
 
   Future<void> startListening(BuildContext context) async {
@@ -245,7 +257,8 @@ class HelpNotificationService with ChangeNotifier {
     if (_isAppInForeground && _settings?.showInAppBanner == true) {
       // App is in foreground - show in-app banner only
       _showInAppBanner(request, title, body);
-    } else if (!_isAppInForeground && _settings?.showSystemNotification == true) {
+    } else if (!_isAppInForeground &&
+        _settings?.showSystemNotification == true) {
       // App is in background - show system notification only
       await _ln.show(
         _hashId(request.requestId),
@@ -276,7 +289,8 @@ class HelpNotificationService with ChangeNotifier {
     }
 
     // Auto dismiss after configured timeout
-    Future.delayed(Duration(seconds: _settings?.timeoutSeconds ?? 20), () async {
+    Future.delayed(Duration(seconds: _settings?.timeoutSeconds ?? 20),
+        () async {
       await _ln.cancel(_hashId(request.requestId));
       _activeNotifications.remove(request.requestId);
       _dismissInAppBanner(request.requestId);
@@ -360,4 +374,12 @@ class HelpNotificationService with ChangeNotifier {
 
   // Getter for settings service
   NotificationSettingsService? get settingsService => _settings;
+
+  @override
+  void dispose() {
+    _settings?.removeListener(_onSettingsChanged);
+    _sub?.cancel();
+    _gameMetaSub?.cancel();
+    super.dispose();
+  }
 }
