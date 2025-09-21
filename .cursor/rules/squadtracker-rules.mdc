@@ -332,6 +332,11 @@ Notes:
   - Map editing for objectives and markers (spawn points, objectives, misc markers).
   - Pagination for game history when events >500.
   - Share functionality for final reports.
+- Help Notification Enhancements:
+  - Notify requester when someone accepts their help/medic request.
+  - Show all squad members who accepted help requests and their distance to requester.
+  - Prevent duplicate responses by showing "X people are already helping" status.
+  - Allow requester to see who's coming to help and their ETA based on distance.
 - Connectivity (later):
   - Explore switching/bridging between cellular data and LoRa for communications.
 
@@ -359,7 +364,7 @@ Notes:
   - Created notification settings screen with configurable preferences.
   - Added auto-dismiss logic and distance-based filtering.
   - Integrated with existing location services for distance/direction calculation.
-- **Final Report Overlay Feature (2025-01-20)**:
+- **Final Report Overlay Feature (2025-09-20)**:
   - Added `game_events` table for battle log tracking with auto-logging triggers.
   - Added kill streak tracking (`max_kill_streak`, `current_kill_streak`) to `user_game_stats`.
   - Added `scoreboard_final` view for ended game scoreboards.
