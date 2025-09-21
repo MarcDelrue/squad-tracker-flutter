@@ -77,14 +77,19 @@ Notes:
   - Device → App (TX notifications):
     - `DEVICE_CONNECTED`, `DEVICE_DISCONNECTED`
     - `OP <opId> BTN_A` (status toggle), `OP <opId> BTN_B` (kill increment)
-  - App → Device (RX writes), within snapshot block:
-    - `RESET_MEMBERS` (begin snapshot)
-    - `MY_STATUS <alive|dead|...>`
-    - `MY_KD <kills> <deaths>`
-    - `MEM <name> <kills> <deaths>` (repeatable)
-    - `SEQ <n>` (monotonic sequence)
-    - `ACK <opId>` (acknowledge last processed op)
-    - `EOT` (end; apply only if sequence increased)
+    - `HELP_RESP <requestId> <accept|ignored>` (help request response)
+  - App → Device (RX writes):
+    - Within snapshot block:
+      - `RESET_MEMBERS` (begin snapshot)
+      - `MY_STATUS <alive|dead|help|medic>`
+      - `MY_KD <kills> <deaths>`
+      - `MEM <name> <kills> <deaths>` (repeatable)
+      - `SEQ <n>` (monotonic sequence)
+      - `ACK <opId>` (acknowledge last processed op)
+      - `EOT` (end; apply only if sequence increased)
+    - Outside snapshot (help notifications):
+      - `HELP_REQ <requestId> <requesterName> <help|medic> <distance> <direction> <color>` (show help alert)
+      - `HELP_CANCEL <requestId>` (dismiss help alert)
 
 ### Supabase
 - Auth: Magic link via Supabase and Resend.
@@ -102,6 +107,12 @@ Notes:
 - App → Device: `MY_STATUS <alive|dead|help|medic>` is always sent in lowercase within the snapshot block so the device can render status consistently.
 
 #### Schema Details (provided DDL)
+- `help_requests`
+  - Columns: `id` (uuid PK), `created_at`, `game_id`, `squad_id`, `requester_id`, `status` (HELP|MEDIC), `resolved_at`, `resolved_by`, `resolution` (ignored|accepted|auto_dismissed).
+  - FKs: `game_id` → `squad_games.id` (ON DELETE CASCADE), `squad_id` → `squads.id` (ON DELETE CASCADE), `requester_id` → `users.id` (ON DELETE CASCADE), `resolved_by` → `users.id`.
+  - Index: `help_requests_active_idx` on `(squad_id, game_id)` WHERE `resolved_at IS NULL`.
+  - Purpose: Track help/medic requests during active games with auto-creation via triggers.
+
 - `game_events`
   - Columns: `id` (bigserial PK), `created_at`, `occurred_at`, `game_id`, `squad_id`, `user_id` nullable, `event_type` enum, `payload` jsonb.
   - Event types: `KILL`, `DEATH`, `STATUS_CHANGE`, `JOIN`, `LEAVE`, `GAME_STARTED`, `GAME_ENDED`, `HOST_TRANSFER`.
@@ -147,6 +158,7 @@ Notes:
   - Triggers: 
     - `user_game_stats_bu_streaks` BEFORE UPDATE: auto-maintain kill streak counters (increment on kills, reset on deaths/status=DEAD).
     - `user_game_stats_au_events` AFTER UPDATE: auto-log `KILL`, `DEATH`, `STATUS_CHANGE` events to `game_events`.
+    - `trg_help_requests_on_status` AFTER UPDATE OF `user_status`: auto-create `help_requests` on HELP/MEDIC status, auto-resolve on status change away from HELP/MEDIC.
 
 - `user_squad_locations`
   - Columns: `id` (identity PK), `created_at`, `updated_at` default now(), `user_id` default `auth.uid()` (required), `squad_id` (required), `longitude`, `latitude`, `direction`.
@@ -180,6 +192,13 @@ Notes:
   - FKs: `id` → `auth.users(id)` (ON UPDATE CASCADE, ON DELETE SET DEFAULT), `main_role` → `roles(name)` (ON UPDATE CASCADE, ON DELETE SET NULL).
 
 #### RLS Policies (current)
+- `help_requests`
+  - SELECT: role `public`; qual: requester is active member of the same squad:
+    `(EXISTS (SELECT 1 FROM user_squad_sessions uss WHERE uss.squad_id = help_requests.squad_id AND uss.user_id = auth.uid() AND uss.is_active = true))`
+  - INSERT: role `authenticated`; with_check: requester is active member of the same squad:
+    `(EXISTS (SELECT 1 FROM user_squad_sessions uss WHERE uss.squad_id = help_requests.squad_id AND uss.user_id = auth.uid() AND uss.is_active = true))`
+  - UPDATE: role `authenticated`; qual + with_check: requester is active member of the same squad:
+    `(EXISTS (SELECT 1 FROM user_squad_sessions uss WHERE uss.squad_id = help_requests.squad_id AND uss.user_id = auth.uid() AND uss.is_active = true))`
 - `game_events`
   - SELECT: role `public`; qual: requester is active member of the same squad:
     `(EXISTS (SELECT 1 FROM user_squad_sessions uss WHERE uss.squad_id = game_events.squad_id AND uss.user_id = auth.uid() AND uss.is_active = true))`
@@ -254,6 +273,11 @@ Notes:
   - History: chronological list of game events with icons and timestamps.
   - Back to Lobby and Share buttons.
 - Tracker: scan BLE devices; connect to user's TTGO; persist device ID for auto-reconnect.
+- Help Notifications: real-time alerts when squad members need help/medic during active games.
+  - In-app banner (foreground) and system notifications (background) with requester details.
+  - TTGO device overlay with countdown and action buttons.
+  - Auto-dismiss after configurable timeout or when requester changes status.
+  - User configurable settings: enable/disable, sound, timeout, distance threshold, display options.
 
 ### Mapping/Keys
 - Map provider: Mapbox.
@@ -327,6 +351,14 @@ Notes:
 - When providing new schema/RLS/enum details, update the relevant sections immediately.
 
 ### Recent Updates
+- **Help Notification System (2025-09-21)**:
+  - Added `help_requests` table with auto-creation via database triggers on HELP/MEDIC status changes.
+  - Implemented real-time help notifications with in-app banners and system notifications.
+  - Extended BLE protocol with `HELP_REQ`, `HELP_RESP`, and `HELP_CANCEL` messages.
+  - Added TTGO device overlay for help alerts with countdown and action buttons.
+  - Created notification settings screen with configurable preferences.
+  - Added auto-dismiss logic and distance-based filtering.
+  - Integrated with existing location services for distance/direction calculation.
 - **Final Report Overlay Feature (2025-01-20)**:
   - Added `game_events` table for battle log tracking with auto-logging triggers.
   - Added kill streak tracking (`max_kill_streak`, `current_kill_streak`) to `user_game_stats`.
