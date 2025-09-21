@@ -35,6 +35,9 @@ class HelpNotificationService with ChangeNotifier {
   StreamSubscription<Map<String, dynamic>?>? _gameMetaSub;
   final Set<String> _activeNotifications = <String>{};
   final Map<String, HelpRequest> _activeBanners = <String, HelpRequest>{};
+  final Map<String, DateTime> _recentlyResolved = <String, DateTime>{};
+  final Map<String, int> _requestProcessCount = <String, int>{};
+  final Set<String> _cancelSentFor = <String>{};
   bool _initialized = false;
   bool _isAppInForeground = true;
 
@@ -120,24 +123,56 @@ class HelpNotificationService with ChangeNotifier {
       if (gameId == null) return;
       _sub =
           _sb.from('help_requests').stream(primaryKey: ['id']).listen((rows) {
+        debugPrint(
+            '[help] Received ${rows.length} help_requests rows from stream');
         final filtered = rows.where((r) =>
             (r['squad_id'] as int?) == squadId &&
             (r['game_id'] as int?) == gameId);
+        debugPrint(
+            '[help] Filtered to ${filtered.length} rows for squad $squadId, game $gameId');
         for (final r in filtered) {
           final id = r['id']?.toString();
           if (id == null) continue;
           final resolvedAt = r['resolved_at'];
+          final requesterId = r['requester_id']?.toString();
+          final status = r['status']?.toString();
+          _requestProcessCount[id] = (_requestProcessCount[id] ?? 0) + 1;
+          debugPrint(
+              '[help] Processing request $id (count: ${_requestProcessCount[id]}): requester=$requesterId, status=$status, resolved_at=$resolvedAt');
           if (resolvedAt != null) {
+            debugPrint(
+                '[help] Request $id resolved at $resolvedAt - dismissing notifications');
             _activeNotifications.remove(id);
+            _recentlyResolved[id] = DateTime.now();
+            // Dismiss in-app banner, system notification, and TTGO overlay exactly once
+            if (!_cancelSentFor.contains(id)) {
+              _cancelSentFor.add(id);
+              _dismissInAppBanner(id);
+              _ln.cancel(_hashId(id));
+              _sendBleCancel(id);
+            } else {
+              debugPrint('[help] Cancel already sent for $id, skipping');
+            }
             continue;
           }
           if (_activeNotifications.contains(id)) continue;
-          final requesterId = r['requester_id']?.toString();
+
+          // Check if this request was recently resolved (debounce)
+          final recentlyResolved = _recentlyResolved[id];
+          if (recentlyResolved != null &&
+              DateTime.now().difference(recentlyResolved).inSeconds < 5) {
+            debugPrint('[help] Skipping recently resolved request: $id');
+            continue;
+          }
+
+          final requesterId2 = r['requester_id']?.toString();
           final statusStr = r['status']?.toString() ?? 'HELP';
-          final status = UserSquadSessionStatusExtension.fromValue(statusStr);
-          if (requesterId == _sb.auth.currentUser?.id)
+          final status2 = UserSquadSessionStatusExtension.fromValue(statusStr);
+          if (requesterId2 == _sb.auth.currentUser?.id)
             continue; // don't notify self
-          _emitNotificationForRow(r, status);
+          debugPrint(
+              '[help] New help request received: $id from $requesterId2 with status $statusStr');
+          _emitNotificationForRow(r, status2);
         }
       });
 
@@ -225,20 +260,29 @@ class HelpNotificationService with ChangeNotifier {
     // Also forward to TTGO device if connected
     try {
       final ble = BleService.global;
-      if (ble != null && ble.connectedDevice != null) {
-        final dirCard = directionDegrees != null
-            ? _bearingToCardinal(directionDegrees)
-            : '';
-        final color = (colorHex ?? '#8410').replaceAll('#', '').toUpperCase();
-        final name = requesterName.replaceAll(' ', '_');
-        final distInt = (distanceMeters ?? -1).round();
-        final statusToken =
-            status == UserSquadSessionStatus.medic ? 'medic' : 'help';
-        final line =
-            'HELP_REQ $requestId $name $statusToken $distInt $dirCard $color';
-        await ble.sendString(line);
+      debugPrint('[help] BLE service: ${ble != null ? 'available' : 'null'}');
+      if (ble != null) {
+        debugPrint(
+            '[help] BLE connected device: ${ble.connectedDevice != null ? 'connected' : 'not connected'}');
+        if (ble.connectedDevice != null) {
+          final dirCard = directionDegrees != null
+              ? _bearingToCardinal(directionDegrees)
+              : '';
+          final color = (colorHex ?? '#8410').replaceAll('#', '').toUpperCase();
+          final name = requesterName.replaceAll(' ', '_');
+          final distInt = (distanceMeters ?? -1).round();
+          final statusToken =
+              status == UserSquadSessionStatus.medic ? 'medic' : 'help';
+          final line =
+              'HELP_REQ $requestId $name $statusToken $distInt $dirCard $color';
+          debugPrint('[help] Sending to TTGO: $line');
+          await ble.sendString(line);
+          debugPrint('[help] BLE send completed');
+        }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[help] BLE send error: $e');
+    }
   }
 
   Future<void> showForegroundAlert(HelpRequest request) async {
@@ -319,6 +363,8 @@ class HelpNotificationService with ChangeNotifier {
     } catch (_) {}
     _activeNotifications.remove(requestId);
     _dismissInAppBanner(requestId);
+    await _ln.cancel(_hashId(requestId));
+    await _sendBleCancel(requestId);
     // If accepted, fly map to requester
     if (response == HelpResponse.accept) {
       try {
@@ -343,6 +389,20 @@ class HelpNotificationService with ChangeNotifier {
           }
         }
       } catch (_) {}
+    }
+  }
+
+  Future<void> _sendBleCancel(String requestId) async {
+    try {
+      final ble = BleService.global;
+      if (ble != null && ble.connectedDevice != null) {
+        final line = 'HELP_CANCEL $requestId';
+        debugPrint('[help] Sending BLE cancel: $line');
+        await ble.sendString(line);
+        debugPrint('[help] BLE cancel completed');
+      }
+    } catch (e) {
+      debugPrint('[help] BLE cancel error: $e');
     }
   }
 
@@ -381,6 +441,10 @@ class HelpNotificationService with ChangeNotifier {
     _settings?.removeListener(_onSettingsChanged);
     _sub?.cancel();
     _gameMetaSub?.cancel();
+    // Clean up old resolved entries
+    final now = DateTime.now();
+    _recentlyResolved
+        .removeWhere((key, value) => now.difference(value).inSeconds > 10);
     super.dispose();
   }
 }
