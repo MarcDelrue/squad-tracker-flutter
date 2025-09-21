@@ -81,6 +81,7 @@ flutter:
     - assets/images/soldiers/soldier_dead.png
     - assets/images/soldiers/soldier_help.png
     - assets/images/soldiers/soldier_medic.png
+    - assets/images/markers/tombstone.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

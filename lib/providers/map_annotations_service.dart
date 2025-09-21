@@ -38,6 +38,19 @@ class MapAnnotationsService extends ChangeNotifier {
   StreamSubscription<List<Map<String, dynamic>>>? _statusSub;
   final Map<String, UserSquadSessionStatus?> _statusByUserId = {};
 
+  // Track previous status to detect transitions ALIVE↔DEAD
+  final Map<String, UserSquadSessionStatus?> _prevStatusByUserId = {};
+
+  // Separate layer for tombstones
+  late mapbox.PointAnnotationManager tombstoneAnnotationManager;
+  final Map<String, mapbox.PointAnnotation> _tombstoneByUserId = {};
+
+  // Optional: per-user spawn override (if set, dead members render at spawn)
+  final Map<String, mapbox.Point> _spawnByUserId = {};
+
+  // Asset for tombstone (fallback to soldierDead if not provided)
+  late Uint8List tombstoneImage = Uint8List(0);
+
   // Pulsating logic removed for performance
 
   Future<void> initMembersAnnotation(mapbox.MapboxMap mapboxMap) async {
@@ -45,6 +58,9 @@ class MapAnnotationsService extends ChangeNotifier {
         await mapboxMap.annotations.createPointAnnotationManager();
     pointAnnotationManager
         .setIconRotationAlignment(mapbox.IconRotationAlignment.MAP);
+
+    tombstoneAnnotationManager =
+        await mapboxMap.annotations.createPointAnnotationManager();
 
     // Load all status-based soldier images
     try {
@@ -75,6 +91,15 @@ class MapAnnotationsService extends ChangeNotifier {
       if (kDebugMode) {
         debugPrint('Loaded medic image, size: ${soldierMedicImage.length}');
       }
+
+      // Try to load a dedicated tombstone icon; fallback to soldierDead
+      try {
+        final ByteData tombBytes =
+            await rootBundle.load('assets/images/markers/tombstone.png');
+        tombstoneImage = tombBytes.buffer.asUint8List();
+      } catch (_) {
+        tombstoneImage = soldierDeadImage;
+      }
       _imagesLoaded = soldierAliveImage.isNotEmpty &&
           soldierDeadImage.isNotEmpty &&
           soldierHelpImage.isNotEmpty &&
@@ -95,20 +120,43 @@ class MapAnnotationsService extends ChangeNotifier {
     final gameId = await gameService.getActiveGameId(int.parse(squadIdStr));
     if (gameId == null) return;
     _statusSub = gameService.streamScoreboardByGame(gameId).listen((rows) {
-      _statusByUserId.clear();
+      final previous =
+          Map<String, UserSquadSessionStatus?>.from(_statusByUserId);
+      final next = <String, UserSquadSessionStatus?>{};
       for (final r in rows) {
         final userId = r['user_id'] as String?;
         if (userId == null) continue;
         final s = r['user_status'];
         if (s is String) {
           try {
-            _statusByUserId[userId] =
-                UserSquadSessionStatusExtension.fromValue(s);
+            next[userId] = UserSquadSessionStatusExtension.fromValue(s);
           } catch (_) {
-            _statusByUserId[userId] = null;
+            next[userId] = null;
           }
         }
       }
+
+      // Handle transitions: ALIVE->DEAD => drop; DEAD->ALIVE => remove
+      for (final entry in next.entries) {
+        final userId = entry.key;
+        final newS = entry.value;
+        final oldS = previous[userId];
+        if (oldS != UserSquadSessionStatus.dead &&
+            newS == UserSquadSessionStatus.dead) {
+          _dropTombstoneFor(userId);
+        } else if (oldS == UserSquadSessionStatus.dead &&
+            newS != UserSquadSessionStatus.dead) {
+          _removeTombstoneFor(userId);
+        }
+      }
+
+      _statusByUserId
+        ..clear()
+        ..addAll(next);
+      _prevStatusByUserId
+        ..clear()
+        ..addAll(next);
+
       // Force update icons when statuses change
       _forceRecreateAnnotations();
     });
@@ -121,7 +169,13 @@ class MapAnnotationsService extends ChangeNotifier {
       // PointAnnotationManager might not be initialized yet
       debugPrint('Could not delete annotations: $e');
     }
+    try {
+      tombstoneAnnotationManager.deleteAll();
+    } catch (e) {
+      debugPrint('Could not delete tombstone annotations: $e');
+    }
     membersPointAnnotations = null;
+    _tombstoneByUserId.clear();
   }
 
   Uint8List _getStatusIcon(UserSquadSessionStatus? status) {
@@ -246,11 +300,18 @@ class MapAnnotationsService extends ChangeNotifier {
           _getStatusIconRotation(effectiveStatus, location.direction);
       final isStale = _isStale(location.updated_at);
 
+      // If user is dead and we know a spawn coordinate, render at spawn
+      final maybeSpawn = effectiveStatus == UserSquadSessionStatus.dead
+          ? _spawnByUserId[foundMember.user.id]
+          : null;
+      final point = maybeSpawn ??
+          mapbox.Point(
+              coordinates: mapbox.Position(
+                  location.longitude as num, location.latitude as num));
+
       mapbox.PointAnnotationOptions pointAnnotationOptions =
           mapbox.PointAnnotationOptions(
-        geometry: mapbox.Point(
-            coordinates: mapbox.Position(
-                location.longitude as num, location.latitude as num)),
+        geometry: point,
         image: statusIcon,
         iconRotate: iconRotation,
         textField: foundMember.user.username,
@@ -271,5 +332,68 @@ class MapAnnotationsService extends ChangeNotifier {
           (await pointAnnotationManager.createMulti(annotations))
               .cast<mapbox.PointAnnotation>();
     }
+  }
+
+  Future<void> _dropTombstoneFor(String userId) async {
+    try {
+      // If we already have one, remove first (de-dup)
+      _removeTombstoneFor(userId);
+
+      // Find last known coordinates for this user
+      final loc = userSquadLocationService.currentMembersLocation?.firstWhere(
+          (l) => l.user_id == userId,
+          orElse: () => throw StateError('no loc'));
+      if (loc == null || loc.longitude == null || loc.latitude == null) return;
+
+      final member = SquadMembersService().getMemberDataById(userId);
+      final username = member.user.username ?? '';
+
+      final opts = mapbox.PointAnnotationOptions(
+        geometry: mapbox.Point(
+          coordinates:
+              mapbox.Position(loc.longitude as num, loc.latitude as num),
+        ),
+        image: tombstoneImage,
+        textField: '☠ ' + username,
+        textColor: Colors.white.value,
+        textHaloColor: Colors.black.value,
+        textHaloWidth: 1.0,
+        textOffset: [0, 2.0],
+        iconSize: 1.2,
+      );
+
+      final created = await tombstoneAnnotationManager.create(opts);
+      _tombstoneByUserId[userId] = created;
+    } catch (e) {
+      debugPrint(
+          'Failed to drop tombstone for ' + userId + ': ' + e.toString());
+    }
+  }
+
+  void _removeTombstoneFor(String userId) {
+    try {
+      final ann = _tombstoneByUserId.remove(userId);
+      if (ann != null) {
+        tombstoneAnnotationManager.delete(ann);
+      }
+    } catch (e) {
+      debugPrint(
+          'Failed to remove tombstone for ' + userId + ': ' + e.toString());
+    }
+  }
+
+  // Public APIs
+  void removeTombstoneByUserId(String userId) => _removeTombstoneFor(userId);
+
+  void setSpawnForUser(String userId,
+      {required num longitude, required num latitude}) {
+    _spawnByUserId[userId] =
+        mapbox.Point(coordinates: mapbox.Position(longitude, latitude));
+    _forceRecreateAnnotations();
+  }
+
+  void clearSpawnForUser(String userId) {
+    _spawnByUserId.remove(userId);
+    _forceRecreateAnnotations();
   }
 }

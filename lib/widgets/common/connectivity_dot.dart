@@ -49,12 +49,13 @@ class _ConnectivityDotState extends State<ConnectivityDot> {
             UserSquadLocation(id: -1, user_id: widget.userId, squad_id: -1),
       );
       if (l.id != -1) {
-        if (mounted)
+        if (mounted) {
           setState(() {
             if (l.updated_at != null) {
               _updatedAt = _maxDate(_updatedAt, l.updated_at);
             }
           });
+        }
       }
     });
     _ownChannel = supa.Supabase.instance.client

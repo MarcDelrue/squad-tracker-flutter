@@ -157,6 +157,9 @@ class SquadMembersService {
                   if (leavingMember != null) {
                     mapAnnotationsService.removeMembersAnnotation(
                         leavingMember.user.username ?? '');
+                    // Also remove any tombstone left for this user
+                    mapAnnotationsService
+                        .removeTombstoneByUserId(leavingUserId);
                     if (kDebugMode) {
                       debugPrint(
                           'Member ${leavingMember.user.username} left the squad - removing their marker');
