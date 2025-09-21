@@ -76,11 +76,9 @@ class HelpNotificationService with ChangeNotifier {
     SystemChannels.lifecycle.setMessageHandler((message) async {
       if (message == AppLifecycleState.resumed.toString()) {
         _isAppInForeground = true;
-        debugPrint('[help] App resumed - showing in-app banners only');
       } else if (message == AppLifecycleState.paused.toString() ||
           message == AppLifecycleState.inactive.toString()) {
         _isAppInForeground = false;
-        debugPrint('[help] App backgrounded - showing system notifications');
       }
       return null;
     });
@@ -95,11 +93,9 @@ class HelpNotificationService with ChangeNotifier {
     final squad = SquadService().currentSquad;
     if (squad == null) return;
     final squadId = int.parse(squad.id);
-    debugPrint('[help] startListening squadId=$squadId');
     _gameMetaSub =
         GameService().streamActiveGameMetaBySquad(squadId).listen((meta) async {
       final gameId = (meta == null) ? null : (meta['id'] as num?)?.toInt();
-      debugPrint('[help] active game meta update: gameId=$gameId');
       await _sub?.cancel();
       _sub = null;
       if (gameId == null) return;
@@ -122,13 +118,9 @@ class HelpNotificationService with ChangeNotifier {
           final status = UserSquadSessionStatusExtension.fromValue(statusStr);
           if (requesterId == _sb.auth.currentUser?.id)
             continue; // don't notify self
-          debugPrint(
-              '[help] incoming request id=$id requester=$requesterId status=$statusStr');
           _emitNotificationForRow(r, status);
         }
       });
-      debugPrint(
-          '[help] subscribed to help_requests stream for squad=$squadId game=$gameId');
 
       // Fallback: fetch unresolved requests that already exist
       try {
@@ -146,8 +138,6 @@ class HelpNotificationService with ChangeNotifier {
           if (requesterId == _sb.auth.currentUser?.id) continue;
           final statusStr = r['status']?.toString() ?? 'HELP';
           final status = UserSquadSessionStatusExtension.fromValue(statusStr);
-          debugPrint(
-              '[help] existing unresolved id=$id requester=$requesterId status=$statusStr');
           _emitNotificationForRow(r, status);
         }
       } catch (e) {
@@ -199,8 +189,6 @@ class HelpNotificationService with ChangeNotifier {
     );
 
     _activeNotifications.add(requestId);
-    debugPrint(
-        '[help] show notifications for request=$requestId name=$requesterName');
     await showForegroundAlert(req);
     await showBackgroundNotification(req);
 
@@ -218,7 +206,6 @@ class HelpNotificationService with ChangeNotifier {
             status == UserSquadSessionStatus.medic ? 'medic' : 'help';
         final line =
             'HELP_REQ $requestId $name $statusToken $distInt $dirCard $color';
-        debugPrint('[help] sending to TTGO: $line');
         await ble.sendString(line);
       }
     } catch (_) {}
@@ -240,11 +227,9 @@ class HelpNotificationService with ChangeNotifier {
 
     if (_isAppInForeground) {
       // App is in foreground - show in-app banner only
-      debugPrint('[help] App in foreground - showing in-app banner only');
       _showInAppBanner(request, title, body);
     } else {
       // App is in background - show system notification only
-      debugPrint('[help] App in background - showing system notification only');
       await _ln.show(
         _hashId(request.requestId),
         title,
@@ -299,6 +284,7 @@ class HelpNotificationService with ChangeNotifier {
           .isFilter('resolved_at', null);
     } catch (_) {}
     _activeNotifications.remove(requestId);
+    _dismissInAppBanner(requestId);
     // If accepted, fly map to requester
     if (response == HelpResponse.accept) {
       try {
