@@ -198,7 +198,8 @@ class HelpNotificationService with ChangeNotifier {
     // Check distance threshold
     if (distanceMeters != null &&
         _settings != null &&
-        distanceMeters > _settings!.distanceThresholdMeters) {
+        _settings!.distanceThresholdMeters != null &&
+        distanceMeters > _settings!.distanceThresholdMeters!) {
       return; // Skip notification if too far
     }
 

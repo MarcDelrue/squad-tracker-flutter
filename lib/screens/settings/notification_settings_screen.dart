@@ -82,8 +82,9 @@ class _NotificationSettingsScreenState
                   Card(
                     child: ListTile(
                       title: const Text('Distance Threshold'),
-                      subtitle:
-                          Text('${settings.distanceThresholdMeters.round()}m'),
+                      subtitle: Text(settings.distanceThresholdMeters == null
+                          ? 'Unlimited'
+                          : '${settings.distanceThresholdMeters!.round()}m'),
                       leading: const Icon(Icons.location_on),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () =>
@@ -193,16 +194,25 @@ class _NotificationSettingsScreenState
             const Text(
                 'Only show notifications for help requests within this distance:'),
             const SizedBox(height: 16),
+            // Unlimited option
+            RadioListTile<double?>(
+              title: const Text('Unlimited'),
+              value: null,
+              groupValue: currentDistance,
+              onChanged: (value) {
+                settingsService.setDistanceThresholdMeters(value);
+                Navigator.of(context).pop();
+              },
+            ),
+            // Distance options
             ...([100, 250, 500, 1000, 2000, 5000]
-                .map((meters) => RadioListTile<double>(
+                .map((meters) => RadioListTile<double?>(
                       title: Text('${meters}m'),
                       value: meters.toDouble(),
                       groupValue: currentDistance,
                       onChanged: (value) {
-                        if (value != null) {
-                          settingsService.setDistanceThresholdMeters(value);
-                          Navigator.of(context).pop();
-                        }
+                        settingsService.setDistanceThresholdMeters(value);
+                        Navigator.of(context).pop();
                       },
                     ))),
           ],

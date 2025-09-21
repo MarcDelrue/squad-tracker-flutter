@@ -15,7 +15,7 @@ class NotificationSettingsService with ChangeNotifier {
   bool get enabled => _settings.enabled;
   bool get soundEnabled => _settings.soundEnabled;
   int get timeoutSeconds => _settings.timeoutSeconds;
-  double get distanceThresholdMeters => _settings.distanceThresholdMeters;
+  double? get distanceThresholdMeters => _settings.distanceThresholdMeters;
   bool get showInAppBanner => _settings.showInAppBanner;
   bool get showSystemNotification => _settings.showSystemNotification;
 
@@ -67,7 +67,7 @@ class NotificationSettingsService with ChangeNotifier {
   }
 
   Future<void> setDistanceThresholdMeters(
-      double distanceThresholdMeters) async {
+      double? distanceThresholdMeters) async {
     await updateSettings(
         _settings.copyWith(distanceThresholdMeters: distanceThresholdMeters));
   }

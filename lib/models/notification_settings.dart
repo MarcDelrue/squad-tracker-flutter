@@ -2,7 +2,7 @@ class NotificationSettings {
   final bool enabled;
   final bool soundEnabled;
   final int timeoutSeconds;
-  final double distanceThresholdMeters;
+  final double? distanceThresholdMeters; // null means unlimited
   final bool showInAppBanner;
   final bool showSystemNotification;
 
@@ -10,7 +10,7 @@ class NotificationSettings {
     this.enabled = true,
     this.soundEnabled = true,
     this.timeoutSeconds = 20,
-    this.distanceThresholdMeters = 1000.0, // 1km default
+    this.distanceThresholdMeters, // null = unlimited (default)
     this.showInAppBanner = true,
     this.showSystemNotification = true,
   });
@@ -27,8 +27,7 @@ class NotificationSettings {
       enabled: enabled ?? this.enabled,
       soundEnabled: soundEnabled ?? this.soundEnabled,
       timeoutSeconds: timeoutSeconds ?? this.timeoutSeconds,
-      distanceThresholdMeters:
-          distanceThresholdMeters ?? this.distanceThresholdMeters,
+      distanceThresholdMeters: distanceThresholdMeters,
       showInAppBanner: showInAppBanner ?? this.showInAppBanner,
       showSystemNotification:
           showSystemNotification ?? this.showSystemNotification,
@@ -51,8 +50,9 @@ class NotificationSettings {
       enabled: json['enabled'] ?? true,
       soundEnabled: json['soundEnabled'] ?? true,
       timeoutSeconds: json['timeoutSeconds'] ?? 20,
-      distanceThresholdMeters:
-          (json['distanceThresholdMeters'] ?? 1000.0).toDouble(),
+      distanceThresholdMeters: json['distanceThresholdMeters'] != null
+          ? (json['distanceThresholdMeters'] as num).toDouble()
+          : null,
       showInAppBanner: json['showInAppBanner'] ?? true,
       showSystemNotification: json['showSystemNotification'] ?? true,
     );
