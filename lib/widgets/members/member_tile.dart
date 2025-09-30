@@ -190,11 +190,11 @@ class MemberTile extends StatelessWidget {
       case UserSquadSessionStatus.alive:
         return Colors.green;
       case UserSquadSessionStatus.dead:
-        return Colors.red;
+        return Colors.grey.shade700;
       case UserSquadSessionStatus.help:
         return Colors.orange;
       case UserSquadSessionStatus.medic:
-        return Colors.purple;
+        return Colors.red;
       default:
         return Colors.grey;
     }

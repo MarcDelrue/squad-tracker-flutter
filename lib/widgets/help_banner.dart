@@ -22,7 +22,7 @@ class HelpBanner extends StatelessWidget {
         final statusIcon =
             isMedic ? Icons.medical_services : Icons.warning_amber_rounded;
         final statusColor =
-            isMedic ? Colors.orange.shade600 : Colors.red.shade600;
+            isMedic ? Colors.red.shade600 : Colors.orange.shade600;
 
         // Build distance and direction info
         final distanceText = request.distanceMeters != null

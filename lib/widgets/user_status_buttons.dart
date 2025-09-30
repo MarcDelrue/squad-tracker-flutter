@@ -327,13 +327,13 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
               _buildToggleButton(
                 l10n.statusSendHelp,
                 l10n.statusHelpAsked,
-                Colors.red,
+                Colors.orange,
                 UserSquadSessionStatus.help,
               ),
               _buildToggleButton(
                 l10n.statusSendMedic,
                 l10n.statusMedicAsked,
-                Colors.orange,
+                Colors.red,
                 UserSquadSessionStatus.medic,
               ),
             ],
