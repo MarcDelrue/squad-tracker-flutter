@@ -407,25 +407,9 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
     }
     // Device replied to a help request
     if (msg.startsWith('HELP_RESP ')) {
-      final parts = msg.split(' ');
-      if (parts.length >= 3) {
-        final reqId = parts[1];
-        final action = parts[2];
-        // Insert responder's decision for analytics/notification fanout
-        try {
-          final sb = Supabase.instance.client;
-          final uid = UserService().currentUser?.id;
-          if (uid != null && uid.isNotEmpty) {
-            final String resp = action == 'accept' ? 'accepted' : 'ignored';
-            // ignore: unawaited_futures
-            sb.from('help_responses').insert({
-              'request_id': reqId,
-              'responder_id': uid,
-              'response': resp,
-            });
-          }
-        } catch (_) {}
-      }
+      // Delegate to HelpNotificationService to centralize logic and RLS context
+      // ignore: unawaited_futures
+      HelpNotificationService().handleDeviceHelpRespLine(msg);
     }
   }
 
