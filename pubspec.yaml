@@ -40,7 +40,7 @@ dependencies:
   geolocator: ^14.0.2
   permission_handler: ^12.0.1
   supabase_flutter: ^2.8.0
-  flutter_blue_plus: ^1.34.3
+  flutter_blue_plus: ^1.12.13
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.0.1
   intl: ^0.20.1

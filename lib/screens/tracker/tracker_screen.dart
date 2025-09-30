@@ -11,7 +11,7 @@ import 'package:squad_tracker_flutter/providers/game_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'package:squad_tracker_flutter/models/user_with_location_session_model.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 import 'package:squad_tracker_flutter/screens/tracker/widgets/scan_controls.dart';
 import 'package:squad_tracker_flutter/screens/tracker/widgets/device_list.dart';
 import 'package:squad_tracker_flutter/screens/tracker/widgets/connected_panel.dart';

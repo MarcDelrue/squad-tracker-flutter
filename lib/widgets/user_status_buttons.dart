@@ -5,7 +5,7 @@ import 'package:squad_tracker_flutter/providers/game_service.dart';
 import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_session_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 
 class UserStatusButtons extends StatefulWidget {
   const UserStatusButtons({super.key});

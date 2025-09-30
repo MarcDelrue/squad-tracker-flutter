@@ -126,7 +126,7 @@ class MapWithLocationState extends State<MapWithLocation> {
     final sid = int.parse(sidStr);
     // Load last seen final report id for this squad
     final prefs = await SharedPreferences.getInstance();
-    final seenKey = 'last_seen_final_report_' + sid.toString();
+    final seenKey = 'last_seen_final_report_$sid';
     _lastSeenFinalGameId = prefs.getInt(seenKey);
     // Treat last seen as already shown in this session
     _lastShownFinalGameId = _lastSeenFinalGameId;
@@ -171,7 +171,7 @@ class MapWithLocationState extends State<MapWithLocation> {
     if (sidStr != null) {
       final sid = int.parse(sidStr);
       final prefs = await SharedPreferences.getInstance();
-      final seenKey = 'last_seen_final_report_' + sid.toString();
+      final seenKey = 'last_seen_final_report_$sid';
       await prefs.setInt(seenKey, gameId);
       _lastSeenFinalGameId = gameId;
       _lastShownFinalGameId = gameId;

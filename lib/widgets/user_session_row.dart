@@ -4,7 +4,7 @@ import 'package:squad_tracker_flutter/models/users_model.dart';
 import 'package:squad_tracker_flutter/utils/colors_option.dart';
 import 'package:squad_tracker_flutter/widgets/navigation.dart';
 import 'package:squad_tracker_flutter/widgets/common/connectivity_dot.dart';
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 
 class UserSessionRow extends StatelessWidget {
   final User user;

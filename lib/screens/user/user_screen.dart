@@ -8,7 +8,7 @@ import 'package:squad_tracker_flutter/widgets/color_picker.dart';
 import 'package:squad_tracker_flutter/widgets/snack_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:squad_tracker_flutter/models/users_model.dart' as users_model;
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 import 'package:squad_tracker_flutter/providers/locale_provider.dart';
 import 'package:squad_tracker_flutter/screens/settings/notification_settings_screen.dart';
 import 'package:provider/provider.dart';

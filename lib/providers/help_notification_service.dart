@@ -13,6 +13,8 @@ import 'package:squad_tracker_flutter/providers/ble_service.dart';
 import 'package:squad_tracker_flutter/widgets/navigation.dart';
 import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
 import 'package:squad_tracker_flutter/providers/notification_settings_service.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
+// import removed: user_service is not used here
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:collection/collection.dart';
 
@@ -32,6 +34,7 @@ class HelpNotificationService with ChangeNotifier {
   BuildContext? _context;
 
   StreamSubscription<List<Map<String, dynamic>>>? _sub;
+  StreamSubscription<List<Map<String, dynamic>>>? _responsesSub;
   StreamSubscription<Map<String, dynamic>?>? _gameMetaSub;
   final Set<String> _activeNotifications = <String>{};
   final Map<String, HelpRequest> _activeBanners = <String, HelpRequest>{};
@@ -40,6 +43,10 @@ class HelpNotificationService with ChangeNotifier {
   final Set<String> _cancelSentFor = <String>{};
   bool _initialized = false;
   bool _isAppInForeground = true;
+
+  // Coalescing window for acceptance notifications (requester side)
+  final Map<String, _AcceptCoalescer> _acceptCoalescers =
+      <String, _AcceptCoalescer>{};
 
   static const String _channelId = 'help_requests';
 
@@ -168,13 +175,52 @@ class HelpNotificationService with ChangeNotifier {
           final requesterId2 = r['requester_id']?.toString();
           final statusStr = r['status']?.toString() ?? 'HELP';
           final status2 = UserSquadSessionStatusExtension.fromValue(statusStr);
-          if (requesterId2 == _sb.auth.currentUser?.id)
+          if (requesterId2 == _sb.auth.currentUser?.id) {
             continue; // don't notify self
+          }
           debugPrint(
               '[help] New help request received: $id from $requesterId2 with status $statusStr');
           _emitNotificationForRow(r, status2);
         }
       });
+
+      // Subscribe to help_responses for requests opened by me and unresolved
+      await _responsesSub?.cancel();
+      final myId = _sb.auth.currentUser?.id;
+      if (myId != null) {
+        _responsesSub = _sb
+            .from('help_responses')
+            .stream(primaryKey: ['id']).listen((rows) async {
+          // We must join against help_requests to ensure requester_id == me and unresolved
+          if (rows.isEmpty) return;
+          final ids = rows
+              .map((r) => r['request_id']?.toString())
+              .whereType<String>()
+              .toSet()
+              .toList();
+          if (ids.isEmpty) return;
+          try {
+            final reqRows = await _sb
+                .from('help_requests')
+                .select('id, requester_id, resolved_at, squad_id, game_id')
+                .inFilter('id', ids);
+            final byId = {for (final r in reqRows) r['id'].toString(): r};
+            for (final r in rows) {
+              final requestId = r['request_id']?.toString();
+              final responderId = r['responder_id']?.toString();
+              final response = r['response']?.toString();
+              if (requestId == null || responderId == null) continue;
+              final req = byId[requestId];
+              if (req == null) continue;
+              if (req['resolved_at'] != null) continue; // ignore resolved
+              if (req['requester_id']?.toString() != myId)
+                continue; // only my requests
+              if (response != 'accepted') continue; // only accepted
+              _onAccepted(requestId: requestId, responderId: responderId);
+            }
+          } catch (_) {}
+        });
+      }
 
       // Fallback: fetch unresolved requests that already exist
       try {
@@ -348,18 +394,16 @@ class HelpNotificationService with ChangeNotifier {
   }
 
   Future<void> handleResponse(String requestId, HelpResponse response) async {
-    // Mark resolved in DB if accepting/ignoring as self action
+    // Record response immutably; do not resolve request here
     try {
-      await _sb
-          .from('help_requests')
-          .update({
-            'resolved_at': DateTime.now().toIso8601String(),
-            'resolved_by': _sb.auth.currentUser?.id,
-            'resolution':
-                response == HelpResponse.accept ? 'accepted' : 'ignored',
-          })
-          .eq('id', requestId)
-          .isFilter('resolved_at', null);
+      final uid = _sb.auth.currentUser?.id;
+      if (uid != null) {
+        await _sb.from('help_responses').insert({
+          'request_id': requestId,
+          'responder_id': uid,
+          'response': response == HelpResponse.accept ? 'accepted' : 'ignored',
+        });
+      }
     } catch (_) {}
     _activeNotifications.remove(requestId);
     _dismissInAppBanner(requestId);
@@ -390,6 +434,129 @@ class HelpNotificationService with ChangeNotifier {
         }
       } catch (_) {}
     }
+  }
+
+  // Handle an accepted response for my request; coalesce and notify
+  void _onAccepted(
+      {required String requestId, required String responderId}) async {
+    // Resolve responder name and distance/direction
+    String name = responderId.substring(0, 6);
+    String colorHex = '#000000';
+    double? distanceMeters;
+    double? directionDegrees;
+    try {
+      final names = await GameService().getUsernamesByIds([responderId]);
+      name = names[responderId] ?? name;
+    } catch (_) {}
+    try {
+      final memberLoc = _loc.currentMembersLocation
+          ?.firstWhereOrNull((l) => l.user_id == responderId);
+      final meLoc = _loc.currentUserLocation;
+      if (memberLoc != null && meLoc != null) {
+        distanceMeters = _distance.calculateDistanceFromUser(memberLoc, meLoc);
+        directionDegrees =
+            _distance.calculateDirectionToMember(memberLoc, meLoc);
+      }
+    } catch (_) {}
+    try {
+      final rows = await _sb
+          .from('users')
+          .select('id, main_color')
+          .inFilter('id', [responderId]);
+      if (rows.isNotEmpty) {
+        final c = rows.first['main_color']?.toString();
+        if (c != null && c.isNotEmpty) colorHex = c;
+      }
+    } catch (_) {}
+
+    final coalescer = _acceptCoalescers.putIfAbsent(
+        requestId, () => _AcceptCoalescer(window: const Duration(seconds: 10)));
+    coalescer.add(_AcceptedInfo(
+        userId: responderId,
+        name: name,
+        distanceMeters: distanceMeters,
+        directionDegrees: directionDegrees,
+        colorHex: colorHex));
+    coalescer.schedule(() => _flushAccepts(requestId));
+  }
+
+  Future<void> _flushAccepts(String requestId) async {
+    final coalescer = _acceptCoalescers.remove(requestId);
+    if (coalescer == null) return;
+    final accepts = coalescer.unique();
+    if (accepts.isEmpty) return;
+
+    // Prepare notification content
+    final firstThree = accepts.take(3).toList();
+    final names = firstThree.map((e) => e.name).join(', ');
+    final extra = accepts.length - firstThree.length;
+
+    // In-app/system notification
+    try {
+      final ctx = _context;
+      final hasCtx = ctx != null;
+      final loc = hasCtx ? AppLocalizations.of(ctx) : null;
+      // ignore: undefined_getter
+      final title = loc?.helpAcceptedTitle ?? 'Help accepted';
+      String body;
+      if (accepts.length == 1) {
+        final a = accepts.first;
+        final dist = a.distanceMeters?.round();
+        final bearing = a.directionDegrees?.round();
+        final parts = <String>[];
+        if (dist != null) parts.add('$dist m');
+        if (bearing != null) parts.add('${bearing}°');
+        final suffix = parts.isEmpty ? '' : ' — ${parts.join(', ')}';
+        // ignore: undefined_method
+        final base =
+            loc?.helpAcceptedSingle(a.name) ?? '${a.name} is on the way';
+        body = '$base$suffix';
+      } else {
+        if (extra > 0) {
+          // ignore: undefined_method
+          body = loc?.helpAcceptedManyCapped(names, extra) ??
+              '$names and +$extra others are on the way';
+        } else {
+          // ignore: undefined_method
+          body = loc?.helpAcceptedManyNoExtra(names) ?? '$names are on the way';
+        }
+      }
+      if (_isAppInForeground && hasCtx) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(content: Text(body)),
+        );
+      } else {
+        await _ln.show(
+          _hashId('help_ack_$requestId'),
+          title,
+          body,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              _channelId,
+              'Help Requests',
+              importance: Importance.high,
+              priority: Priority.high,
+            ),
+            iOS: DarwinNotificationDetails(),
+          ),
+        );
+      }
+    } catch (_) {}
+
+    // BLE HELP_ACK to device (up to 3 entries)
+    try {
+      final ble = BleService.global;
+      if (ble != null && ble.connectedDevice != null) {
+        for (final a in accepts.take(3)) {
+          final distInt = (a.distanceMeters ?? -1).round();
+          final dirDeg = (a.directionDegrees ?? -1).round();
+          final nameSafe = a.name.replaceAll(' ', '_');
+          final color = a.colorHex.replaceAll('#', '').toUpperCase();
+          final line = 'HELP_ACK $requestId $nameSafe $distInt $dirDeg $color';
+          await ble.sendString(line);
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _sendBleCancel(String requestId) async {
@@ -440,6 +607,7 @@ class HelpNotificationService with ChangeNotifier {
   void dispose() {
     _settings?.removeListener(_onSettingsChanged);
     _sub?.cancel();
+    _responsesSub?.cancel();
     _gameMetaSub?.cancel();
     // Clean up old resolved entries
     final now = DateTime.now();
@@ -447,4 +615,41 @@ class HelpNotificationService with ChangeNotifier {
         .removeWhere((key, value) => now.difference(value).inSeconds > 10);
     super.dispose();
   }
+}
+
+class _AcceptCoalescer {
+  final Duration window;
+  final List<_AcceptedInfo> _items = <_AcceptedInfo>[];
+  Timer? _timer;
+
+  _AcceptCoalescer({required this.window});
+
+  void add(_AcceptedInfo info) {
+    // de-dupe by userId
+    final exists = _items.any((e) => e.userId == info.userId);
+    if (!exists) _items.add(info);
+  }
+
+  void schedule(VoidCallback onFire) {
+    _timer?.cancel();
+    _timer = Timer(window, onFire);
+  }
+
+  List<_AcceptedInfo> unique() => List<_AcceptedInfo>.from(_items);
+}
+
+class _AcceptedInfo {
+  final String userId;
+  final String name;
+  final double? distanceMeters;
+  final double? directionDegrees;
+  final String colorHex;
+
+  _AcceptedInfo({
+    required this.userId,
+    required this.name,
+    required this.distanceMeters,
+    required this.directionDegrees,
+    required this.colorHex,
+  });
 }

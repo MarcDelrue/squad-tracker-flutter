@@ -107,6 +107,21 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
+## Help Request Acceptances (Requester Notifications)
+
+- When any squad member accepts your help/medic request, you are notified:
+  - In-app banner/toast in foreground
+  - System notification in background
+  - TTGO overlay via new BLE line(s):
+
+```
+HELP_ACK <requestId> <responderName> <distance_m> <direction_deg> <colorHex>
+```
+
+- Multiple acceptances within 10s are coalesced; up to 3 overlays are sent, remaining names grouped as “+N others”.
+- Acceptances are persisted in `public.help_responses` and streamed via Supabase Realtime.
+- RLS mirrors `help_requests`: only active members of the same squad can read/insert.
+
 ## Data privacy: Encrypted user locations
 
 User locations in `public.user_squad_locations` are encrypted at rest using PostgreSQL `pgsodium` with a key stored in Supabase Vault. The app reads/writes via RPCs returning decrypted values per-request.

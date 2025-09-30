@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 import 'package:squad_tracker_flutter/providers/game_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

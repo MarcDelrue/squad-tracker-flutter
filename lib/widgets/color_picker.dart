@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/utils/colors_option.dart';
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 
 class ColorPickerModal extends StatefulWidget {
   final Color initialColor;

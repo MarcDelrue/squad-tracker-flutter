@@ -364,7 +364,7 @@ class MapAnnotationsService extends ChangeNotifier {
               mapbox.Position(loc.longitude as num, loc.latitude as num),
         ),
         image: tombstoneImage,
-        textField: '☠ ' + username,
+        textField: '☠ $username',
         textColor: Colors.white.value,
         textHaloColor: Colors.black.value,
         textHaloWidth: 1.0,
@@ -376,7 +376,7 @@ class MapAnnotationsService extends ChangeNotifier {
       _tombstoneByUserId[userId] = created;
     } catch (e) {
       debugPrint(
-          'Failed to drop tombstone for ' + userId + ': ' + e.toString());
+          'Failed to drop tombstone for $userId: $e');
     }
   }
 
@@ -388,7 +388,7 @@ class MapAnnotationsService extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint(
-          'Failed to remove tombstone for ' + userId + ': ' + e.toString());
+          'Failed to remove tombstone for $userId: $e');
     }
   }
 

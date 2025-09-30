@@ -148,6 +148,13 @@
   "respawned": "a réapparu",
   "askForHelp": "demande de l'aide",
   "askForMedic": "demande un médic",
-  "hostTransferred": "Transfert d'hôte"
+  "hostTransferred": "Transfert d'hôte",
+  "helpAcceptedTitle": "Aide acceptée",
+  "helpAcceptedSingle": "{name} arrive",
+  "helpAcceptedMany": "{names} et {count} autres arrivent",
+  "helpAcceptedManyCapped": "{names} et +{extra} autres arrivent"
+  ,
+  "helpAcceptedManyNoExtra": "{names} arrivent",
+  "@helpAcceptedManyNoExtra": {"placeholders": {"names": {"type": "String"}}}
 }
 

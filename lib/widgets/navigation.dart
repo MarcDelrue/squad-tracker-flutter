@@ -10,7 +10,7 @@ import 'package:squad_tracker_flutter/providers/ble_service.dart';
 import 'package:squad_tracker_flutter/providers/help_notification_service.dart';
 import 'package:squad_tracker_flutter/widgets/help_banner.dart';
 import 'package:provider/provider.dart';
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 
 class NavigationWidget extends StatefulWidget {
   const NavigationWidget({super.key});

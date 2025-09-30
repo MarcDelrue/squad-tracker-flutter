@@ -5,7 +5,7 @@ import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_session_service.dart';
 import 'package:squad_tracker_flutter/widgets/snack_bar.dart';
 import 'package:intl/intl.dart';
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 
 class SquadsRecentList extends StatefulWidget {
   const SquadsRecentList({super.key});

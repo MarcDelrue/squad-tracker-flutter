@@ -11,7 +11,7 @@ import 'package:squad_tracker_flutter/providers/user_squad_session_service.dart'
 import 'package:squad_tracker_flutter/widgets/invite_user_row.dart';
 import 'package:squad_tracker_flutter/widgets/snack_bar.dart';
 import 'package:squad_tracker_flutter/widgets/user_session_row.dart';
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 import 'package:squad_tracker_flutter/screens/squads/lobby/past_games_screen.dart';
 
 class SquadLobbyScreen extends StatefulWidget {

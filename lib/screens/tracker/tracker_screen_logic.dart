@@ -411,21 +411,19 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
       if (parts.length >= 3) {
         final reqId = parts[1];
         final action = parts[2];
-        // Best-effort: mark resolution in DB
+        // Insert responder's decision for analytics/notification fanout
         try {
-          final res = action == 'accept' ? 'accepted' : 'ignored';
           final sb = Supabase.instance.client;
-          // Fire and forget; no await in this sync handler
-          // ignore: unawaited_futures
-          sb
-              .from('help_requests')
-              .update({
-                'resolved_at': DateTime.now().toIso8601String(),
-                'resolved_by': UserService().currentUser?.id,
-                'resolution': res,
-              })
-              .eq('id', reqId)
-              .isFilter('resolved_at', null);
+          final uid = UserService().currentUser?.id;
+          if (uid != null && uid.isNotEmpty) {
+            final String resp = action == 'accept' ? 'accepted' : 'ignored';
+            // ignore: unawaited_futures
+            sb.from('help_responses').insert({
+              'request_id': reqId,
+              'responder_id': uid,
+              'response': resp,
+            });
+          }
         } catch (_) {}
       }
     }

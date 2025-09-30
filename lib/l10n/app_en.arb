@@ -149,6 +149,23 @@
   "respawned": "respawned",
   "askForHelp": "asked for help",
   "askForMedic": "asked for medic",
-  "hostTransferred": "Host transferred"
+  "hostTransferred": "Host transferred",
+  "helpAcceptedTitle": "Help accepted",
+  "helpAcceptedSingle": "{name} is on the way",
+  "helpAcceptedMany": "{names} and {count} others are on the way",
+  "helpAcceptedManyCapped": "{names} and +{extra} others are on the way",
+  "helpAcceptedManyNoExtra": "{names} are on the way",
+  "@helpAcceptedSingle": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "@helpAcceptedMany": {
+    "placeholders": { "names": { "type": "String" }, "count": { "type": "int" } }
+  },
+  "@helpAcceptedManyCapped": {
+    "placeholders": { "names": { "type": "String" }, "extra": { "type": "int" } }
+  },
+  "@helpAcceptedManyNoExtra": {
+    "placeholders": { "names": { "type": "String" } }
+  }
 }
 

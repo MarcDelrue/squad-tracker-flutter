@@ -7,7 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:provider/provider.dart';
 import 'package:squad_tracker_flutter/providers/ble_service.dart';
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 import 'package:squad_tracker_flutter/providers/locale_provider.dart';
 import 'package:squad_tracker_flutter/background/ble_foreground_task.dart';
 import 'package:squad_tracker_flutter/providers/help_notification_service.dart';

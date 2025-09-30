@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:squad_tracker_flutter/screens/squads/create/squads_create.dart';
 import 'package:squad_tracker_flutter/screens/squads/join/squads_join.dart';
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 
 class SquadHomeScreen extends StatelessWidget {
   const SquadHomeScreen({super.key});

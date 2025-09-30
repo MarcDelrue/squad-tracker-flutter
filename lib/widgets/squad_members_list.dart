@@ -12,7 +12,7 @@ import 'package:squad_tracker_flutter/providers/game_service.dart';
 // colors_option not used here anymore after extracting MemberTile
 import 'package:squad_tracker_flutter/utils/member_sort.dart';
 import 'package:squad_tracker_flutter/widgets/members/member_tile.dart';
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 // supabase import not used here anymore; removed
 
 class SquadMembersList extends StatefulWidget {

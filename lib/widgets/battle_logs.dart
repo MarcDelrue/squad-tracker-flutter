@@ -6,7 +6,7 @@ import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 
 class BattleLogsWidget extends StatefulWidget {
   final VoidCallback? onClose;

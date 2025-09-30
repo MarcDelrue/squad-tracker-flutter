@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
-import 'package:squad_tracker_flutter/l10n/localizations_extensions.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 import 'package:squad_tracker_flutter/providers/game_service.dart';
 
 enum LeaderboardSort { kills, kdr, streak }

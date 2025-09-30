@@ -1,4 +1,4 @@
-import 'package:squad_tracker_flutter/l10n/gen/app_localizations.dart';
+import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 
 // Temporary fallback getters until gen-l10n is rerun. When generated keys exist,
 // these extension getters will be shadowed by the real ones.
