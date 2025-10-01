@@ -9,7 +9,6 @@ import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart
 import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/providers/game_service.dart';
 import 'package:squad_tracker_flutter/providers/user_service.dart';
-import 'package:squad_tracker_flutter/providers/help_notification_service.dart';
 import 'package:squad_tracker_flutter/models/user_with_location_session_model.dart';
 import 'package:squad_tracker_flutter/models/squad_session_model.dart';
 import 'package:squad_tracker_flutter/l10n/app_localizations.dart';

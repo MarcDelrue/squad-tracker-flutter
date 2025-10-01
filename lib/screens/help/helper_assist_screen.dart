@@ -84,11 +84,12 @@ class _HelperAssistScreenState extends State<HelperAssistScreen> {
       if (me != null && target != null) {
         final d = dist.calculateDistanceFromUser(target, me);
         final b = dist.calculateDirectionToMember(target, me);
-        if (mounted)
+        if (mounted) {
           setState(() {
             _distance = d;
             _bearing = b;
           });
+        }
         final ble = BleService.global;
         if (ble != null && ble.connectedDevice != null) {
           final dirCard = _bearingToCardinal(b);

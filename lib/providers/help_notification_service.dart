@@ -214,8 +214,9 @@ class HelpNotificationService with ChangeNotifier {
               final req = byId[requestId];
               if (req == null) continue;
               if (req['resolved_at'] != null) continue; // ignore resolved
-              if (req['requester_id']?.toString() != myId)
+              if (req['requester_id']?.toString() != myId) {
                 continue; // only my requests
+              }
               if (response != 'accepted') continue; // only accepted
               _onAccepted(requestId: requestId, responderId: responderId);
             }
@@ -447,9 +448,10 @@ class HelpNotificationService with ChangeNotifier {
         final loc = AppLocalizations.of(ctx);
         final base = loc?.helpAcceptedSingle(name) ?? '$name is on the way';
         final parts = <String>[];
-        if (distanceMeters != null) parts.add('${distanceMeters!.round()} m');
-        if (directionDegrees != null)
-          parts.add('${directionDegrees!.round()}°');
+        if (distanceMeters != null) parts.add('${distanceMeters.round()} m');
+        if (directionDegrees != null) {
+          parts.add('${directionDegrees.round()}°');
+        }
         final body = parts.isEmpty ? base : '$base — ${parts.join(', ')}';
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(body)));
@@ -487,7 +489,7 @@ class HelpNotificationService with ChangeNotifier {
       final hasCtx = ctx != null;
       final loc = hasCtx ? AppLocalizations.of(ctx) : null;
       // ignore: unused_local_variable, undefined_getter
-      final _title = loc?.helpAcceptedTitle ?? 'Help accepted';
+      final title = loc?.helpAcceptedTitle ?? 'Help accepted';
       String body;
       if (accepts.length == 1) {
         final a = accepts.first;
@@ -495,7 +497,7 @@ class HelpNotificationService with ChangeNotifier {
         final bearing = a.directionDegrees?.round();
         final parts = <String>[];
         if (dist != null) parts.add('$dist m');
-        if (bearing != null) parts.add('${bearing}°');
+        if (bearing != null) parts.add('$bearing°');
         final suffix = parts.isEmpty ? '' : ' — ${parts.join(', ')}';
         // ignore: undefined_method
         final base =
