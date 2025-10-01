@@ -418,11 +418,11 @@ extension _TrackerBleLogicExt on _TrackerScreenState {
           if (uid != null && uid.isNotEmpty) {
             final String resp = action == 'accept' ? 'accepted' : 'ignored';
             // ignore: unawaited_futures
-            sb.from('help_responses').insert({
+            sb.from('help_responses').upsert({
               'request_id': reqId,
               'responder_id': uid,
               'response': resp,
-            });
+            }, onConflict: 'request_id,responder_id');
           }
         } catch (_) {}
       }

@@ -12,6 +12,8 @@ import 'package:squad_tracker_flutter/providers/locale_provider.dart';
 import 'package:squad_tracker_flutter/background/ble_foreground_task.dart';
 import 'package:squad_tracker_flutter/providers/help_notification_service.dart';
 import 'package:squad_tracker_flutter/providers/notification_settings_service.dart';
+import 'package:squad_tracker_flutter/screens/help/helper_assist_screen.dart';
+import 'package:squad_tracker_flutter/screens/help/requester_help_screen.dart';
 
 /// Flutter code sample for [NavigationBar].
 
@@ -168,6 +170,16 @@ class _AppInitializerState extends State<_AppInitializer> {
           ),
         ),
       ),
+      routes: {
+        '/help/assist': (ctx) {
+          final args = ModalRoute.of(ctx)!.settings.arguments as String;
+          return HelperAssistScreen(requestId: args);
+        },
+        '/help/requester': (ctx) {
+          final args = ModalRoute.of(ctx)!.settings.arguments as String;
+          return RequesterHelpScreen(requestId: args);
+        },
+      },
       home: FutureBuilder<bool>(
         future: _checkSession(),
         builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {

@@ -10,8 +10,7 @@ import 'package:squad_tracker_flutter/providers/game_service.dart';
 import 'package:squad_tracker_flutter/providers/squad_service.dart';
 import 'package:squad_tracker_flutter/providers/user_squad_location_service.dart';
 import 'package:squad_tracker_flutter/providers/ble_service.dart';
-import 'package:squad_tracker_flutter/widgets/navigation.dart';
-import 'package:squad_tracker_flutter/providers/map_user_location_service.dart';
+// Removed navigation/map imports; navigation handled via named routes
 import 'package:squad_tracker_flutter/providers/notification_settings_service.dart';
 import 'package:squad_tracker_flutter/l10n/app_localizations.dart';
 // import removed: user_service is not used here
@@ -41,6 +40,7 @@ class HelpNotificationService with ChangeNotifier {
   final Map<String, DateTime> _recentlyResolved = <String, DateTime>{};
   final Map<String, int> _requestProcessCount = <String, int>{};
   final Set<String> _cancelSentFor = <String>{};
+  final Set<String> _openedRequesterScreens = <String>{};
   bool _initialized = false;
   bool _isAppInForeground = true;
 
@@ -157,6 +157,7 @@ class HelpNotificationService with ChangeNotifier {
               _dismissInAppBanner(id);
               _ln.cancel(_hashId(id));
               _sendBleCancel(id);
+              _openedRequesterScreens.remove(id);
             } else {
               debugPrint('[help] Cancel already sent for $id, skipping');
             }
@@ -348,44 +349,17 @@ class HelpNotificationService with ChangeNotifier {
     if (_isAppInForeground && _settings?.showInAppBanner == true) {
       // App is in foreground - show in-app banner only
       _showInAppBanner(request, title, body);
-    } else if (!_isAppInForeground &&
-        _settings?.showSystemNotification == true) {
-      // App is in background - show system notification only
-      await _ln.show(
-        _hashId(request.requestId),
-        title,
-        body.isEmpty ? null : body,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            'Help Requests',
-            importance: Importance.high,
-            priority: Priority.high,
-            category: AndroidNotificationCategory.call,
-            playSound: _settings?.soundEnabled ?? true,
-            actions: <AndroidNotificationAction>[
-              const AndroidNotificationAction('help_ignore', 'Ignore',
-                  showsUserInterface: true, cancelNotification: true),
-              const AndroidNotificationAction('help_accept', 'Go Help',
-                  showsUserInterface: true, cancelNotification: true),
-            ],
-          ),
-          iOS: DarwinNotificationDetails(
-            categoryIdentifier: 'help_category',
-            presentSound: _settings?.soundEnabled ?? true,
-          ),
-        ),
-        payload: 'help:${request.requestId}:none',
-      );
     }
 
-    // Auto dismiss after configured timeout
-    Future.delayed(Duration(seconds: _settings?.timeoutSeconds ?? 20),
-        () async {
-      await _ln.cancel(_hashId(request.requestId));
-      _activeNotifications.remove(request.requestId);
-      _dismissInAppBanner(request.requestId);
-    });
+    // Only auto-dismiss if timeout > 0
+    final to = _settings?.timeoutSeconds ?? 0;
+    if (to > 0) {
+      Future.delayed(Duration(seconds: to), () async {
+        await _ln.cancel(_hashId(request.requestId));
+        _activeNotifications.remove(request.requestId);
+        _dismissInAppBanner(request.requestId);
+      });
+    }
   }
 
   Future<void> showBackgroundNotification(HelpRequest request) async {
@@ -394,43 +368,29 @@ class HelpNotificationService with ChangeNotifier {
   }
 
   Future<void> handleResponse(String requestId, HelpResponse response) async {
-    // Record response immutably; do not resolve request here
+    // Upsert to prevent duplicates across devices
     try {
       final uid = _sb.auth.currentUser?.id;
       if (uid != null) {
-        await _sb.from('help_responses').insert({
+        await _sb.from('help_responses').upsert({
           'request_id': requestId,
           'responder_id': uid,
           'response': response == HelpResponse.accept ? 'accepted' : 'ignored',
-        });
+        }, onConflict: 'request_id,responder_id');
       }
     } catch (_) {}
     _activeNotifications.remove(requestId);
     _dismissInAppBanner(requestId);
     await _ln.cancel(_hashId(requestId));
     await _sendBleCancel(requestId);
-    // If accepted, fly map to requester
+    // If accepted, navigate to helper assist screen and fly map
     if (response == HelpResponse.accept) {
       try {
-        final reqRow = await _sb
-            .from('help_requests')
-            .select('requester_id')
-            .eq('id', requestId)
-            .maybeSingle();
-        final requesterId = reqRow?['requester_id']?.toString();
-        if (requesterId != null) {
-          // Compute location and fly camera
-          final memberLoc = _loc.currentMembersLocation
-              ?.firstWhereOrNull((l) => l.user_id == requesterId);
-          if (memberLoc?.latitude != null && memberLoc?.longitude != null) {
-            try {
-              NavigationWidget.goToTab(2); // Map tab
-              await MapUserLocationService().flyToLocation(
-                memberLoc!.longitude!,
-                memberLoc.latitude!,
-              );
-            } catch (_) {}
-          }
+        final ctx = _context;
+        if (ctx != null) {
+          // ignore: use_build_context_synchronously
+          Navigator.of(ctx, rootNavigator: true)
+              .pushNamed('/help/assist', arguments: requestId);
         }
       } catch (_) {}
     }
@@ -439,7 +399,7 @@ class HelpNotificationService with ChangeNotifier {
   // Handle an accepted response for my request; coalesce and notify
   void _onAccepted(
       {required String requestId, required String responderId}) async {
-    // Resolve responder name and distance/direction
+    // Resolve responder name and optional distance/direction (best-effort)
     String name = responderId.substring(0, 6);
     String colorHex = '#000000';
     double? distanceMeters;
@@ -469,15 +429,45 @@ class HelpNotificationService with ChangeNotifier {
       }
     } catch (_) {}
 
-    final coalescer = _acceptCoalescers.putIfAbsent(
-        requestId, () => _AcceptCoalescer(window: const Duration(seconds: 10)));
-    coalescer.add(_AcceptedInfo(
-        userId: responderId,
-        name: name,
-        distanceMeters: distanceMeters,
-        directionDegrees: directionDegrees,
-        colorHex: colorHex));
-    coalescer.schedule(() => _flushAccepts(requestId));
+    // Immediately open requester screen on first acceptance
+    try {
+      final ctx = _context;
+      if (ctx != null && !_openedRequesterScreens.contains(requestId)) {
+        _openedRequesterScreens.add(requestId);
+        // ignore: use_build_context_synchronously
+        Navigator.of(ctx, rootNavigator: true)
+            .pushNamed('/help/requester', arguments: requestId);
+      }
+    } catch (_) {}
+
+    // Optional: foreground snackbar with a quick message
+    try {
+      final ctx = _context;
+      if (_isAppInForeground && ctx != null) {
+        final loc = AppLocalizations.of(ctx);
+        final base = loc?.helpAcceptedSingle(name) ?? '$name is on the way';
+        final parts = <String>[];
+        if (distanceMeters != null) parts.add('${distanceMeters!.round()} m');
+        if (directionDegrees != null)
+          parts.add('${directionDegrees!.round()}°');
+        final body = parts.isEmpty ? base : '$base — ${parts.join(', ')}';
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(body)));
+      }
+    } catch (_) {}
+
+    // Send single BLE HELP_ACK entry immediately (device shows top 1 fine)
+    try {
+      final ble = BleService.global;
+      if (ble != null && ble.connectedDevice != null) {
+        final distInt = (distanceMeters ?? -1).round();
+        final dirDeg = (directionDegrees ?? -1).round();
+        final nameSafe = name.replaceAll(' ', '_');
+        final color = colorHex.replaceAll('#', '').toUpperCase();
+        final line = 'HELP_ACK $requestId $nameSafe $distInt $dirDeg $color';
+        await ble.sendString(line);
+      }
+    } catch (_) {}
   }
 
   Future<void> _flushAccepts(String requestId) async {
@@ -496,8 +486,8 @@ class HelpNotificationService with ChangeNotifier {
       final ctx = _context;
       final hasCtx = ctx != null;
       final loc = hasCtx ? AppLocalizations.of(ctx) : null;
-      // ignore: undefined_getter
-      final title = loc?.helpAcceptedTitle ?? 'Help accepted';
+      // ignore: unused_local_variable, undefined_getter
+      final _title = loc?.helpAcceptedTitle ?? 'Help accepted';
       String body;
       if (accepts.length == 1) {
         final a = accepts.first;
@@ -525,21 +515,15 @@ class HelpNotificationService with ChangeNotifier {
         ScaffoldMessenger.of(ctx).showSnackBar(
           SnackBar(content: Text(body)),
         );
-      } else {
-        await _ln.show(
-          _hashId('help_ack_$requestId'),
-          title,
-          body,
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              _channelId,
-              'Help Requests',
-              importance: Importance.high,
-              priority: Priority.high,
-            ),
-            iOS: DarwinNotificationDetails(),
-          ),
-        );
+        // Also open the requester screen the first time we see an accept
+        if (!_openedRequesterScreens.contains(requestId)) {
+          _openedRequesterScreens.add(requestId);
+          try {
+            // ignore: use_build_context_synchronously
+            Navigator.of(ctx, rootNavigator: true)
+                .pushNamed('/help/requester', arguments: requestId);
+          } catch (_) {}
+        }
       }
     } catch (_) {}
 

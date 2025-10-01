@@ -131,15 +131,6 @@ class _UserStatusButtonsState extends State<UserStatusButtons> {
 
           await gameService.setStatus(
               squadId: squadId, status: newStatus.value);
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(AppLocalizations.of(context)!.profileUpdated),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
